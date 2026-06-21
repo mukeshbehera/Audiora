@@ -262,9 +262,10 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
             ) { backStackEntry ->
                 val bookId = backStackEntry.arguments?.getInt("bookId") ?: return@composable
                 val book by app.bookRepository.getAudiobook(bookId).collectAsState(initial = null)
-                val alreadyLoaded = app.playbackManager.currentBook.value?.id == bookId
-                LaunchedEffect(bookId) {
-                    if (!alreadyLoaded && book != null) {
+                var loadedForId by remember { mutableStateOf(-1) }
+                LaunchedEffect(book) {
+                    if (book != null && loadedForId != bookId) {
+                        loadedForId = bookId
                         app.playbackManager.playBook(book!!)
                     }
                 }
