@@ -7,7 +7,6 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.PauseCircleFilled
 import androidx.compose.material.icons.rounded.PlayCircleFilled
 import androidx.compose.material3.*
@@ -17,12 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.audiora.domain.model.Audiobook
 import com.audiora.ui.theme.PrimaryPurple
 import kotlin.math.abs
@@ -44,6 +45,8 @@ fun MiniPlayer(
     val swipeThreshold = with(density) { 120.dp.toPx() }
     val scope = rememberCoroutineScope()
     val offsetAnimatable = remember { Animatable(0f) }
+
+    val isRealCover = !book.coverPath.isNullOrEmpty()
 
     Box(
         modifier = modifier
@@ -93,12 +96,21 @@ fun MiniPlayer(
                     .background(PrimaryPurple.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.LibraryMusic,
-                    contentDescription = null,
-                    tint = PrimaryPurple,
-                    modifier = Modifier.size(24.dp)
-                )
+                if (isRealCover) {
+                    AsyncImage(
+                        model = book.coverPath,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.LibraryMusic,
+                        contentDescription = null,
+                        tint = PrimaryPurple,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             // Title and author
