@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import kotlinx.coroutines.flow.first
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -262,9 +263,11 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
             ) { backStackEntry ->
                 val bookId = backStackEntry.arguments?.getInt("bookId") ?: return@composable
                 val book by app.bookRepository.getAudiobook(bookId).collectAsState(initial = null)
-                LaunchedEffect(book) {
-                    if (book != null && app.playbackManager.currentBook.value?.id != bookId) {
-                        app.playbackManager.playBook(book!!)
+                // Use bookId as stable key so this only fires on navigation, not on Room re-emissions
+                LaunchedEffect(bookId) {
+                    val loadedBook = app.bookRepository.getAudiobook(bookId).first()
+                    if (loadedBook != null) {
+                        app.playbackManager.playBook(loadedBook)
                     }
                 }
                 PlayerScreen(
