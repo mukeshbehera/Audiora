@@ -196,8 +196,8 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
                             launchSingleTop = true
                         }
                     },
-                    onNavigateToDetails = { bookId ->
-                        navController.navigate("details/$bookId")
+                    onNavigateToPlayer = { bookId ->
+                        navController.navigate("player/$bookId")
                     }
                 )
             }
@@ -223,7 +223,19 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
                     }
                 )
             }
-            composable(Screen.Player.route) {
+            composable(
+                route = Screen.Player.route,
+                arguments = listOf(
+                    androidx.navigation.navArgument("bookId") {
+                        type = androidx.navigation.NavType.IntType
+                    }
+                )
+            ) { backStackEntry ->
+                val bookId = backStackEntry.arguments?.getInt("bookId") ?: return@composable
+                val book by app.bookRepository.getAudiobook(bookId).collectAsState(initial = null)
+                LaunchedEffect(book) {
+                    book?.let { app.playbackManager.playBook(it) }
+                }
                 PlayerScreen()
             }
             composable(

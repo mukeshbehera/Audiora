@@ -49,7 +49,7 @@ import com.audiora.ui.theme.PrimaryPurple
 @Composable
 fun LibraryScreen(
     onNavigateToCreate: () -> Unit,
-    onNavigateToDetails: (Int) -> Unit,
+    onNavigateToPlayer: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -201,7 +201,7 @@ fun LibraryScreen(
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
                     ClickableGlassmorphicCard(
-                        onClick = { onNavigateToDetails(actionBook.id) },
+                        onClick = { onNavigateToPlayer(actionBook.id) },
                         modifier = Modifier.fillMaxWidth(),
                         cornerRadius = 24.dp
                     ) {
@@ -291,7 +291,7 @@ fun LibraryScreen(
                                 modifier = Modifier
                                     .size(42.dp)
                                     .background(gradient, CircleShape)
-                                    .clickable { onNavigateToDetails(actionBook.id) },
+                                    .clickable { onNavigateToPlayer(actionBook.id) },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
@@ -436,7 +436,7 @@ fun LibraryScreen(
                         items(filteredAudiobooks, key = { it.id }) { book ->
                             AudiobookGridCard(
                                 audiobook = book,
-                                onSelect = { onNavigateToDetails(book.id) }
+                                onSelect = { onNavigateToPlayer(book.id) }
                             )
                         }
                     }
@@ -452,7 +452,7 @@ fun LibraryScreen(
                         items(filteredAudiobooks, key = { it.id }) { book ->
                             AudiobookListCard(
                                 audiobook = book,
-                                onSelect = { onNavigateToDetails(book.id) }
+                                onSelect = { onNavigateToPlayer(book.id) }
                             )
                         }
                     }

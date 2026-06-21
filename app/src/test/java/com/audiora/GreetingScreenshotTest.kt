@@ -23,7 +23,7 @@ class GreetingScreenshotTest {
   fun greeting_screenshot() {
     composeTestRule.setContent { 
       MyApplicationTheme { 
-        com.audiora.feature.library.LibraryScreen(onNavigateToCreate = {}, onNavigateToDetails = {}) 
+        com.audiora.feature.library.LibraryScreen(onNavigateToCreate = {}, onNavigateToPlayer = {}) 
       } 
     }
 

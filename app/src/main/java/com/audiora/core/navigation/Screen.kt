@@ -22,7 +22,7 @@ sealed class Screen(
     )
 
     object Player : Screen(
-        route = "player",
+        route = "player/{bookId}",
         title = "Player",
         icon = Icons.Rounded.PlayCircle
     )
