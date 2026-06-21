@@ -1,0 +1,50 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Soundwave Pillars -->
+    <path
+        android:strokeColor="#C084FC"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M34,68 L34,48" />
+    <path
+        android:strokeColor="#E9D5FF"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M44,68 L44,36" />
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M54,68 L54,26" />
+    <path
+        android:strokeColor="#E9D5FF"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:pathData="M64,68 L64,36" />
+    <path
+        android:strokeColor="#C084FC"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M74,68 L74,48" />
+        
+    <!-- Book Outer/Cover Purple Base -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M54,64.5 C42,64.5 32,58.5 22,62.5 L22,76.5 C32,72.5 42,78.5 54,72.5 C66,78.5 76,72.5 86,76.5 L86,62.5 C76,58.5 66,64.5 54,64.5 Z" />
+        
+    <!-- Book Inner White Pages -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,63 C42,63 32,57 22,61 L22,74 C32,70 42,76 54,70 C66,76 76,70 86,74 L86,61 C76,57 66,63 54,63 Z" />
+        
+    <!-- Book Spine/Center Split Line -->
+    <path
+        android:strokeColor="#8B5CF6"
+        android:strokeWidth="1.2"
+        android:pathData="M54,63 L54,70" />
+        
+</vector>

@@ -1,0 +1,6 @@
+{
+  "name": "Audiora",
+  "description": "A modern Android audiobook studio with advanced playback, metadata editing, and creation tools.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
