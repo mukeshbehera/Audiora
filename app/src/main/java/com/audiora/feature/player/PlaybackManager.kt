@@ -344,6 +344,7 @@ class PlaybackManager(
         val activeController = controller ?: return
         activeController.seekTo(positionMs)
         _currentPosition.value = positionMs
+        updateCurrentChapterIndex(positionMs)
         scope.launch {
             saveCurrentPositionToDb()
         }
@@ -492,6 +493,21 @@ class PlaybackManager(
                 }
             }
         }
+    }
+
+    fun stopPlayback() {
+        saveCurrentPositionToDb()
+        val activeController = controller
+        if (activeController != null) {
+            activeController.stop()
+            activeController.clearMediaItems()
+        }
+        _currentBook.value = null
+        _isPlaying.value = false
+        _currentPosition.value = 0L
+        _chapters.value = emptyList()
+        _currentChapterIndex.value = -1
+        cancelSleepTimer()
     }
 
     fun release() {

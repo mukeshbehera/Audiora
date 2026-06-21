@@ -22,6 +22,7 @@ import com.audiora.core.navigation.Screen
 import com.audiora.feature.converter.CreateScreen
 import com.audiora.feature.editor.EditScreen
 import com.audiora.feature.library.LibraryScreen
+import com.audiora.feature.player.MiniPlayer
 import com.audiora.feature.player.PlayerScreen
 import com.audiora.feature.search.SearchScreen
 import com.audiora.feature.settings.SettingsScreen
@@ -69,62 +70,90 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
     val context = LocalContext.current
     val app = context.applicationContext as AudioraApplication
 
+    val playbackManager = app.playbackManager
+    val currentBook by playbackManager.currentBook.collectAsState()
+    val isPlaying by playbackManager.isPlaying.collectAsState()
+    val currentPosition by playbackManager.currentPosition.collectAsState()
+    val duration by playbackManager.duration.collectAsState()
+
+    val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
+    val showBottomNav = currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders" && currentRoute != Screen.Player.route
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            if (currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders") {
-                // Elegant premium floating glass bottom bar
-                com.audiora.core.design.AudioraGlassBottomBar {
-                    Screen.items.forEach { screen ->
-                        val selected = currentRoute?.substringBefore("?") == screen.route
-                        
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                val targetRoute = if (screen == Screen.Edit) "edit?bookId=-1" else screen.route
-                                val isInsideLibraryFlow = currentRoute == Screen.Details.route || currentRoute?.startsWith("details") == true || currentRoute?.startsWith("edit") == true
-                                
-                                if (screen == Screen.Library && isInsideLibraryFlow) {
-                                    navController.popBackStack(Screen.Library.route, false)
-                                } else if (currentRoute != targetRoute && currentRoute?.substringBefore("?") != screen.route) {
-                                    navController.navigate(targetRoute) {
-                                        // Pop up to the start destination of the graph to
-                                        // avoid building up a large stack of destinations
-                                        popUpTo(Screen.Library.route) {
-                                            saveState = true
+            Column {
+                // Mini player above bottom nav bar
+                if (showMiniPlayer && showBottomNav) {
+                    MiniPlayer(
+                        book = currentBook!!,
+                        isPlaying = isPlaying,
+                        currentPosition = currentPosition,
+                        duration = duration,
+                        onTogglePlayPause = { playbackManager.togglePlayPause() },
+                        onDismiss = { playbackManager.stopPlayback() },
+                        onNavigateToPlayer = {
+                            navController.navigate(Screen.Player.route.replace("{bookId}", currentBook!!.id.toString())) {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+
+                if (showBottomNav) {
+                    // Elegant premium floating glass bottom bar
+                    com.audiora.core.design.AudioraGlassBottomBar {
+                        Screen.items.forEach { screen ->
+                            val selected = currentRoute?.substringBefore("?") == screen.route
+
+                            NavigationBarItem(
+                                selected = selected,
+                                onClick = {
+                                    val targetRoute = if (screen == Screen.Edit) "edit?bookId=-1" else screen.route
+                                    val isInsideLibraryFlow = currentRoute == Screen.Details.route || currentRoute?.startsWith("details") == true || currentRoute?.startsWith("edit") == true
+
+                                    if (screen == Screen.Library && isInsideLibraryFlow) {
+                                        navController.popBackStack(Screen.Library.route, false)
+                                    } else if (currentRoute != targetRoute && currentRoute?.substringBefore("?") != screen.route) {
+                                        navController.navigate(targetRoute) {
+                                            // Pop up to the start destination of the graph to
+                                            // avoid building up a large stack of destinations
+                                            popUpTo(Screen.Library.route) {
+                                                saveState = true
+                                            }
+                                            // Avoid multiple copies of the same destination when
+                                            // reselecting the same item
+                                            launchSingleTop = true
+                                            // Restore state when reselecting a previously selected item
+                                            restoreState = true
                                         }
-                                        // Avoid multiple copies of the same destination when
-                                        // reselecting the same item
-                                        launchSingleTop = true
-                                        // Restore state when reselecting a previously selected item
-                                        restoreState = true
+                                        Timber.d("Navigated to destination screen: ${screen.title}")
                                     }
-                                    Timber.d("Navigated to destination screen: ${screen.title}")
-                                }
-                            },
-                            icon = {
-                                Icon(
-                                    imageVector = screen.icon,
-                                    contentDescription = screen.title,
-                                    tint = if (selected) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = screen.icon,
+                                        contentDescription = screen.title,
+                                        tint = if (selected) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text = screen.title,
+                                        color = if (selected) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        fontSize = 11.sp,
+                                        fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = PrimaryPurple.copy(alpha = 0.15f),
+                                    selectedIconColor = PrimaryPurple,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    selectedTextColor = PrimaryPurple,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
-                            },
-                            label = {
-                                Text(
-                                    text = screen.title,
-                                    color = if (selected) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    fontSize = 11.sp,
-                                    fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
-                                )
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = PrimaryPurple.copy(alpha = 0.15f),
-                                selectedIconColor = PrimaryPurple,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                selectedTextColor = PrimaryPurple,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -233,10 +262,20 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
             ) { backStackEntry ->
                 val bookId = backStackEntry.arguments?.getInt("bookId") ?: return@composable
                 val book by app.bookRepository.getAudiobook(bookId).collectAsState(initial = null)
-                LaunchedEffect(book) {
-                    book?.let { app.playbackManager.playBook(it) }
+                val alreadyLoaded = app.playbackManager.currentBook.value?.id == bookId
+                LaunchedEffect(bookId) {
+                    if (!alreadyLoaded && book != null) {
+                        app.playbackManager.playBook(book!!)
+                    }
                 }
-                PlayerScreen()
+                PlayerScreen(
+                    onNavigateBack = {
+                        navController.navigate(Screen.Library.route) {
+                            popUpTo(Screen.Library.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
             composable(
                 route = "edit?bookId={bookId}",
