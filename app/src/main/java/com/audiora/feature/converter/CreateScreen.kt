@@ -257,7 +257,9 @@ fun CreateScreen(
         }
     }
 
-    val isDark = LocalDarkTheme.current
+    val isDark = (0.2126f * MaterialTheme.colorScheme.background.red + 
+                  0.7152f * MaterialTheme.colorScheme.background.green + 
+                  0.0722f * MaterialTheme.colorScheme.background.blue) < 0.5f
     val adaptiveBg = if (isDark) MaterialTheme.colorScheme.background else Color(0xFFF9F8FD)
     val adaptiveTitle = if (isDark) MaterialTheme.colorScheme.onBackground else Color(0xFF0F172A)
     val adaptiveSecondaryText = if (isDark) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f) else Color(0xFF374151)
@@ -1125,7 +1127,9 @@ fun Step1OptionRow(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val isDark = LocalDarkTheme.current
+    val isDark = (0.2126f * MaterialTheme.colorScheme.background.red + 
+                  0.7152f * MaterialTheme.colorScheme.background.green + 
+                  0.0722f * MaterialTheme.colorScheme.background.blue) < 0.5f
     val background = if (isDark) MaterialTheme.colorScheme.surface else Color.White
     val borderColor = if (isSelected) Color(0xFF8B5CF6) else (if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
     val checkColor = if (isSelected) Color(0xFF7C3AED) else (if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFFD1D5DB))
@@ -1203,7 +1207,9 @@ fun Step4OptionRow(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val isDark = LocalDarkTheme.current
+    val isDark = (0.2126f * MaterialTheme.colorScheme.background.red + 
+                  0.7152f * MaterialTheme.colorScheme.background.green + 
+                  0.0722f * MaterialTheme.colorScheme.background.blue) < 0.5f
     val background = if (isDark) MaterialTheme.colorScheme.surface else Color.White
     val borderColor = if (isSelected) Color(0xFF8B5CF6) else (if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
     val checkColor = if (isSelected) Color(0xFF7C3AED) else (if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFFD1D5DB))
@@ -1446,7 +1452,9 @@ fun WizardStepIndicator(
     currentStep: Int,
     modifier: Modifier = Modifier
 ) {
-    val isDark = LocalDarkTheme.current
+    val isDark = (0.2126f * MaterialTheme.colorScheme.background.red + 
+                  0.7152f * MaterialTheme.colorScheme.background.green + 
+                  0.0722f * MaterialTheme.colorScheme.background.blue) < 0.5f
     val activeColor = Color(0xFF8B5CF6)
     val completedColor = Color(0xFF8B5CF6).copy(alpha = 0.2f)
     val inactiveDotBg = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.05f)

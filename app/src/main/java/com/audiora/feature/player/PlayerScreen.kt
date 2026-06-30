@@ -558,6 +558,16 @@ fun PlayerScreen(
         }
     }
 
+    // Retrieve full library to auto-load the first book if player is empty on launch
+    val libraryBooks by app.bookRepository.getAudiobooks().collectAsStateWithLifecycle(initialValue = emptyList())
+
+    LaunchedEffect(currentBook, libraryBooks) {
+        if (currentBook == null && libraryBooks.isNotEmpty()) {
+            playbackManager.playBook(libraryBooks[0])
+            playbackManager.togglePlayPause() // Load initialized but paused
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

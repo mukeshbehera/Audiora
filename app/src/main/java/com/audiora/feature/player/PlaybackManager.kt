@@ -71,17 +71,13 @@ class PlaybackManager(
     private val _currentChapterIndex = MutableStateFlow(-1)
     val currentChapterIndex: StateFlow<Int> = _currentChapterIndex.asStateFlow()
 
-    private var chaptersSetFromCustomJson = false
-
     fun generateChaptersForBook(book: Audiobook) {
-        chaptersSetFromCustomJson = false
         val customJson = book.chaptersJson
         if (!customJson.isNullOrEmpty()) {
             val decoded = com.audiora.domain.model.Chapter.deserializeList(customJson)
             if (decoded.isNotEmpty()) {
                 _chapters.value = decoded
                 _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, decoded)
-                chaptersSetFromCustomJson = true
                 return
             }
         }
@@ -220,7 +216,6 @@ class PlaybackManager(
             }
 
             override fun onMetadata(metadata: androidx.media3.common.Metadata) {
-                if (chaptersSetFromCustomJson) return
                 val extractedChapters = mutableListOf<Chapter>()
                 for (i in 0 until metadata.length()) {
                     val entry = metadata.get(i)
@@ -349,7 +344,6 @@ class PlaybackManager(
         val activeController = controller ?: return
         activeController.seekTo(positionMs)
         _currentPosition.value = positionMs
-        updateCurrentChapterIndex(positionMs)
         scope.launch {
             saveCurrentPositionToDb()
         }
@@ -498,22 +492,6 @@ class PlaybackManager(
                 }
             }
         }
-    }
-
-    fun stopPlayback() {
-        saveCurrentPositionToDb()
-        val activeController = controller
-        if (activeController != null) {
-            activeController.stop()
-            activeController.clearMediaItems()
-        }
-        _currentBook.value = null
-        _isPlaying.value = false
-        _currentPosition.value = 0L
-        _chapters.value = emptyList()
-        _currentChapterIndex.value = -1
-        chaptersSetFromCustomJson = false
-        cancelSleepTimer()
     }
 
     fun release() {

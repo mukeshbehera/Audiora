@@ -49,7 +49,7 @@ import com.audiora.ui.theme.PrimaryPurple
 @Composable
 fun LibraryScreen(
     onNavigateToCreate: () -> Unit,
-    onNavigateToPlayer: (Int) -> Unit,
+    onNavigateToDetails: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -192,6 +192,120 @@ fun LibraryScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
+            // Continue Listening section if library has audiobooks
+            if (audiobooks.isNotEmpty()) {
+                val actionBook = audiobooks.first()
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    ClickableGlassmorphicCard(
+                        onClick = { onNavigateToDetails(actionBook.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = 24.dp
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AudiobookCoverArt(
+                                title = actionBook.title,
+                                author = actionBook.author,
+                                genre = actionBook.genre,
+                                coverColorSeed = actionBook.coverPath ?: "default",
+                                modifier = Modifier
+                                    .width(72.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = "Continue Listening",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryPurple,
+                                    letterSpacing = 0.5.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = actionBook.title,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = actionBook.author,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = "Chapter 5 • ${(actionBook.progress * 100).toInt()}%",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                    )
+                                    Text(
+                                        text = "12h 45m left",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                LinearProgressIndicator(
+                                    progress = { actionBook.progress },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .clip(CircleShape),
+                                    color = PrimaryPurple,
+                                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            // Play button
+                            val gradient = Brush.horizontalGradient(
+                                colors = listOf(com.audiora.ui.theme.BrandGradientStart, com.audiora.ui.theme.BrandGradientEnd)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .background(gradient, CircleShape)
+                                    .clickable { onNavigateToDetails(actionBook.id) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PlayArrow,
+                                    contentDescription = "Play",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
 
 
             // Genre filter row
@@ -322,7 +436,7 @@ fun LibraryScreen(
                         items(filteredAudiobooks, key = { it.id }) { book ->
                             AudiobookGridCard(
                                 audiobook = book,
-                                onSelect = { onNavigateToPlayer(book.id) }
+                                onSelect = { onNavigateToDetails(book.id) }
                             )
                         }
                     }
@@ -338,7 +452,7 @@ fun LibraryScreen(
                         items(filteredAudiobooks, key = { it.id }) { book ->
                             AudiobookListCard(
                                 audiobook = book,
-                                onSelect = { onNavigateToPlayer(book.id) }
+                                onSelect = { onNavigateToDetails(book.id) }
                             )
                         }
                     }
