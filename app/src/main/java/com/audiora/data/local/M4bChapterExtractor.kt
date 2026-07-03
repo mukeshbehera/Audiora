@@ -4,7 +4,6 @@ package com.audiora.data.local
 
 import android.content.Context
 import android.net.Uri
-import androidx.media3.common.C
 import androidx.media3.common.util.ParsableByteArray
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
@@ -88,7 +87,7 @@ object M4bChapterExtractor {
     val dataSource = DefaultDataSource.Factory(context).createDataSource()
     try {
       dataSource.open(DataSpec(uri))
-      val input = DefaultExtractorInput(dataSource, 0, C.LENGTH_UNSET)
+      val input = DefaultExtractorInput(dataSource, 0, -1L)
       val parsed = walkAtoms(input)
       val marks = buildMarks(parsed, dataSource, uri)
       if (marks.isEmpty()) return@withContext emptyList()
@@ -131,10 +130,8 @@ object M4bChapterExtractor {
 
   private val ALL_PATHS = setOf(P_CHPL, P_CHAP, P_MDHD, P_STCO, P_STSC, P_STTS)
 
-  companion object {
-    private const val ATOM_HEADER_SIZE = 8
-    private const val ATOM_LONG_HEADER_SIZE = 16
-  }
+  private const val ATOM_HEADER_SIZE = 8
+  private const val ATOM_LONG_HEADER_SIZE = 16
 
   private fun walkAtoms(input: ExtractorInput): ParsedData {
     val scratch = ParsableByteArray(ATOM_LONG_HEADER_SIZE)
