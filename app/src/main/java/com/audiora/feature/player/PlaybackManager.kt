@@ -6,10 +6,9 @@ import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.extractor.metadata.id3.ChapterFrame
-import androidx.media3.extractor.metadata.id3.TextInformationFrame
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.audiora.data.local.M4bChapterExtractor
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.model.Chapter
 import com.audiora.domain.repository.BookRepository
@@ -71,58 +70,65 @@ class PlaybackManager(
     private val _currentChapterIndex = MutableStateFlow(-1)
     val currentChapterIndex: StateFlow<Int> = _currentChapterIndex.asStateFlow()
 
-    private var chaptersSetFromCustomJson = false
-
-    fun generateChaptersForBook(book: Audiobook) {
-        chaptersSetFromCustomJson = false
-        val customJson = book.chaptersJson
-        if (!customJson.isNullOrEmpty()) {
-            val decoded = com.audiora.domain.model.Chapter.deserializeList(customJson)
+    /**
+     * Loads chapters for the given book, trying in order:
+     * 1. Cached chapters from DB (chaptersJson)
+     * 2. M4B chapter extraction from the file
+     * 3. Single "Full Audiobook" entry as fallback
+     */
+    private fun loadChaptersForBook(book: Audiobook) {
+        // 1. Check cached chapters JSON first
+        if (!book.chaptersJson.isNullOrEmpty()) {
+            val decoded = Chapter.deserializeList(book.chaptersJson)
             if (decoded.isNotEmpty()) {
                 _chapters.value = decoded
                 _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, decoded)
-                chaptersSetFromCustomJson = true
                 return
             }
         }
-        val duration = if (book.durationMs > 0) book.durationMs else 3600000L
-        val count = when {
-            duration < 600000L -> 1
-            duration < 1800000L -> 3
-            duration < 7200000L -> 6
-            else -> 10
-        }
-        val list = mutableListOf<Chapter>()
-        val step = duration / count
-        val names = listOf(
-            "Prologue & Foundations",
-            "The Spark of Intention",
-            "Navigating the Wilderness",
-            "Uncharted Dimensions",
-            "Shattered Artifacts",
-            "Echoes of Memory",
-            "Unlocking the Cipher",
-            "The Confluence Edge",
-            "Into the Neon Zenith",
-            "Epilogue & Looking Forward",
-            "Afterword Notes",
-            "Collector's Appendix"
-        )
-        for (i in 0 until count) {
-            val startMs = i * step
-            val endMs = if (i == count - 1) duration else (i + 1) * step
-            val title = if (i < names.size) names[i] else "Section ${i + 1}"
-            list.add(
-                Chapter(
-                    title = title,
-                    startMs = startMs,
-                    endMs = endMs,
-                    durationMs = endMs - startMs
+
+        scope.launch(Dispatchers.IO) {
+            val extracted = try {
+                val isContentUri = book.filePath.startsWith("content://")
+                if (isContentUri) {
+                    M4bChapterExtractor.extractFromUri(context, android.net.Uri.parse(book.filePath), book.durationMs)
+                } else if (book.filePath.isNotEmpty()) {
+                    M4bChapterExtractor.extractFromFile(book.filePath, book.durationMs)
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "PlaybackManager: Error extracting chapters")
+                emptyList()
+            }
+
+            val chapters = if (extracted.isNotEmpty()) {
+                // Persist extracted chapters to DB for future opens
+                try {
+                    if (book.id > 0) {
+                        bookRepository.updateBookChapters(context, book.id, extracted)
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "PlaybackManager: Error persisting extracted chapters")
+                }
+                extracted
+            } else {
+                // 3. Fallback: single entry covering the whole audiobook
+                val duration = if (book.durationMs > 0) book.durationMs else 3600000L
+                listOf(
+                    Chapter(
+                        title = book.title.ifEmpty { "Full Audiobook" },
+                        startMs = 0L,
+                        endMs = duration,
+                        durationMs = duration,
+                        index = 0
+                    )
                 )
-            )
+            }
+
+            _chapters.value = chapters
+            _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, chapters)
         }
-        _chapters.value = list
-        _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, list)
     }
 
     private fun findChapterIndexForPosition(positionMs: Long, list: List<Chapter>): Int {
@@ -220,40 +226,7 @@ class PlaybackManager(
             }
 
             override fun onMetadata(metadata: androidx.media3.common.Metadata) {
-                if (chaptersSetFromCustomJson) return
-                val extractedChapters = mutableListOf<Chapter>()
-                for (i in 0 until metadata.length()) {
-                    val entry = metadata.get(i)
-                    if (entry::class.java.name.endsWith("ChapterFrame")) {
-                        try {
-                            val chapterFrame = entry as ChapterFrame
-                            val startMs = chapterFrame.startTimeMs.toLong()
-                            val endMs = chapterFrame.endTimeMs.toLong()
-                            var title = "Chapter ${extractedChapters.size + 1}"
-                            for (j in 0 until chapterFrame.subFrameCount) {
-                                val subFrame = chapterFrame.getSubFrame(j)
-                                if (subFrame is TextInformationFrame) {
-                                    title = subFrame.value
-                                    break
-                                }
-                            }
-                            extractedChapters.add(
-                                Chapter(
-                                    title = title,
-                                    startMs = startMs,
-                                    endMs = endMs,
-                                    durationMs = endMs - startMs
-                                )
-                            )
-                        } catch (e: Exception) {
-                            Timber.e(e, "Error parsing ChapterFrame")
-                        }
-                    }
-                }
-                if (extractedChapters.isNotEmpty()) {
-                    _chapters.value = extractedChapters.sortedBy { it.startMs }
-                    _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, _chapters.value)
-                }
+                // Chapters are now handled via M4bChapterExtractor — ignore runtime metadata chapters
             }
         })
     }
@@ -265,7 +238,7 @@ class PlaybackManager(
 
             _currentBook.value = book
             _duration.value = book.durationMs
-            generateChaptersForBook(book)
+            loadChaptersForBook(book)
 
             // Set up fallback stream if filePath is missing
             val uriToPlay = if (book.filePath.isNotEmpty()) {
@@ -512,7 +485,6 @@ class PlaybackManager(
         _currentPosition.value = 0L
         _chapters.value = emptyList()
         _currentChapterIndex.value = -1
-        chaptersSetFromCustomJson = false
         cancelSleepTimer()
     }
 

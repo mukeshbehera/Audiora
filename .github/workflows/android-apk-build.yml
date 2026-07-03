@@ -2,7 +2,7 @@ name: Android APK Build & Release
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "fix/**", "feat/**", "feature/**" ]
   pull_request:
     branches: [ "main", "master" ]
   release:

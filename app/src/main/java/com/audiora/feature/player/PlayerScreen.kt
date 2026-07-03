@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -181,7 +182,18 @@ fun PlayerScreen(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
+                val chaptersListState = rememberLazyListState()
+                var previousChapterIndex by remember { mutableStateOf(-1) }
+
+                LaunchedEffect(currentChapterIndex) {
+                    if (currentChapterIndex >= 0 && currentChapterIndex != previousChapterIndex) {
+                        previousChapterIndex = currentChapterIndex
+                        chaptersListState.animateScrollToItem(currentChapterIndex)
+                    }
+                }
+
                 LazyColumn(
+                    state = chaptersListState,
                     modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {

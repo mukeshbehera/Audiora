@@ -8,7 +8,8 @@ data class Chapter(
     val title: String,
     val startMs: Long,
     val endMs: Long,
-    val durationMs: Long
+    val durationMs: Long,
+    val index: Int = 0
 ) {
     companion object {
         fun serializeList(chapters: List<Chapter>): String {
@@ -20,6 +21,7 @@ data class Chapter(
                     obj.put("startMs", ch.startMs)
                     obj.put("endMs", ch.endMs)
                     obj.put("durationMs", ch.durationMs)
+                    obj.put("index", ch.index)
                     array.put(obj)
                 } catch (e: Exception) {
                     Timber.e(e, "Error serializing Chapter")
@@ -40,7 +42,8 @@ data class Chapter(
                             title = obj.getString("title"),
                             startMs = obj.getLong("startMs"),
                             endMs = obj.getLong("endMs"),
-                            durationMs = obj.getLong("durationMs")
+                            durationMs = obj.getLong("durationMs"),
+                            index = obj.optInt("index", list.size)
                         )
                     )
                 }
