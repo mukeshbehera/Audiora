@@ -93,7 +93,7 @@ class PlaybackManager(
                 if (isContentUri) {
                     M4bChapterExtractor.extractFromUri(context, android.net.Uri.parse(book.filePath), book.durationMs)
                 } else if (book.filePath.isNotEmpty()) {
-                    M4bChapterExtractor.extractFromFile(book.filePath, book.durationMs)
+                    M4bChapterExtractor.extractFromFile(context, book.filePath, book.durationMs)
                 } else {
                     emptyList()
                 }
