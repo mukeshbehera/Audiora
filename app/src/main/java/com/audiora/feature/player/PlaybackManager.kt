@@ -72,12 +72,12 @@ class PlaybackManager(
 
     /**
      * Loads chapters for the given book, trying in order:
-     * 1. Cached chapters from DB (chaptersJson)
-     * 2. M4B chapter extraction from the file
-     * 3. Single "Full Audiobook" entry as fallback
+     * 1. Cached chapters from DB (chaptersJson) — synchronous, instant
+     * 2. M4B chapter extraction from the file — async, replaces fallback when done
+     * 3. Single "Full Audiobook" entry as fallback — set immediately so UI never waits
      */
     private fun loadChaptersForBook(book: Audiobook) {
-        // 1. Check cached chapters JSON first
+        // 1. Check cached chapters JSON first (instant — no IO needed)
         if (!book.chaptersJson.isNullOrEmpty()) {
             val decoded = Chapter.deserializeList(book.chaptersJson)
             if (decoded.isNotEmpty()) {
@@ -87,6 +87,21 @@ class PlaybackManager(
             }
         }
 
+        // 2. Set fallback immediately so chapters sheet shows content with zero delay
+        val fallbackDuration = if (book.durationMs > 0) book.durationMs else 3600000L
+        val fallback = listOf(
+            Chapter(
+                title = book.title.ifEmpty { "Full Audiobook" },
+                startMs = 0L,
+                endMs = fallbackDuration,
+                durationMs = fallbackDuration,
+                index = 0
+            )
+        )
+        _chapters.value = fallback
+        _currentChapterIndex.value = 0
+
+        // 3. Launch async extraction — replaces fallback when done
         scope.launch(Dispatchers.IO) {
             val extracted = try {
                 val isContentUri = book.filePath.startsWith("content://")
@@ -102,7 +117,7 @@ class PlaybackManager(
                 emptyList()
             }
 
-            val chapters = if (extracted.isNotEmpty()) {
+            if (extracted.isNotEmpty()) {
                 // Persist extracted chapters to DB for future opens
                 try {
                     if (book.id > 0) {
@@ -111,23 +126,12 @@ class PlaybackManager(
                 } catch (e: Exception) {
                     Timber.e(e, "PlaybackManager: Error persisting extracted chapters")
                 }
-                extracted
-            } else {
-                // 3. Fallback: single entry covering the whole audiobook
-                val duration = if (book.durationMs > 0) book.durationMs else 3600000L
-                listOf(
-                    Chapter(
-                        title = book.title.ifEmpty { "Full Audiobook" },
-                        startMs = 0L,
-                        endMs = duration,
-                        durationMs = duration,
-                        index = 0
-                    )
-                )
-            }
 
-            _chapters.value = chapters
-            _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, chapters)
+                withContext(Dispatchers.Main) {
+                    _chapters.value = extracted
+                    _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, extracted)
+                }
+            }
         }
     }
 
