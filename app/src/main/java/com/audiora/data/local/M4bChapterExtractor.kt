@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.audiora.domain.model.Chapter
 import timber.log.Timber
-import java.io.InputStream
+import java.io.File
 import java.io.RandomAccessFile
 
 /**
@@ -12,6 +12,7 @@ import java.io.RandomAccessFile
  * the embedded chapter atoms (chpl / chapter tracks).
  *
  * Works with both regular file paths and content:// URIs.
+ * Never loads the full file into memory — uses [RandomAccessFile] for efficient atom seeking.
  */
 object M4bChapterExtractor {
 
@@ -28,7 +29,7 @@ object M4bChapterExtractor {
                 val fileSize = raf.length()
                 walkAtoms(raf, 0, fileSize, totalDurationMs)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Timber.e(e, "M4bChapterExtractor: Error reading file $filePath")
             emptyList()
         }
@@ -36,19 +37,34 @@ object M4bChapterExtractor {
 
     /**
      * Extracts chapters from an M4B file accessed via content:// URI.
+     *
+     * Copies the file to a temporary location first so it can be read with
+     * [RandomAccessFile] for efficient atom seeking (never loads the full file
+     * into memory).
+     *
      * @param context Android context for ContentResolver
      * @param uri content:// URI of the M4B file
      * @param totalDurationMs Total duration of the audiobook in ms
      * @return List of extracted chapters, or empty list if none found / error
      */
     fun extractFromUri(context: Context, uri: Uri, totalDurationMs: Long = 0L): List<Chapter> {
+        var tempFile: File? = null
         return try {
-            context.contentResolver.openInputStream(uri)?.use { stream ->
-                parseAtomsFromStream(stream, totalDurationMs)
-            } ?: emptyList()
-        } catch (e: Exception) {
+            tempFile = File.createTempFile("chapters_", ".m4b", context.cacheDir)
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                tempFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: return emptyList()
+
+            extractFromFile(tempFile.absolutePath, totalDurationMs)
+        } catch (e: Throwable) {
             Timber.e(e, "M4bChapterExtractor: Error reading URI $uri")
             emptyList()
+        } finally {
+            try {
+                tempFile?.delete()
+            } catch (_: Throwable) {}
         }
     }
 
@@ -90,17 +106,6 @@ object M4bChapterExtractor {
         }
 
         return chapters ?: emptyList()
-    }
-
-    private fun parseAtomsFromStream(stream: InputStream, totalDurationMs: Long): List<Chapter> {
-        // For stream-based reading we only look for chpl atoms
-        // since chapter track parsing requires random access
-        return try {
-            parseChplFromStream(stream, totalDurationMs)
-        } catch (e: Exception) {
-            Timber.e(e, "M4bChapterExtractor: Error parsing chapters from stream")
-            emptyList()
-        }
     }
 
     private fun readAtom(raf: RandomAccessFile, position: Long): Atom {
@@ -189,113 +194,6 @@ object M4bChapterExtractor {
             Timber.e(e, "M4bChapterExtractor: Error parsing chpl atom")
             return emptyList()
         }
-    }
-
-    /**
-     * Parse chpl atom from an InputStream (for content:// URIs).
-     * Read the entire stream into a byte array and parse from there.
-     */
-    private fun parseChplFromStream(stream: InputStream, totalDurationMs: Long): List<Chapter> {
-        val bytes = stream.readBytes()
-        return parseChplFromBytes(bytes, 0, bytes.size.toLong(), totalDurationMs)
-    }
-
-    private fun parseChplFromBytes(bytes: ByteArray, start: Long, end: Long, totalDurationMs: Long): List<Chapter> {
-        var offset = start.toInt()
-
-        while (offset + 8 <= end) {
-            val size = ((bytes[offset].toLong() and 0xFF) shl 24) or
-                    ((bytes[offset + 1].toLong() and 0xFF) shl 16) or
-                    ((bytes[offset + 2].toLong() and 0xFF) shl 8) or
-                    (bytes[offset + 3].toLong() and 0xFF)
-            val type = String(bytes, offset + 4, 4, Charsets.US_ASCII)
-
-            val actualSize = if (size == 1L && offset + 16 <= end) {
-                ((bytes[offset + 8].toLong() and 0xFF) shl 56) or
-                        ((bytes[offset + 9].toLong() and 0xFF) shl 48) or
-                        ((bytes[offset + 10].toLong() and 0xFF) shl 40) or
-                        ((bytes[offset + 11].toLong() and 0xFF) shl 32) or
-                        ((bytes[offset + 12].toLong() and 0xFF) shl 24) or
-                        ((bytes[offset + 13].toLong() and 0xFF) shl 16) or
-                        ((bytes[offset + 14].toLong() and 0xFF) shl 8) or
-                        (bytes[offset + 15].toLong() and 0xFF)
-            } else {
-                size.toLong()
-            }
-
-            if (actualSize <= 0 || actualSize.toInt() > bytes.size - offset) return emptyList()
-
-            when (type) {
-                "moov", "udta" -> {
-                    val result = parseChplFromBytes(bytes, (offset + 8).toLong(), (offset + actualSize).toLong(), totalDurationMs)
-                    if (result.isNotEmpty()) return result
-                }
-                "chpl" -> {
-                    var pos = offset + 8 // skip atom header
-
-                    // version (1 byte)
-                    val version = bytes[pos].toInt() and 0xFF
-                    if (version != 1) {
-                        Timber.d("M4bChapterExtractor: chpl version $version (expected 1)")
-                    }
-                    pos += 1
-
-                    // skip flags (3) + reserved (4) = 7 bytes
-                    pos += 7
-
-                    // chapter count (4 bytes, big-endian)
-                    val chapterCount = ((bytes[pos].toInt() and 0xFF) shl 24) or
-                            ((bytes[pos + 1].toInt() and 0xFF) shl 16) or
-                            ((bytes[pos + 2].toInt() and 0xFF) shl 8) or
-                            (bytes[pos + 3].toInt() and 0xFF)
-                    pos += 4
-
-                    if (chapterCount <= 0 || chapterCount > 1000) return emptyList()
-
-                    val chapters = mutableListOf<Chapter>()
-
-                    for (i in 0 until chapterCount) {
-                        // start time (8 bytes, big-endian uint64)
-                        val startMs = ((bytes[pos].toLong() and 0xFF) shl 56) or
-                                ((bytes[pos + 1].toLong() and 0xFF) shl 48) or
-                                ((bytes[pos + 2].toLong() and 0xFF) shl 40) or
-                                ((bytes[pos + 3].toLong() and 0xFF) shl 32) or
-                                ((bytes[pos + 4].toLong() and 0xFF) shl 24) or
-                                ((bytes[pos + 5].toLong() and 0xFF) shl 16) or
-                                ((bytes[pos + 6].toLong() and 0xFF) shl 8) or
-                                (bytes[pos + 7].toLong() and 0xFF)
-                        pos += 8
-
-                        // name length (1 byte)
-                        val nameLen = bytes[pos].toInt() and 0xFF
-                        pos += 1
-
-                        val title = if (nameLen > 0) {
-                            String(bytes, pos, nameLen, Charsets.UTF_8)
-                        } else {
-                            "Chapter ${i + 1}"
-                        }
-                        pos += nameLen
-
-                        chapters.add(
-                            Chapter(
-                                title = title,
-                                startMs = startMs,
-                                endMs = 0L,
-                                durationMs = 0L,
-                                index = i
-                            )
-                        )
-                    }
-
-                    return computeChapterEndTimes(chapters, totalDurationMs)
-                }
-            }
-
-            offset += actualSize.toInt()
-        }
-
-        return emptyList()
     }
 
     // ─── Chapter Track Parser (moov > trak > tref > chap) ────────────────

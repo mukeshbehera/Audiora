@@ -97,7 +97,7 @@ class PlaybackManager(
                 } else {
                     emptyList()
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 Timber.e(e, "PlaybackManager: Error extracting chapters")
                 emptyList()
             }
