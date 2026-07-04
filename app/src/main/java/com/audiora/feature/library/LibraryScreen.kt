@@ -43,7 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.AudioraApplication
 import com.audiora.core.design.GlassmorphicTextField
 import com.audiora.domain.model.Audiobook
-import com.audiora.ui.theme.PrimaryPurple
+import com.audiora.ui.theme.LocalDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +107,7 @@ fun LibraryScreen(
                                 disabledContainerColor = Color.Transparent,
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
-                                cursorColor = PrimaryPurple,
+                                cursorColor = MaterialTheme.colorScheme.primary,
                                 focusedTextColor = MaterialTheme.colorScheme.onBackground,
                                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground
                             ),
@@ -115,7 +115,7 @@ fun LibraryScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Search,
                                     contentDescription = "Search",
-                                    tint = PrimaryPurple,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             },
@@ -133,7 +133,7 @@ fun LibraryScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.Close,
                                         contentDescription = "Close Search",
-                                        tint = PrimaryPurple,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -149,7 +149,7 @@ fun LibraryScreen(
                             text = "Audiora",
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Black,
-                            color = PrimaryPurple,
+                            color = MaterialTheme.colorScheme.primary,
                             fontFamily = FontFamily.SansSerif,
                             modifier = Modifier.testTag("app_bar_title")
                         )
@@ -164,7 +164,7 @@ fun LibraryScreen(
                             Icon(
                                 imageVector = Icons.Rounded.Search,
                                 contentDescription = "Search",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -176,7 +176,7 @@ fun LibraryScreen(
                         Icon(
                             imageVector = if (isGridView) Icons.Rounded.List else Icons.Rounded.GridView,
                             contentDescription = "Toggle Grid/List View",
-                            tint = PrimaryPurple
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -209,15 +209,15 @@ fun LibraryScreen(
                         onClick = { selectedGenre = genre },
                         label = { Text(text = genre, fontWeight = FontWeight.Bold) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PrimaryPurple.copy(alpha = 0.15f),
-                            selectedLabelColor = PrimaryPurple,
-                            selectedLeadingIconColor = PrimaryPurple
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            selectedLeadingIconColor = MaterialTheme.colorScheme.primary
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = if (isSelected) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                            selectedBorderColor = PrimaryPurple,
+                            borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+                            selectedBorderColor = MaterialTheme.colorScheme.primary,
                             borderWidth = 1.dp,
                             selectedBorderWidth = 1.5.dp
                         ),
@@ -261,7 +261,7 @@ fun LibraryScreen(
                             text = sortKey,
                             fontSize = 12.sp,
                             fontWeight = if (isSorted) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSorted) PrimaryPurple else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            color = if (isSorted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable { sortBy = sortKey }
@@ -566,9 +566,12 @@ fun AudiobookGridCard(
                 }
 
                 if (audiobook.completed) {
+                    val doneBg = if (LocalDarkTheme.current) Color(0xFF1B3D1B) else Color(0xFFE8F5E9)
+                    val doneColor = if (LocalDarkTheme.current) Color(0xFF81C784) else Color(0xFF2E7D32)
+
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFFE8F5E9), CircleShape)
+                            .background(doneBg, CircleShape)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Row(
@@ -578,12 +581,12 @@ fun AudiobookGridCard(
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
                                 contentDescription = "Finished",
-                                tint = Color(0xFF2E7D32),
+                                tint = doneColor,
                                 modifier = Modifier.size(10.dp)
                             )
                             Text(
                                 text = "DONE",
-                                color = Color(0xFF2E7D32),
+                                color = doneColor,
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.Black
                             )
@@ -594,7 +597,7 @@ fun AudiobookGridCard(
                         text = "${(audiobook.progress * 100).toInt()}% left",
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -609,7 +612,9 @@ fun AudiobookGridCard(
                     .height(4.dp)
                     .clip(CircleShape)
                     .testTag("book_progress_${audiobook.id}"),
-                color = if (audiobook.completed) Color(0xFF4CAF50) else PrimaryPurple,
+                color = if (audiobook.completed) {
+                    if (LocalDarkTheme.current) Color(0xFF81C784) else Color(0xFF4CAF50)
+                } else MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
             )
         }
@@ -663,7 +668,7 @@ fun AudiobookListCard(
                         text = audiobook.genre.uppercase(),
                         fontWeight = FontWeight.Black,
                         fontSize = 9.sp,
-                        color = PrimaryPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 0.5.sp
                     )
 
@@ -750,6 +755,8 @@ fun AudiobookListCard(
                     }
 
                     if (audiobook.completed) {
+                        val doneListColor = if (LocalDarkTheme.current) Color(0xFF81C784) else Color(0xFF4CAF50)
+
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(2.dp)
@@ -757,12 +764,12 @@ fun AudiobookListCard(
                             Icon(
                                 imageVector = Icons.Rounded.CheckCircle,
                                 contentDescription = "Finished badge",
-                                tint = Color(0xFF4CAF50),
+                                tint = doneListColor,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
                                 text = "Completed",
-                                color = Color(0xFF4CAF50),
+                                color = doneListColor,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -773,7 +780,7 @@ fun AudiobookListCard(
                             text = "Listening: $percentage%",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -787,7 +794,9 @@ fun AudiobookListCard(
                         .height(5.dp)
                         .clip(CircleShape)
                         .testTag("book_progress_${audiobook.id}"),
-                    color = if (audiobook.completed) Color(0xFF4CAF50) else PrimaryPurple,
+                    color = if (audiobook.completed) {
+                        if (LocalDarkTheme.current) Color(0xFF81C784) else Color(0xFF4CAF50)
+                    } else MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                 )
             }

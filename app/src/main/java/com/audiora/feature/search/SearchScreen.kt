@@ -34,7 +34,6 @@ import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicEmptyState
 import com.audiora.core.design.GlassmorphicTextField
 import com.audiora.feature.library.AudiobookCoverArt
-import com.audiora.ui.theme.PrimaryPurple
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,7 +62,7 @@ fun SearchScreen(
                             text = "Search Library",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.testTag("search_title")
                         )
                         Text(
@@ -97,7 +96,7 @@ fun SearchScreen(
                     Icon(
                         imageVector = Icons.Rounded.Search,
                         contentDescription = "Search icon",
-                        tint = PrimaryPurple
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 },
                 trailingIcon = {
@@ -147,7 +146,7 @@ fun SearchScreen(
                                 text = "Recent Searches",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryPurple
+                                color = MaterialTheme.colorScheme.primary
                             )
                             if (recentSearches.isNotEmpty()) {
                                 TextButton(
@@ -312,7 +311,7 @@ fun SearchScreen(
                                                 Text(
                                                     text = "Narrated by ${book.narrator}",
                                                     fontSize = 11.sp,
-                                                    color = PrimaryPurple,
+                                                    color = MaterialTheme.colorScheme.primary,
                                                     fontWeight = FontWeight.Medium,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis

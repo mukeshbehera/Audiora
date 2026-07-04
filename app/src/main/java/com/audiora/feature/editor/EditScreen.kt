@@ -31,7 +31,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicPrimaryButton
 import com.audiora.core.design.GlassmorphicTextField
-import com.audiora.ui.theme.PrimaryPurple
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,7 +110,7 @@ fun EditScreen(
                             text = "Metadata Editor",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.testTag("metadata_editor_title")
                         )
                         Text(
@@ -130,7 +129,7 @@ fun EditScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                                 contentDescription = "Navigate back",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -139,7 +138,7 @@ fun EditScreen(
                     if (selectedBook != null) {
                         if (saveStatus is SaveStatus.Saving) {
                             CircularProgressIndicator(
-                                color = PrimaryPurple,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .padding(end = 12.dp)
                                     .size(24.dp)
@@ -152,7 +151,7 @@ fun EditScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Save,
                                     contentDescription = "Save Changes",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -187,7 +186,7 @@ fun EditScreen(
                         Icon(
                             imageVector = Icons.Rounded.LibraryMusic,
                             contentDescription = null,
-                            tint = PrimaryPurple.copy(alpha = 0.6f),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
@@ -226,7 +225,7 @@ fun EditScreen(
                             Icon(
                                 imageVector = Icons.Rounded.EditNote,
                                 contentDescription = null,
-                                tint = PrimaryPurple,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -249,7 +248,7 @@ fun EditScreen(
                             Icon(
                                 imageVector = if (showBookSelector) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                                 contentDescription = "Toggle selector",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -285,14 +284,14 @@ fun EditScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.Book,
                                         contentDescription = null,
-                                        tint = if (selectedBook?.id == book.id) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                                        tint = if (selectedBook?.id == book.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
                                         modifier = Modifier.padding(end = 12.dp)
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = book.title,
                                             fontWeight = if (selectedBook?.id == book.id) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (selectedBook?.id == book.id) PrimaryPurple else MaterialTheme.colorScheme.onSurface
+                                            color = if (selectedBook?.id == book.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = book.author,
@@ -304,7 +303,7 @@ fun EditScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.Check,
                                             contentDescription = "Selected",
-                                            tint = PrimaryPurple
+                                            tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }
@@ -320,7 +319,7 @@ fun EditScreen(
                         text = "Cover Art Artwork",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     GlassmorphicCard(
@@ -355,7 +354,7 @@ fun EditScreen(
                                 Button(
                                     onClick = { selectImageLauncher.launch("image/*") },
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = PrimaryPurple
+                                        containerColor = MaterialTheme.colorScheme.primary
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.testTag("edit_change_cover_button")
@@ -414,7 +413,7 @@ fun EditScreen(
                     Button(
                         onClick = { activeTab = 0 },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (activeTab == 0) PrimaryPurple else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            containerColor = if (activeTab == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             contentColor = if (activeTab == 0) Color.White else MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.weight(1f).testTag("tab_attributes"),
@@ -428,7 +427,7 @@ fun EditScreen(
                     Button(
                         onClick = { activeTab = 1 },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (activeTab == 1) PrimaryPurple else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                            containerColor = if (activeTab == 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                             contentColor = if (activeTab == 1) Color.White else MaterialTheme.colorScheme.onSurface
                         ),
                         modifier = Modifier.weight(1f).testTag("tab_chapters"),
@@ -448,7 +447,7 @@ fun EditScreen(
                         text = "Attributes Configuration",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     // Editable Fields
@@ -558,7 +557,7 @@ fun EditScreen(
                                 text = "Chapters Studio",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryPurple
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Button(
                                 onClick = {
@@ -567,7 +566,7 @@ fun EditScreen(
                                     newChapterTimeInput = formatMsToTime(lastEndMs)
                                     showAddChapterDialog = true
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple.copy(alpha = 0.15f), contentColor = PrimaryPurple),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), contentColor = MaterialTheme.colorScheme.primary),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                 modifier = Modifier.testTag("add_chapter_button")
@@ -599,7 +598,7 @@ fun EditScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.QueueMusic,
                                         contentDescription = null,
-                                        tint = PrimaryPurple.copy(alpha = 0.4f),
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                                         modifier = Modifier.size(48.dp)
                                     )
                                     Text("No Chapters Defined", fontWeight = FontWeight.Medium, fontSize = 14.sp)
@@ -619,14 +618,14 @@ fun EditScreen(
                                             modifier = Modifier
                                                 .size(28.dp)
                                                 .clip(androidx.compose.foundation.shape.CircleShape)
-                                                .background(PrimaryPurple.copy(alpha = 0.15f)),
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = "${index + 1}",
                                                 fontSize = 12.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = PrimaryPurple
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         }
 
@@ -665,7 +664,7 @@ fun EditScreen(
                                                 Icon(
                                                     imageVector = Icons.Rounded.EditNote,
                                                     contentDescription = "Rename Chapter",
-                                                    tint = PrimaryPurple.copy(alpha = 0.8f),
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                             }
@@ -734,7 +733,7 @@ fun EditScreen(
                                         }
                                     },
                                     enabled = isNewTimeValid && newChapterTitleInput.isNotBlank(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {
                                     Text("Add")
                                 }
@@ -798,7 +797,7 @@ fun EditScreen(
                                         }
                                     },
                                     enabled = isRenameTimeValid && renameChapterTitleInput.isNotBlank(),
-                                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                 ) {
                                     Text("Save")
                                 }
@@ -819,7 +818,7 @@ fun EditScreen(
                 ) {
                     if (saveStatus is SaveStatus.Saving) {
                         CircularProgressIndicator(
-                            color = PrimaryPurple,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(36.dp)
                         )
                     } else {
@@ -881,7 +880,7 @@ fun VisualChapterTimeline(
     modifier: Modifier = Modifier
 ) {
     if (chapters.isEmpty()) return
-    val primaryColor = PrimaryPurple // Resolve once in Composable context
+    val primaryColor = MaterialTheme.colorScheme.primary // Resolve once in Composable context
     var zoomScale by remember { mutableStateOf(1f) }
     
     // Smooth local state representation of the current start times

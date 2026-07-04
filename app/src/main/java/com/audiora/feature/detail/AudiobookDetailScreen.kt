@@ -32,7 +32,6 @@ import com.audiora.core.design.GlassmorphicEmptyState
 import com.audiora.core.design.GlassmorphicLoadingState
 import com.audiora.domain.model.Audiobook
 import com.audiora.feature.library.AudiobookCoverArt
-import com.audiora.ui.theme.PrimaryPurple
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -71,7 +70,7 @@ fun AudiobookDetailScreen(
                         text = "Audiobook Details",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.testTag("detail_title_label")
                     )
                 },
@@ -83,7 +82,7 @@ fun AudiobookDetailScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Navigate back",
-                            tint = PrimaryPurple
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -100,7 +99,7 @@ fun AudiobookDetailScreen(
                             Icon(
                                 imageVector = Icons.Rounded.Download,
                                 contentDescription = "Export M4B",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -116,7 +115,7 @@ fun AudiobookDetailScreen(
                         Icon(
                             imageVector = androidx.compose.material.icons.Icons.Rounded.Edit,
                             contentDescription = "Edit Metadata",
-                            tint = PrimaryPurple
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -132,7 +131,7 @@ fun AudiobookDetailScreen(
                     onClick = {
                         app.playbackManager.playBook(book)
                     },
-                    containerColor = PrimaryPurple,
+                    containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = Color.White,
                     icon = { Icon(Icons.Rounded.PlayArrow, contentDescription = "Play Audiobook") },
                     text = { Text("Listen Now") },
@@ -200,12 +199,12 @@ fun AudiobookDetailScreen(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .background(PrimaryPurple.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         text = book.genre.uppercase(),
-                                        color = PrimaryPurple,
+                                        color = MaterialTheme.colorScheme.primary,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         letterSpacing = 0.5.sp
@@ -239,14 +238,14 @@ fun AudiobookDetailScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.Timelapse,
                                         contentDescription = null,
-                                        tint = PrimaryPurple,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
                                         text = formatDuration(book.durationMs),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = PrimaryPurple,
+                                        color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.testTag("detail_duration")
                                     )
                                 }
@@ -264,7 +263,7 @@ fun AudiobookDetailScreen(
                                 text = "Synopsis",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryPurple
+                                color = MaterialTheme.colorScheme.primary
                             )
                             GlassmorphicCard(
                                 modifier = Modifier.fillMaxWidth(),
@@ -288,7 +287,7 @@ fun AudiobookDetailScreen(
                                 text = "Metadata Specifications",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryPurple
+                                color = MaterialTheme.colorScheme.primary
                             )
                             GlassmorphicCard(
                                 modifier = Modifier.fillMaxWidth(),
@@ -322,7 +321,7 @@ fun AudiobookDetailScreen(
                                 text = "Export System",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryPurple,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.testTag("detail_export_section_heading")
                             )
                             GlassmorphicCard(
@@ -357,7 +356,7 @@ fun AudiobookDetailScreen(
                                             val suggestedName = "${book.title.replace("[^a-zA-Z0-9]".toRegex(), "_")}.m4b"
                                             exportLauncher.launch(suggestedName)
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                         shape = RoundedCornerShape(10.dp),
                                         modifier = Modifier
                                             .weight(0.35f)
@@ -400,19 +399,19 @@ fun AudiobookDetailScreen(
                                     text = "Logical Chapters (${chapters.size})",
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PrimaryPurple,
+                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.testTag("detail_chapter_header")
                                 )
                                 Box(
                                     modifier = Modifier
-                                        .background(PrimaryPurple.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(6.dp))
                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "${chapters.size} Chapters",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = PrimaryPurple
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -458,7 +457,7 @@ fun AudiobookDetailScreen(
                         if (exportStatus is ExportStatus.Success || exportStatus is ExportStatus.Error) {
                             Button(
                                 onClick = { detailViewModel.resetExportStatus() },
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.testTag("export_complete_ok_button")
                             ) {
                                 Text("OK")
@@ -474,7 +473,7 @@ fun AudiobookDetailScreen(
                                 else -> ""
                             },
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple
+                            color = MaterialTheme.colorScheme.primary
                         )
                     },
                     text = {
@@ -487,8 +486,8 @@ fun AudiobookDetailScreen(
                                 is ExportStatus.Exporting -> {
                                     CircularProgressIndicator(
                                         progress = { exportProgress },
-                                        color = PrimaryPurple,
-                                        trackColor = PrimaryPurple.copy(alpha = 0.2f),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                                         modifier = Modifier.size(56.dp).testTag("export_progress_indicator")
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -509,7 +508,7 @@ fun AudiobookDetailScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.CheckCircle,
                                         contentDescription = "Success",
-                                        tint = Color(0xFF2E7D32),
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(64.dp).testTag("export_success_icon")
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
@@ -562,7 +561,7 @@ fun SpecRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PrimaryPurple.copy(alpha = 0.7f),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
             modifier = Modifier.size(16.dp).padding(top = 2.dp)
         )
         Column {
@@ -602,7 +601,7 @@ fun ChapterRow(
         ) {
             Text(
                 text = String.format(Locale.US, "%02d", index),
-                color = PrimaryPurple,
+                color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,
                 modifier = Modifier.width(28.dp)
@@ -625,7 +624,7 @@ fun ChapterRow(
             text = durationStr,
             fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp,
-            color = PrimaryPurple.copy(alpha = 0.8f)
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
         )
     }
 }

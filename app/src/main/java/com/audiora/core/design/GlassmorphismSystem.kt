@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.sp
 import com.audiora.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
-import com.audiora.ui.theme.PrimaryPurple
 import com.audiora.ui.theme.BrandGradientStart
 import com.audiora.ui.theme.BrandGradientEnd
 
@@ -50,16 +49,16 @@ fun AudioraGlassCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val isDark = LocalDarkTheme.current
-    val containerColor = if (isDark) Color(0xA6141418) else Color(0xA6FFFFFF)
-    val borderColor = if (isDark) Color(0x14FFFFFF) else Color(0x99FFFFFF)
+    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+    val borderColor = MaterialTheme.colorScheme.outlineVariant
     
     val shadowModifier = if (isDark) {
         Modifier.shadow(
             elevation = 12.dp,
             shape = RoundedCornerShape(cornerRadius),
             clip = false,
-            ambientColor = Color(0x40A855F7), // Soft purple ambient glow
-            spotColor = Color(0x40A855F7)    // Soft purple spot glow
+            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
         )
     } else {
         Modifier.shadow(
@@ -224,8 +223,8 @@ fun AudioraGlassTextField(
     singleLine: Boolean = true
 ) {
     val isDark = LocalDarkTheme.current
-    val containerColor = if (isDark) Color(0x33141418) else Color(0x1F2A2635).copy(alpha = 0.04f)
-    val unfocusedBorderColor = if (isDark) Color(0x14FFFFFF) else Color(0x1a000000)
+    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+    val unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
     
     OutlinedTextField(
         value = value,
@@ -242,9 +241,9 @@ fun AudioraGlassTextField(
             focusedBorderColor = BrandGradientStart,
             unfocusedBorderColor = unfocusedBorderColor,
             focusedLabelColor = BrandGradientStart,
-            unfocusedLabelColor = if (isDark) Color(0x80FFFFFF) else Color(0x80000000),
-            focusedTextColor = if (isDark) Color.White else Color(0xFF1C1A24),
-            unfocusedTextColor = if (isDark) Color.White else Color(0xFF1C1A24)
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
         ),
         modifier = modifier.fillMaxWidth()
     )
@@ -259,8 +258,8 @@ fun AudioraGlassBottomBar(
     content: @Composable RowScope.() -> Unit
 ) {
     val isDark = LocalDarkTheme.current
-    val containerColor = if (isDark) Color(0xD90D0D11) else Color(0xD9F8F6FB)
-    val borderColor = if (isDark) Color(0x14FFFFFF) else Color(0x33FFFFFF)
+    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+    val borderColor = MaterialTheme.colorScheme.outlineVariant
     
     Box(
         modifier = modifier
@@ -269,8 +268,8 @@ fun AudioraGlassBottomBar(
                 elevation = 16.dp,
                 shape = RoundedCornerShape(28.dp),
                 clip = false,
-                ambientColor = if (isDark) Color(0x1FA855F7) else Color(0x0F000000),
-                spotColor = if (isDark) Color(0x1FA855F7) else Color(0x0F000000)
+                ambientColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000),
+                spotColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000)
             )
             .background(containerColor, RoundedCornerShape(28.dp))
             .border(1.dp, borderColor, RoundedCornerShape(28.dp))
@@ -306,7 +305,7 @@ fun AudioraGlassDialog(
                 text = title,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (LocalDarkTheme.current) Color.White else Color(0xFF1C1A24),
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
             content()
@@ -382,13 +381,13 @@ fun GlassmorphicSecondaryButton(
     shape: Shape = RoundedCornerShape(24.dp)
 ) {
     val isDark = LocalDarkTheme.current
-    val borderColor = if (isDark) Color(0x33FFFFFF) else Color(0x1F2A2635)
+    val borderColor = MaterialTheme.colorScheme.outlineVariant
     
     OutlinedButton(
         onClick = onClick,
         modifier = modifier.height(52.dp),
         colors = ButtonDefaults.outlinedButtonColors(
-            contentColor = if (isDark) Color.White else PrimaryPurple
+            contentColor = MaterialTheme.colorScheme.primary
         ),
         border = BorderStroke(1.5.dp, borderColor),
         enabled = enabled,
@@ -455,13 +454,13 @@ fun GlassmorphicLoadingState(
     ) {
         CircularProgressIndicator(
             modifier = Modifier.size(54.dp),
-            color = PrimaryPurple,
+            color = MaterialTheme.colorScheme.primary,
             strokeWidth = 4.dp
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = message,
-            color = if (LocalDarkTheme.current) Color(0xCCFFFFFF) else Color(0xCC1A1B1F),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center
@@ -488,7 +487,7 @@ fun GlassmorphicEmptyState(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = PrimaryPurple.copy(alpha = 0.6f),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -496,14 +495,14 @@ fun GlassmorphicEmptyState(
             text = title,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = if (LocalDarkTheme.current) Color.White else Color(0xFF1E1B29),
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = description,
             fontSize = 14.sp,
-            color = if (LocalDarkTheme.current) Color(0xAAFFFFFF) else Color(0x8A1A1B1F),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.67f),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 16.dp)
         )

@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.audiora.domain.model.Audiobook
-import com.audiora.ui.theme.PrimaryPurple
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
@@ -94,7 +93,7 @@ fun MiniPlayer(
                     .size(48.dp)
                     .padding(start = 12.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(PrimaryPurple.copy(alpha = 0.15f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (isRealCover) {
@@ -108,7 +107,7 @@ fun MiniPlayer(
                     Icon(
                         imageVector = Icons.Rounded.LibraryMusic,
                         contentDescription = null,
-                        tint = PrimaryPurple,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -147,7 +146,7 @@ fun MiniPlayer(
                 Icon(
                     imageVector = if (isPlaying) Icons.Rounded.PauseCircleFilled else Icons.Rounded.PlayCircleFilled,
                     contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = PrimaryPurple,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -165,7 +164,7 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .height(2.dp)
                 .align(Alignment.BottomCenter),
-            color = PrimaryPurple,
+            color = MaterialTheme.colorScheme.primary,
             trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         )
     }

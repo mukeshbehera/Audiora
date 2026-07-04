@@ -19,7 +19,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.domain.model.PlaybackSettings
-import com.audiora.ui.theme.PrimaryPurple
 
 enum class SettingsDialogType {
     THEME,
@@ -63,7 +62,7 @@ fun SettingsScreen(
                             text = "Audiora Settings",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.testTag("settings_top_app_bar_title")
                         )
                         Text(
@@ -94,7 +93,7 @@ fun SettingsScreen(
                     text = "Audiobook Folders",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryPurple,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -120,7 +119,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Storage,
                                     contentDescription = "Folders",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Configure Library Folders", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -130,7 +129,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "Open Folders",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -143,7 +142,7 @@ fun SettingsScreen(
                     text = "Appearance & Style",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryPurple
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             item {
@@ -169,7 +168,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.DarkMode,
                                     contentDescription = "Theme Mode",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Theme Mode", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -187,7 +186,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "Choose Theme Mode",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -210,7 +209,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Palette,
                                     contentDescription = "Color Options",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Color Scheme", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -231,7 +230,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "Choose Color Scheme",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -244,7 +243,7 @@ fun SettingsScreen(
                     text = "Playback Settings",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryPurple
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             item {
@@ -270,7 +269,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Forward,
                                     contentDescription = "Skip Forward/Backward",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Skip Amount", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -280,7 +279,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "Configure Skip Limit",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -303,7 +302,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Restore,
                                     contentDescription = "Auto Rewind",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Auto Rewind on Resume", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -317,7 +316,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "Configure Auto Rewind Limit",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -340,7 +339,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Speed,
                                     contentDescription = "Default Playback Speed",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Default Playback Speed", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -350,7 +349,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "Configure Default Speed",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -373,7 +372,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Timer,
                                     contentDescription = "Sleep Timer Default",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Sleep Timer Default", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -387,7 +386,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "Configure Sleep Timer Default",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -400,7 +399,7 @@ fun SettingsScreen(
                     text = "About Audiora",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryPurple
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             item {
@@ -425,7 +424,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Info,
                                     contentDescription = "Version Information",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("App Version", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -453,7 +452,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Code,
                                     contentDescription = "GitHub Repository",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("GitHub Repository", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -463,7 +462,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.OpenInNew,
                                 contentDescription = "Open Link",
-                                tint = PrimaryPurple,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -487,7 +486,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.AccountBalance,
                                     contentDescription = "Open Source Licenses",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Open Source Licenses", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -497,7 +496,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "View Licenses",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
 
@@ -520,7 +519,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Lock,
                                     contentDescription = "Privacy Policy",
-                                    tint = PrimaryPurple
+                                    tint = MaterialTheme.colorScheme.primary
                                 )
                                 Column {
                                     Text("Privacy Policy", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
@@ -530,7 +529,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Rounded.ChevronRight,
                                 contentDescription = "View Privacy Policy",
-                                tint = PrimaryPurple
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -568,7 +567,7 @@ fun SettingsScreen(
                                         viewModel.setThemeMode(optionCode)
                                         activeDialog = null
                                     },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryPurple)
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }
@@ -616,7 +615,7 @@ fun SettingsScreen(
                                         viewModel.setColorScheme(optionCode)
                                         activeDialog = null
                                     },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryPurple)
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }
@@ -657,7 +656,7 @@ fun SettingsScreen(
                                         viewModel.setSkipAmount(secs)
                                         activeDialog = null
                                     },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryPurple)
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }
@@ -698,7 +697,7 @@ fun SettingsScreen(
                                         viewModel.setAutoRewind(secs)
                                         activeDialog = null
                                     },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryPurple)
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }
@@ -739,7 +738,7 @@ fun SettingsScreen(
                                         viewModel.setDefaultSpeed(speed)
                                         activeDialog = null
                                     },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryPurple)
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }
@@ -780,7 +779,7 @@ fun SettingsScreen(
                                         viewModel.setSleepTimerDefault(mins)
                                         activeDialog = null
                                     },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryPurple)
+                                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
                                 )
                             }
                         }

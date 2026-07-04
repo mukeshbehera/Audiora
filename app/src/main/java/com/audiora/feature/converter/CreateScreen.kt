@@ -44,8 +44,6 @@ import com.audiora.core.design.GlassmorphicPrimaryButton
 import com.audiora.data.local.ImportedFile
 import com.audiora.data.local.StorageImportManager
 import com.audiora.domain.model.Chapter
-import com.audiora.ui.theme.PrimaryPurple
-import com.audiora.ui.theme.LocalDarkTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -257,15 +255,14 @@ fun CreateScreen(
         }
     }
 
-    val isDark = LocalDarkTheme.current
-    val adaptiveBg = if (isDark) MaterialTheme.colorScheme.background else Color(0xFFF9F8FD)
-    val adaptiveTitle = if (isDark) MaterialTheme.colorScheme.onBackground else Color(0xFF0F172A)
-    val adaptiveSecondaryText = if (isDark) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f) else Color(0xFF374151)
-    val adaptiveTertiaryText = if (isDark) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f) else Color(0xFF6B7280)
+    val adaptiveBg = MaterialTheme.colorScheme.background
+    val adaptiveTitle = MaterialTheme.colorScheme.onBackground
+    val adaptiveSecondaryText = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+    val adaptiveTertiaryText = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
 
-    val dashedBoxBg = if (isDark) Color(0xFF1E152E) else Color(0xFFFAF5FF)
-    val dashedBoxBorder = if (isDark) Color(0xFF7C3AED) else Color(0xFFC084FC)
-    val dashedBoxText = if (isDark) Color(0xFFC084FC) else Color(0xFF7C3AED)
+    val dashedBoxBg = MaterialTheme.colorScheme.surfaceVariant
+    val dashedBoxBorder = MaterialTheme.colorScheme.primary
+    val dashedBoxText = MaterialTheme.colorScheme.primary
 
     Scaffold(
         topBar = {
@@ -363,7 +360,7 @@ fun CreateScreen(
                                 Icon(
                                     imageVector = Icons.Rounded.Description,
                                     contentDescription = "Select Files",
-                                    tint = if (isDark) Color(0xFFA78BFA) else Color(0xFF8B5CF6),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(46.dp)
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -487,9 +484,9 @@ fun CreateScreen(
                             color = adaptiveSecondaryText
                         )
                         
-                        val textFieldBg = if (isDark) MaterialTheme.colorScheme.surface else Color.White
-                        val textFieldBorder = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f)
-                        val txtColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color(0xFF1F2937)
+                        val textFieldBg = MaterialTheme.colorScheme.surface
+                        val textFieldBorder = MaterialTheme.colorScheme.outlineVariant
+                        val txtColor = MaterialTheme.colorScheme.onBackground
 
                         Column(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -504,9 +501,9 @@ fun CreateScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = textFieldBg,
                                     unfocusedContainerColor = textFieldBg,
-                                    focusedBorderColor = Color(0xFF8B5CF6),
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     unfocusedBorderColor = textFieldBorder,
-                                    focusedLabelColor = Color(0xFF8B5CF6),
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                                     focusedTextColor = txtColor,
                                     unfocusedTextColor = txtColor
                                 )
@@ -522,9 +519,9 @@ fun CreateScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = textFieldBg,
                                     unfocusedContainerColor = textFieldBg,
-                                    focusedBorderColor = Color(0xFF8B5CF6),
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     unfocusedBorderColor = textFieldBorder,
-                                    focusedLabelColor = Color(0xFF8B5CF6),
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                                     focusedTextColor = txtColor,
                                     unfocusedTextColor = txtColor
                                 )
@@ -540,9 +537,9 @@ fun CreateScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = textFieldBg,
                                     unfocusedContainerColor = textFieldBg,
-                                    focusedBorderColor = Color(0xFF8B5CF6),
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     unfocusedBorderColor = textFieldBorder,
-                                    focusedLabelColor = Color(0xFF8B5CF6),
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                                     focusedTextColor = txtColor,
                                     unfocusedTextColor = txtColor
                                 )
@@ -562,9 +559,9 @@ fun CreateScreen(
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedContainerColor = textFieldBg,
                                         unfocusedContainerColor = textFieldBg,
-                                        focusedBorderColor = Color(0xFF8B5CF6),
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                                         unfocusedBorderColor = textFieldBorder,
-                                        focusedLabelColor = Color(0xFF8B5CF6),
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
                                         focusedTextColor = txtColor,
                                         unfocusedTextColor = txtColor
                                     )
@@ -580,9 +577,9 @@ fun CreateScreen(
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedContainerColor = textFieldBg,
                                         unfocusedContainerColor = textFieldBg,
-                                        focusedBorderColor = Color(0xFF8B5CF6),
+                                        focusedBorderColor = MaterialTheme.colorScheme.primary,
                                         unfocusedBorderColor = textFieldBorder,
-                                        focusedLabelColor = Color(0xFF8B5CF6),
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
                                         focusedTextColor = txtColor,
                                         unfocusedTextColor = txtColor
                                     )
@@ -599,9 +596,9 @@ fun CreateScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = textFieldBg,
                                     unfocusedContainerColor = textFieldBg,
-                                    focusedBorderColor = Color(0xFF8B5CF6),
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     unfocusedBorderColor = textFieldBorder,
-                                    focusedLabelColor = Color(0xFF8B5CF6),
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                                     focusedTextColor = txtColor,
                                     unfocusedTextColor = txtColor
                                 )
@@ -617,9 +614,9 @@ fun CreateScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedContainerColor = textFieldBg,
                                     unfocusedContainerColor = textFieldBg,
-                                    focusedBorderColor = Color(0xFF8B5CF6),
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
                                     unfocusedBorderColor = textFieldBorder,
-                                    focusedLabelColor = Color(0xFF8B5CF6),
+                                    focusedLabelColor = MaterialTheme.colorScheme.primary,
                                     focusedTextColor = txtColor,
                                     unfocusedTextColor = txtColor
                                 )
@@ -661,8 +658,8 @@ fun CreateScreen(
                                 ) {
                                     chunk.forEach { option ->
                                         val isSelected = coverSeed == option.seed
-                                        val optBg = if (isDark) MaterialTheme.colorScheme.surface else Color.White
-                                        val optBorder = if (isSelected) Color(0xFF8B5CF6) else (if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.06f))
+                                        val optBg = MaterialTheme.colorScheme.surface
+                                        val optBorder = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
 
                                         Box(
                                             modifier = Modifier
@@ -717,7 +714,7 @@ fun CreateScreen(
                                                                 Icon(
                                                                     imageVector = Icons.Rounded.Check,
                                                                     contentDescription = "Selected",
-                                                                    tint = Color(0xFF7C3AED),
+                                                                    tint = MaterialTheme.colorScheme.onPrimary,
                                                                     modifier = Modifier.size(11.dp)
                                                                 )
                                                             }
@@ -800,10 +797,10 @@ fun CreateScreen(
 
                         // Detailed chapter map layout if MANUAL selected
                         if (chapterStrategy == ChapterStrategy.MANUAL) {
-                            val accentPrimaryColor = if (isDark) Color(0xFFA78BFA) else Color(0xFF7C3AED)
-                            val itemBgColor = if (isDark) MaterialTheme.colorScheme.surface else Color.White
-                            val itemBorderColor = if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f)
-                            val mainTextCol = if (isDark) MaterialTheme.colorScheme.onBackground else Color(0xFF1F2937)
+                            val accentPrimaryColor = MaterialTheme.colorScheme.primary
+                            val itemBgColor = MaterialTheme.colorScheme.surface
+                            val itemBorderColor = MaterialTheme.colorScheme.outlineVariant
+                            val mainTextCol = MaterialTheme.colorScheme.onBackground
 
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -937,8 +934,8 @@ fun CreateScreen(
                     .background(
                         Brush.horizontalGradient(
                             colors = listOf(
-                                Color(0xFF8B5CF6),
-                                Color(0xFF6D28D9)
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                             )
                         )
                     )
@@ -990,7 +987,7 @@ fun CreateScreen(
     if (showAddDialog) {
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("Add Custom Chapter", fontWeight = FontWeight.Bold, color = PrimaryPurple) },
+            title = { Text("Add Custom Chapter", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -1039,14 +1036,14 @@ fun CreateScreen(
                         WizardState.manualChapters = manualChapters.toList()
                         showAddDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Add")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddDialog = false }) {
-                    Text("Cancel", color = PrimaryPurple)
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             }
         )
@@ -1056,7 +1053,7 @@ fun CreateScreen(
     if (showEditDialog) {
         AlertDialog(
             onDismissRequest = { showEditDialog = false },
-            title = { Text("Edit Chapter Marker", fontWeight = FontWeight.Bold, color = PrimaryPurple) },
+            title = { Text("Edit Chapter Marker", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
@@ -1104,14 +1101,14 @@ fun CreateScreen(
                         }
                         showEditDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Save")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEditDialog = false }) {
-                    Text("Cancel", color = PrimaryPurple)
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             }
         )
@@ -1125,12 +1122,11 @@ fun Step1OptionRow(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val isDark = LocalDarkTheme.current
-    val background = if (isDark) MaterialTheme.colorScheme.surface else Color.White
-    val borderColor = if (isSelected) Color(0xFF8B5CF6) else (if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
-    val checkColor = if (isSelected) Color(0xFF7C3AED) else (if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFFD1D5DB))
-    val textColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color(0xFF1F2937)
-    val iconColor = if (isSelected) Color(0xFF8B5CF6) else (if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF9CA3AF))
+    val background = MaterialTheme.colorScheme.surface
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val checkColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val iconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
 
     Box(
         modifier = Modifier
@@ -1174,7 +1170,7 @@ fun Step1OptionRow(
                 Box(
                     modifier = Modifier
                         .size(22.dp)
-                        .background(Color(0xFF7C3AED), CircleShape),
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1203,13 +1199,12 @@ fun Step4OptionRow(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val isDark = LocalDarkTheme.current
-    val background = if (isDark) MaterialTheme.colorScheme.surface else Color.White
-    val borderColor = if (isSelected) Color(0xFF8B5CF6) else (if (isDark) Color.White.copy(alpha = 0.08f) else Color.Black.copy(alpha = 0.05f))
-    val checkColor = if (isSelected) Color(0xFF7C3AED) else (if (isDark) Color.White.copy(alpha = 0.2f) else Color(0xFFD1D5DB))
-    val textColor = if (isDark) MaterialTheme.colorScheme.onBackground else Color(0xFF1F2937)
-    val subtitleColor = if (isDark) MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f) else Color(0xFF6B7280)
-    val iconColor = if (isSelected) Color(0xFF8B5CF6) else (if (isDark) Color.White.copy(alpha = 0.4f) else Color(0xFF9CA3AF))
+    val background = MaterialTheme.colorScheme.surface
+    val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+    val checkColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val subtitleColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+    val iconColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
 
     Box(
         modifier = Modifier
@@ -1263,7 +1258,7 @@ fun Step4OptionRow(
                 Box(
                     modifier = Modifier
                         .size(22.dp)
-                        .background(Color(0xFF7C3AED), CircleShape),
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -1318,14 +1313,14 @@ fun ImportedFileRow(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .background(PrimaryPurple.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(10.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = fileItem.type,
                         fontWeight = FontWeight.Black,
                         fontSize = 10.sp,
-                        color = PrimaryPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -1362,14 +1357,14 @@ fun ImportedFileRow(
                             Icon(
                                 imageVector = Icons.Rounded.PublishedWithChanges,
                                 contentDescription = "Active Persistent Permission",
-                                tint = Color(0xFF2E7D32),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(11.dp)
                             )
                             Text(
                                 text = "Permission Survived",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF2E7D32)
+                                color = MaterialTheme.colorScheme.primary
                             )
                         } else {
                             Icon(
@@ -1403,7 +1398,7 @@ fun ImportedFileRow(
                     Icon(
                         imageVector = Icons.Rounded.KeyboardArrowUp,
                         contentDescription = "Move file up in order",
-                        tint = if (index > 0) PrimaryPurple else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
+                        tint = if (index > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1418,7 +1413,7 @@ fun ImportedFileRow(
                     Icon(
                         imageVector = Icons.Rounded.KeyboardArrowDown,
                         contentDescription = "Move file down in order",
-                        tint = if (index < totalCount - 1) PrimaryPurple else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
+                        tint = if (index < totalCount - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1446,17 +1441,16 @@ fun WizardStepIndicator(
     currentStep: Int,
     modifier: Modifier = Modifier
 ) {
-    val isDark = LocalDarkTheme.current
-    val activeColor = Color(0xFF8B5CF6)
-    val completedColor = Color(0xFF8B5CF6).copy(alpha = 0.2f)
-    val inactiveDotBg = if (isDark) Color.White.copy(alpha = 0.12f) else Color.Black.copy(alpha = 0.05f)
-    val inactiveDotTextColor = if (isDark) Color.White.copy(alpha = 0.5f) else Color.Black.copy(alpha = 0.4f)
-    
-    val activeLabelColor = if (isDark) Color.White else Color(0xFF1F2937)
-    val inactiveLabelColor = if (isDark) Color.White.copy(alpha = 0.4f) else Color.Black.copy(alpha = 0.35f)
-    
-    val activeLineColor = Color(0xFF8B5CF6).copy(alpha = 0.4f)
-    val inactiveLineColor = if (isDark) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.05f)
+    val activeColor = MaterialTheme.colorScheme.primary
+    val completedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+    val inactiveDotBg = MaterialTheme.colorScheme.surfaceVariant
+    val inactiveDotTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val activeLabelColor = MaterialTheme.colorScheme.onBackground
+    val inactiveLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    val activeLineColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+    val inactiveLineColor = MaterialTheme.colorScheme.outlineVariant
 
     Row(
         modifier = modifier

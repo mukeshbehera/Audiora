@@ -31,7 +31,6 @@ import com.audiora.core.design.AudioraGlassCard
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.model.Chapter
 import com.audiora.ui.theme.LocalDarkTheme
-import com.audiora.ui.theme.PrimaryPurple
 import com.audiora.ui.theme.BrandGradientStart
 import com.audiora.ui.theme.BrandGradientEnd
 import kotlinx.coroutines.Dispatchers
@@ -341,7 +340,7 @@ fun ProcessingScreen(
                         Icon(
                             imageVector = Icons.Rounded.ArrowBack,
                             contentDescription = "Cancel process and return",
-                            tint = PrimaryPurple
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -374,7 +373,7 @@ fun ProcessingScreen(
                         .fillMaxSize()
                         .border(
                             width = 6.dp,
-                            color = PrimaryPurple.copy(alpha = 0.12f),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                             shape = CircleShape
                         )
                 )
@@ -383,7 +382,7 @@ fun ProcessingScreen(
                 CircularProgressIndicator(
                     progress = { progress },
                     modifier = Modifier.fillMaxSize(),
-                    color = PrimaryPurple,
+                    color = MaterialTheme.colorScheme.primary,
                     strokeWidth = 7.dp,
                     trackColor = Color.Transparent
                 )
@@ -393,7 +392,7 @@ fun ProcessingScreen(
                     text = "${(progress * 100).toInt()}%",
                     fontSize = 44.sp,
                     fontWeight = FontWeight.Black,
-                    color = PrimaryPurple,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.testTag("processing_percentage")
                 )
             }
@@ -464,9 +463,9 @@ fun ProcessingScreen(
                     .height(56.dp)
                     .testTag("processing_cancel_button"),
                 shape = RoundedCornerShape(28.dp),
-                border = BorderStroke(1.5.dp, PrimaryPurple.copy(alpha = 0.4f)),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = PrimaryPurple
+                    contentColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Text(
@@ -506,7 +505,7 @@ fun TimelineStepRow(
                         .height(38.dp)
                         .offset(y = 25.dp)
                         .background(
-                            if (isCompleted) PrimaryPurple else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
+                            if (isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
                         )
                 )
             }
@@ -517,7 +516,7 @@ fun TimelineStepRow(
                 Box(
                     modifier = Modifier
                         .size(22.dp)
-                        .background(PrimaryPurple, CircleShape),
+                        .background(MaterialTheme.colorScheme.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -532,13 +531,13 @@ fun TimelineStepRow(
                 Box(
                     modifier = Modifier
                         .size(24.dp)
-                        .border(1.5.dp, PrimaryPurple, CircleShape),
+                        .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(16.dp),
                         strokeWidth = 1.5.dp,
-                        color = PrimaryPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         trackColor = Color.Transparent
                     )
                 }

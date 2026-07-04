@@ -34,7 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.audiora.AudioraApplication
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.feature.library.AudiobookCoverArt
-import com.audiora.ui.theme.PrimaryPurple
+import com.audiora.ui.theme.LocalDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +62,7 @@ fun PlayerScreen(
                     text = "Playback Speed",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryPurple,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center
                 )
@@ -77,7 +77,7 @@ fun PlayerScreen(
                         text = String.format(java.util.Locale.US, "%.2fx", playbackSpeed),
                         fontSize = 32.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = PrimaryPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     Slider(
@@ -87,9 +87,9 @@ fun PlayerScreen(
                         },
                         valueRange = 0.5f..3.0f,
                         colors = SliderDefaults.colors(
-                            thumbColor = PrimaryPurple,
-                            activeTrackColor = PrimaryPurple,
-                            inactiveTrackColor = PrimaryPurple.copy(alpha = 0.2f)
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                         ),
                         modifier = Modifier.fillMaxWidth().testTag("player_speed_slider")
                     )
@@ -106,7 +106,7 @@ fun PlayerScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(
-                                        if (isSelected) PrimaryPurple.copy(alpha = 0.15f)
+                                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                                     )
                                     .clickable {
@@ -119,7 +119,7 @@ fun PlayerScreen(
                                     text = "${preset}x",
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     fontSize = 13.sp,
-                                    color = if (isSelected) PrimaryPurple else MaterialTheme.colorScheme.onSurface
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -129,7 +129,7 @@ fun PlayerScreen(
             confirmButton = {
                 TextButton(
                     onClick = { showSpeedDialog = false },
-                    colors = ButtonDefaults.textButtonColors(contentColor = PrimaryPurple)
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Done", fontWeight = FontWeight.Bold)
                 }
@@ -170,7 +170,7 @@ fun PlayerScreen(
                     text = "Table of Chapters",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryPurple
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
                 Text(
@@ -204,7 +204,7 @@ fun PlayerScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(
-                                    if (isPlayingChapter) PrimaryPurple.copy(alpha = 0.15f)
+                                    if (isPlayingChapter) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 )
                                 .clickable {
@@ -221,20 +221,20 @@ fun PlayerScreen(
                                     text = chapter.title,
                                     fontSize = 15.sp,
                                     fontWeight = if (isPlayingChapter) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isPlayingChapter) PrimaryPurple else MaterialTheme.colorScheme.onSurface
+                                    color = if (isPlayingChapter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = "Start: ${formatTime(chapter.startMs)} • Duration: ${formatTime(chapter.durationMs)}",
                                     fontSize = 12.sp,
-                                    color = if (isPlayingChapter) PrimaryPurple.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                    color = if (isPlayingChapter) MaterialTheme.colorScheme.primary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                                 )
                             }
                             if (isPlayingChapter) {
                                 Icon(
                                     imageVector = Icons.Rounded.PlayCircle,
                                     contentDescription = "Now Playing",
-                                    tint = PrimaryPurple,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp)
                                 )
                             }
@@ -264,7 +264,7 @@ fun PlayerScreen(
                     text = "Sleep Timer",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryPurple
+                    color = MaterialTheme.colorScheme.primary
                 )
 
                 if (sleepTimerType != SleepTimerType.OFF) {
@@ -325,7 +325,7 @@ fun PlayerScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(
-                                    if (isSelected) PrimaryPurple.copy(alpha = 0.15f)
+                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
                                 )
                                 .clickable {
@@ -341,13 +341,13 @@ fun PlayerScreen(
                                 text = optionLabel,
                                 fontSize = 15.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) PrimaryPurple else MaterialTheme.colorScheme.onSurface
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                             )
                             if (isSelected) {
                                 Icon(
                                     imageVector = Icons.Rounded.Check,
                                     contentDescription = "Selected",
-                                    tint = PrimaryPurple,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -392,7 +392,7 @@ fun PlayerScreen(
                         }
                         bookmarkToRename = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryPurple)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Save")
                 }
@@ -428,7 +428,7 @@ fun PlayerScreen(
                         text = "Bookmarks",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
                     
                     IconButton(
@@ -454,7 +454,7 @@ fun PlayerScreen(
                         Icon(
                             imageVector = Icons.Rounded.BookmarkAdd,
                             contentDescription = "Add Bookmark",
-                            tint = PrimaryPurple
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -540,7 +540,7 @@ fun PlayerScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.Edit,
                                             contentDescription = "Rename",
-                                            tint = PrimaryPurple.copy(alpha = 0.8f),
+                                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -660,7 +660,7 @@ fun PlayerScreen(
                         Icon(
                             imageVector = Icons.Rounded.LibraryMusic,
                             contentDescription = "No book loaded",
-                            tint = PrimaryPurple.copy(alpha = 0.6f),
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                             modifier = Modifier.size(64.dp)
                         )
                         Text(
@@ -769,9 +769,9 @@ fun PlayerScreen(
                             draggingPosition = null
                         },
                         colors = SliderDefaults.colors(
-                            thumbColor = PrimaryPurple,
-                            activeTrackColor = PrimaryPurple,
-                            inactiveTrackColor = PrimaryPurple.copy(alpha = 0.15f)
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -853,11 +853,11 @@ fun PlayerScreen(
                                 elevation = 12.dp,
                                 shape = CircleShape,
                                 clip = false,
-                                ambientColor = PrimaryPurple.copy(alpha = 0.4f),
-                                spotColor = PrimaryPurple
+                                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                                spotColor = MaterialTheme.colorScheme.primary
                             )
                             .clip(CircleShape)
-                            .background(PrimaryPurple)
+                            .background(MaterialTheme.colorScheme.primary)
                             .clickable { playbackManager.togglePlayPause() }
                             .testTag("player_play_pause_button"),
                         contentAlignment = Alignment.Center
@@ -939,14 +939,14 @@ fun PlayerScreen(
                         Icon(
                             imageVector = Icons.Rounded.AccessTime,
                             contentDescription = "Sleep Timer",
-                            tint = if (sleepTimerType != SleepTimerType.OFF) PrimaryPurple else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            tint = if (sleepTimerType != SleepTimerType.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
                             text = if (sleepTimerType == SleepTimerType.OFF) "Sleep Timer" else formatSleepTimeRemaining(sleepTimerRemaining),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (sleepTimerType != SleepTimerType.OFF) PrimaryPurple else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                            color = if (sleepTimerType != SleepTimerType.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         )
                     }
 
@@ -1041,7 +1041,7 @@ fun PlayerScreen(
                     Icon(
                         imageVector = if (book.completed) Icons.Rounded.CheckCircle else Icons.Rounded.CheckCircleOutline,
                         contentDescription = null,
-                        tint = PrimaryPurple,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
@@ -1068,7 +1068,7 @@ fun PlayerScreen(
                         text = "ABOUT THIS AUDIOBOOK",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         letterSpacing = 1.sp
                     )
 
@@ -1119,6 +1119,7 @@ fun PerfectMinimalCoverCard(
     coverPath: String?,
     modifier: Modifier = Modifier
 ) {
+    val isDark = LocalDarkTheme.current
     val isRealCover = !coverPath.isNullOrEmpty() && (coverPath.startsWith("/") || coverPath.startsWith("content://"))
 
     Box(
@@ -1133,7 +1134,9 @@ fun PerfectMinimalCoverCard(
             )
             .clip(RoundedCornerShape(32.dp))
             .background(
-                Brush.verticalGradient(
+                if (isDark) Brush.verticalGradient(
+                    colors = listOf(Color(0xFF1A1A24), Color(0xFF12121A))
+                ) else Brush.verticalGradient(
                     colors = listOf(Color(0xFFFCFCFD), Color(0xFFEFF1F5))
                 )
             ),
@@ -1147,7 +1150,6 @@ fun PerfectMinimalCoverCard(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            // Replicate the stunning "Psychology of Money" style card dynamically!
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1155,7 +1157,10 @@ fun PerfectMinimalCoverCard(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Title area
+                val onCoverColor = if (isDark) Color(0xFFE6E1E9) else Color(0xFF1E1E24)
+                val onCoverMuted = if (isDark) Color(0xFF9E9AA8) else Color(0xFF4A5568)
+                val onCoverSubtle = if (isDark) Color(0xFF6B6780) else Color(0xFF6B7280)
+
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(2.dp)
@@ -1166,21 +1171,21 @@ fun PerfectMinimalCoverCard(
                             text = titleParts.take(titleParts.size - 1).joinToString(" "),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1E1E24),
+                            color = onCoverColor,
                             textAlign = TextAlign.Center
                         )
                         Text(
                             text = "of",
                             fontSize = 14.sp,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            color = Color(0xFF1E1E24).copy(alpha = 0.8f),
+                            color = onCoverColor.copy(alpha = 0.8f),
                             textAlign = TextAlign.Center
                         )
                         Text(
                             text = titleParts.last(),
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4A5568),
+                            color = onCoverMuted,
                             textAlign = TextAlign.Center
                         )
                     } else {
@@ -1188,34 +1193,39 @@ fun PerfectMinimalCoverCard(
                             text = title,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E1E24),
+                            color = onCoverColor,
                             textAlign = TextAlign.Center
                         )
                     }
                 }
 
-                // Center visual graphic (Psychology brain icon stylized dynamically)
                 Box(
                     modifier = Modifier
                         .size(80.dp)
-                        .background(Color(0xFFE2E8F0).copy(alpha = 0.3f), CircleShape)
-                        .border(1.dp, Color(0xFFE2E8F0), CircleShape),
+                        .background(
+                            if (isDark) Color(0xFF2A2A36).copy(alpha = 0.5f) else Color(0xFFE2E8F0).copy(alpha = 0.3f),
+                            CircleShape
+                        )
+                        .border(
+                            1.dp,
+                            if (isDark) Color(0xFF3A3A48) else Color(0xFFE2E8F0),
+                            CircleShape
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Psychology,
                         contentDescription = null,
-                        tint = Color(0xFF2D3748),
+                        tint = if (isDark) Color(0xFFC084FC) else Color(0xFF2D3748),
                         modifier = Modifier.size(54.dp)
                     )
                 }
 
-                // Author name at bottom
                 Text(
                     text = author,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
-                    color = Color(0xFF4A5568),
+                    color = onCoverMuted,
                     textAlign = TextAlign.Center
                 )
             }
@@ -1278,7 +1288,7 @@ fun RotatingVinylCover(
     Box(
         modifier = modifier
             .size(240.dp)
-            .shadow(24.dp, shape = CircleShape, clip = false, ambientColor = PrimaryPurple, spotColor = PrimaryPurple)
+            .shadow(24.dp, shape = CircleShape, clip = false, ambientColor = MaterialTheme.colorScheme.primary, spotColor = MaterialTheme.colorScheme.primary)
             .graphicsLayer { rotationZ = rotation },
         contentAlignment = Alignment.Center
     ) {

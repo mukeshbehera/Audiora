@@ -32,7 +32,6 @@ import com.audiora.feature.welcome.SplashScreen
 import com.audiora.feature.welcome.OnboardingFoldersScreen
 import com.audiora.ui.theme.LocalDarkTheme
 import com.audiora.ui.theme.MyApplicationTheme
-import com.audiora.ui.theme.PrimaryPurple
 import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
@@ -135,22 +134,22 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
                                     Icon(
                                         imageVector = screen.icon,
                                         contentDescription = screen.title,
-                                        tint = if (selected) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                     )
                                 },
                                 label = {
                                     Text(
                                         text = screen.title,
-                                        color = if (selected) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                         fontSize = 11.sp,
                                         fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
                                     )
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = PrimaryPurple.copy(alpha = 0.15f),
-                                    selectedIconColor = PrimaryPurple,
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
                                     unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    selectedTextColor = PrimaryPurple,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
                                     unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )
                             )

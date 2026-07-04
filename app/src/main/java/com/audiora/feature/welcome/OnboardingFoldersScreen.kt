@@ -51,7 +51,6 @@ import com.audiora.domain.model.AudiobookFolder
 import com.audiora.domain.repository.BookRepository
 import com.audiora.domain.repository.SettingsRepository
 import com.audiora.feature.settings.FolderViewModel
-import com.audiora.ui.theme.PrimaryPurple
 import com.audiora.ui.theme.LocalDarkTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -215,12 +214,12 @@ fun OnboardingFoldersScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val isDark = LocalDarkTheme.current
-    
-    val primaryTextColor = if (isDark) Color.White else Color(0xFF1E1B29)
-    val secondaryTextColor = if (isDark) Color(0xCCFFFFFF) else Color(0xFF1E1B29).copy(alpha = 0.65f)
-    val detailTextColor = if (isDark) Color(0xFF9E9AA8) else Color(0xFF1E1B29).copy(alpha = 0.5f)
-    val iconBgColor = if (isDark) Color(0xFF282238) else Color(0xFFFAF5FF)
-    val folderItemBgColor = if (isDark) Color(0xFF231C32) else Color(0xFFF3E8FF)
+
+    val primaryTextColor = MaterialTheme.colorScheme.onBackground
+    val secondaryTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
+    val detailTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+    val iconBgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val folderItemBgColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
 
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     val audiobooks by booksRepository.getAudiobooks().collectAsStateWithLifecycle(initialValue = emptyList())
@@ -297,7 +296,7 @@ fun OnboardingFoldersScreen(
                 ) {
                     Text(
                         text = "Skip",
-                        color = PrimaryPurple,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )

@@ -25,7 +25,6 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
-import com.audiora.ui.theme.PrimaryPurple
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,7 +67,7 @@ fun FolderManagementView(
                             text = "Audiobook Folders",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryPurple
+                            color = MaterialTheme.colorScheme.primary
                         )
                         Text(
                             text = "Register sources for automatic scan",
@@ -82,7 +81,7 @@ fun FolderManagementView(
                         Icon(
                             imageVector = Icons.Rounded.ArrowBack,
                             contentDescription = "Back to Settings",
-                            tint = PrimaryPurple
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 },
@@ -95,11 +94,11 @@ fun FolderManagementView(
                             Icon(
                                 imageVector = Icons.Rounded.Refresh,
                                 contentDescription = "Rescan All",
-                                tint = PrimaryPurple,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Rescan All", color = PrimaryPurple, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Rescan All", color = MaterialTheme.colorScheme.primary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 },
@@ -113,7 +112,7 @@ fun FolderManagementView(
                 onClick = { launcher.launch(null) },
                 icon = { Icon(Icons.Rounded.Add, contentDescription = "Add Folder") },
                 text = { Text("Register Folder") },
-                containerColor = PrimaryPurple,
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.testTag("add_folder_fab")
             )
@@ -138,7 +137,7 @@ fun FolderManagementView(
                     Icon(
                         imageVector = Icons.Rounded.FolderOpen,
                         contentDescription = "No folders added",
-                        tint = PrimaryPurple.copy(alpha = 0.4f),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
                         modifier = Modifier.size(80.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -187,7 +186,7 @@ fun FolderManagementView(
                                         Icon(
                                             imageVector = Icons.Rounded.Folder,
                                             contentDescription = "Folder Icon",
-                                            tint = PrimaryPurple,
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(24.dp)
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
@@ -218,7 +217,7 @@ fun FolderManagementView(
                                         Icon(
                                             imageVector = Icons.Rounded.Sync,
                                             contentDescription = "Rescan this folder",
-                                            tint = PrimaryPurple,
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -251,7 +250,7 @@ fun FolderManagementView(
                                         text = "Folder Priority Level: #${idx + 1}",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = PrimaryPurple.copy(alpha = 0.7f)
+                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                     )
 
                                     Row(
@@ -267,7 +266,7 @@ fun FolderManagementView(
                                             Icon(
                                                 imageVector = Icons.Rounded.ArrowUpward,
                                                 contentDescription = "Move Up",
-                                                tint = if (idx > 0) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                                                tint = if (idx > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -282,7 +281,7 @@ fun FolderManagementView(
                                             Icon(
                                                 imageVector = Icons.Rounded.ArrowDownward,
                                                 contentDescription = "Move Down",
-                                                tint = if (idx < folders.size - 1) PrimaryPurple else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
+                                                tint = if (idx < folders.size - 1) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
