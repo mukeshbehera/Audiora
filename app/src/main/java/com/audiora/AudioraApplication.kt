@@ -35,7 +35,6 @@ class AudioraApplication : Application() {
 
     // App-scoped coroutine scope for background tasks that must outlive any screen
     val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        private set
 
     override fun onCreate() {
         super.onCreate()
