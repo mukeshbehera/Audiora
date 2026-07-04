@@ -79,93 +79,19 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
     val showBottomNav = currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders" && currentRoute != Screen.Player.route
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            Column {
-                // Mini player above bottom nav bar
-                if (showMiniPlayer && showBottomNav) {
-                    MiniPlayer(
-                        book = currentBook!!,
-                        isPlaying = isPlaying,
-                        currentPosition = currentPosition,
-                        duration = duration,
-                        onTogglePlayPause = { playbackManager.togglePlayPause() },
-                        onDismiss = { playbackManager.stopPlayback() },
-                        onNavigateToPlayer = {
-                            navController.navigate(Screen.Player.route.replace("{bookId}", currentBook!!.id.toString())) {
-                                launchSingleTop = true
-                            }
-                        }
-                    )
-                }
-
-                if (showBottomNav) {
-                    // Elegant premium floating glass bottom bar
-                    com.audiora.core.design.AudioraGlassBottomBar {
-                        Screen.items.forEach { screen ->
-                            val selected = currentRoute?.substringBefore("?") == screen.route
-
-                            NavigationBarItem(
-                                selected = selected,
-                                onClick = {
-                                    val targetRoute = if (screen == Screen.Edit) "edit?bookId=-1" else screen.route
-                                    val isInsideLibraryFlow = currentRoute == Screen.Details.route || currentRoute?.startsWith("details") == true || currentRoute?.startsWith("edit") == true
-
-                                    if (screen == Screen.Library && isInsideLibraryFlow) {
-                                        navController.popBackStack(Screen.Library.route, false)
-                                    } else if (currentRoute != targetRoute && currentRoute?.substringBefore("?") != screen.route) {
-                                        navController.navigate(targetRoute) {
-                                            // Pop up to the start destination of the graph to
-                                            // avoid building up a large stack of destinations
-                                            popUpTo(Screen.Library.route) {
-                                                saveState = true
-                                            }
-                                            // Avoid multiple copies of the same destination when
-                                            // reselecting the same item
-                                            launchSingleTop = true
-                                            // Restore state when reselecting a previously selected item
-                                            restoreState = true
-                                        }
-                                        Timber.d("Navigated to destination screen: ${screen.title}")
-                                    }
-                                },
-                                icon = {
-                                    Icon(
-                                        imageVector = screen.icon,
-                                        contentDescription = screen.title,
-                                        tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                    )
-                                },
-                                label = {
-                                    Text(
-                                        text = screen.title,
-                                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                        fontSize = 11.sp,
-                                        fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
-                                    )
-                                },
-                                colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                                    unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                                    unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                )
-                            )
-                        }
-                    }
-                }
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            val paddingModifier = if (currentRoute == "splash" || currentRoute == "welcome" || currentRoute == "onboarding_folders") {
+                Modifier
+            } else {
+                Modifier.padding(top = innerPadding.calculateTopPadding())
             }
-        }
-    ) { innerPadding ->
-        val paddingModifier = if (currentRoute == "splash" || currentRoute == "welcome" || currentRoute == "onboarding_folders") {
-            Modifier
-        } else {
-            Modifier.padding(innerPadding)
-        }
- 
-        // NavHost hosting screens with smooth premium transitions
+
+            // NavHost hosting screens with smooth premium transitions
         NavHost(
             navController = navController,
             startDestination = "splash",
@@ -323,6 +249,83 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
                         navController.navigate("edit?bookId=$editId")
                     }
                 )
+            }
+        } // end of NavHost
+        } // end of Scaffold content lambda
+
+        // Floating bottom overlay — MiniPlayer + navigation bar
+        if (showBottomNav) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            ) {
+                // Mini player above nav bar
+                if (showMiniPlayer) {
+                    MiniPlayer(
+                        book = currentBook!!,
+                        isPlaying = isPlaying,
+                        currentPosition = currentPosition,
+                        duration = duration,
+                        onTogglePlayPause = { playbackManager.togglePlayPause() },
+                        onDismiss = { playbackManager.stopPlayback() },
+                        onNavigateToPlayer = {
+                            navController.navigate(Screen.Player.route.replace("{bookId}", currentBook!!.id.toString())) {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
+
+                // Elegant premium floating glass bottom bar
+                com.audiora.core.design.AudioraGlassBottomBar {
+                    Screen.items.forEach { screen ->
+                        val selected = currentRoute?.substringBefore("?") == screen.route
+
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                val targetRoute = if (screen == Screen.Edit) "edit?bookId=-1" else screen.route
+                                val isInsideLibraryFlow = currentRoute == Screen.Details.route || currentRoute?.startsWith("details") == true || currentRoute?.startsWith("edit") == true
+
+                                if (screen == Screen.Library && isInsideLibraryFlow) {
+                                    navController.popBackStack(Screen.Library.route, false)
+                                } else if (currentRoute != targetRoute && currentRoute?.substringBefore("?") != screen.route) {
+                                    navController.navigate(targetRoute) {
+                                        popUpTo(Screen.Library.route) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                    Timber.d("Navigated to destination screen: ${screen.title}")
+                                }
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = screen.icon,
+                                    contentDescription = screen.title,
+                                    tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            },
+                            label = {
+                                Text(
+                                    text = screen.title,
+                                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                    fontSize = 11.sp,
+                                    fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.Bold else androidx.compose.ui.text.font.FontWeight.Normal
+                                )
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        )
+                    }
+                }
             }
         }
     }
