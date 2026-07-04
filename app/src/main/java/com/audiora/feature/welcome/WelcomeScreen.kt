@@ -511,13 +511,14 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            val isSplashDark = LocalDarkTheme.current
+            val splashAudiColor = if (isSplashDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+            val splashTaglineColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.scale(textAlpha.value)
             ) {
-                val isSplashDark = LocalDarkTheme.current
-                val splashAudiColor = if (isSplashDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
-                val splashTaglineColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
 
                 Text(
                     text = buildAnnotatedString {
