@@ -833,12 +833,15 @@ fun EditScreen(
                         )
                     }
                 }
+
+                // Extra bottom spacing to clear the floating bottom navigation bar overlay
+                Spacer(modifier = Modifier.height(96.dp))
             }
         }
     }
 }
 
-private fun parseTimeToMs(timeStr: String): Long? {
+private fun parseTimeToMs
     val cleanStr = timeStr.replace("\\s".toRegex(), "").replace(".", ":")
     val parts = cleanStr.split(":")
     return try {
