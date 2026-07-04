@@ -923,62 +923,39 @@ fun CreateScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Wizard Action Bottom Gradient Pill Button
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp)
-                    .height(56.dp)
-                    .clip(CircleShape)
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                            )
-                        )
-                    )
-                    .clickable {
-                        coroutineScope.launch {
-                            if (currentStep == 1) {
-                                if (importedFiles.isEmpty()) {
-                                    snackbarHostState.showSnackbar("Select at least one audio file to work with.")
-                                } else {
-                                    currentStep++
-                                }
-                            } else if (currentStep == 2) {
-                                if (title.isBlank()) {
-                                    snackbarHostState.showSnackbar("Please fill out the audiobook title field.")
-                                } else {
-                                    currentStep++
-                                }
-                            } else if (currentStep == 3) {
-                                currentStep++
+            // Next button — matches EditScreen Save All Changes styling
+            GlassmorphicPrimaryButton(
+                text = if (currentStep == 4) "Create Audiobook" else "Next",
+                onClick = {
+                    coroutineScope.launch {
+                        if (currentStep == 1) {
+                            if (importedFiles.isEmpty()) {
+                                snackbarHostState.showSnackbar("Select at least one audio file to work with.")
                             } else {
-                                // Final Step 4: start the merge progress screen
-                                onStartMerge()
+                                currentStep++
                             }
+                        } else if (currentStep == 2) {
+                            if (title.isBlank()) {
+                                snackbarHostState.showSnackbar("Please fill out the audiobook title field.")
+                            } else {
+                                currentStep++
+                            }
+                        } else if (currentStep == 3) {
+                            currentStep++
+                        } else {
+                            // Final Step 4: start the merge progress screen
+                            onStartMerge()
                         }
                     }
-                    .testTag("next_voice_step_button"),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (currentStep == 4) "Create Audiobook" else "Next",
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Icon(
-                    imageVector = Icons.Rounded.ArrowForward,
-                    contentDescription = "Next step",
-                    tint = Color.White,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 24.dp)
-                        .size(20.dp)
-                )
-            }
+                },
+                icon = Icons.Rounded.ArrowForward,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("next_voice_step_button")
+            )
+
+            // Bottom spacer to clear floating nav bar overlay
+            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 
