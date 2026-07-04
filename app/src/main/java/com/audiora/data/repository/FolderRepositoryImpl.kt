@@ -16,6 +16,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -31,6 +33,8 @@ class FolderRepositoryImpl(
         }
     }
 
+    private val scanMutex = Mutex()
+
     override suspend fun addFolder(uri: String, name: String) = withContext(Dispatchers.IO) {
         val existing = folderDao.getFolderByUri(uri)
         if (existing == null) {
@@ -41,7 +45,8 @@ class FolderRepositoryImpl(
                 sequenceOrder = defaultOrder
             )
             folderDao.insertFolder(folderEntity)
-            rescanFolder(uri)
+            // Note: rescanFolder is NOT called here — the caller must launch it
+            // on an application-scoped coroutine so it survives screen navigation.
         }
     }
 
@@ -57,7 +62,8 @@ class FolderRepositoryImpl(
         }
     }
 
-    override suspend fun rescanFolder(uri: String) = withContext(Dispatchers.IO) {
+    override suspend fun rescanFolder(uri: String) = scanMutex.withLock {
+        withContext(Dispatchers.IO) {
         try {
             val treeUri = Uri.parse(uri)
             val documentFile = DocumentFile.fromTreeUri(context, treeUri)
@@ -177,6 +183,7 @@ class FolderRepositoryImpl(
 
         } catch (e: Exception) {
             Timber.e(e, "Error rescanning folder $uri")
+        }
         }
     }
 

@@ -33,6 +33,10 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
     fun addFolder(uri: String, name: String) {
         viewModelScope.launch {
             addFolderUseCase(uri, name)
+            // Fire background scan on appScope so it survives navigation away
+            app.appScope.launch {
+                rescanFolderUseCase(uri)
+            }
         }
     }
 
@@ -67,13 +71,13 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun rescanFolder(uri: String) {
-        viewModelScope.launch {
+        app.appScope.launch {
             rescanFolderUseCase(uri)
         }
     }
 
     fun rescanAllFolders() {
-        viewModelScope.launch {
+        app.appScope.launch {
             rescanFolderUseCase(null)
         }
     }

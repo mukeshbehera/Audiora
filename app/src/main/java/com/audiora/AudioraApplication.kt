@@ -11,6 +11,7 @@ import com.audiora.domain.repository.FolderRepository
 import com.audiora.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -30,6 +31,10 @@ class AudioraApplication : Application() {
         private set
 
     lateinit var playbackManager: com.audiora.feature.player.PlaybackManager
+        private set
+
+    // App-scoped coroutine scope for background tasks that must outlive any screen
+    val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         private set
 
     override fun onCreate() {
@@ -63,7 +68,7 @@ class AudioraApplication : Application() {
         playbackManager = com.audiora.feature.player.PlaybackManager(applicationContext, bookRepository)
 
         // 3. Auto-rescan configured folders on app startup
-        CoroutineScope(Dispatchers.IO).launch {
+        appScope.launch {
             try {
                 folderRepository.rescanAllFolders()
             } catch (e: Exception) {
