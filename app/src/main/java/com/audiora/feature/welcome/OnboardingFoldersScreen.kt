@@ -730,7 +730,6 @@ fun OnboardingFoldersScreen(
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
-    }
 
     // Modal AlertDialog for Renaming Folder
     folderToRename?.let { folder ->
