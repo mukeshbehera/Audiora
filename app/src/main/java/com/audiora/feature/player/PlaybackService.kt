@@ -1,6 +1,5 @@
 package com.audiora.feature.player
 
-import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -16,8 +15,8 @@ class PlaybackService : MediaSessionService() {
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
-        
-        val player = ExoPlayer.Builder(this)
+
+        ExoPlayerInstance.player = ExoPlayer.Builder(this)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
@@ -29,8 +28,8 @@ class PlaybackService : MediaSessionService() {
             .setSeekBackIncrementMs(15000) // 15 seconds rew
             .setSeekForwardIncrementMs(30000) // 30 seconds ff
             .build()
-            
-        mediaSession = MediaSession.Builder(this, player)
+
+        mediaSession = MediaSession.Builder(this, ExoPlayerInstance.player!!)
             .build()
     }
 
@@ -44,6 +43,16 @@ class PlaybackService : MediaSessionService() {
             release()
             mediaSession = null
         }
+        ExoPlayerInstance.player = null
         super.onDestroy()
     }
+}
+
+/**
+ * Process-safe singleton holding the ExoPlayer reference.
+ * PlaybackManager accesses this for skipSilence, volume gain (audio session ID).
+ * Mirrors Voice's approach of accessing the player from the service process.
+ */
+internal object ExoPlayerInstance {
+    var player: ExoPlayer? = null
 }

@@ -35,6 +35,7 @@ import com.audiora.AudioraApplication
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.feature.library.AudiobookCoverArt
 import com.audiora.ui.theme.LocalDarkTheme
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -998,9 +999,73 @@ fun PlayerScreen(
         }
     }
 
-    // Modal Bottom Sheet for "More" options
+    // Volume Boost dialog (matches Voice's VolumeGainDialog — AlertDialog with Slider)
+    var showVolumeBoostDialog by remember { mutableStateOf(false) }
+    if (showVolumeBoostDialog) {
+        AlertDialog(
+            onDismissRequest = { showVolumeBoostDialog = false },
+            confirmButton = {
+                TextButton(
+                    onClick = { showVolumeBoostDialog = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Done", fontWeight = FontWeight.Bold)
+                }
+            },
+            title = {
+                Text(
+                    text = "Volume Boost",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            },
+            text = {
+                val currentGain = playbackManager.getVolumeGain()
+                var gainSlider by remember { mutableStateOf(currentGain) }
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = String.format(Locale.US, "%.1f dB", gainSlider),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Slider(
+                        value = gainSlider,
+                        onValueChange = {
+                            gainSlider = it
+                            playbackManager.setVolumeGain(it)
+                        },
+                        valueRange = 0f..VolumeGain.MAX_GAIN_DB,
+                        colors = SliderDefaults.colors(
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        ),
+                        modifier = Modifier.fillMaxWidth().testTag("volume_boost_slider")
+                    )
+
+                    Text(
+                        text = "Amplify the volume up to 9 dB beyond the normal maximum.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        )
+    }
+
+    // Modal Bottom Sheet for "More" options — Skip Silence + Volume Boost
     if (showMoreSheet && currentBook != null) {
-        val book = currentBook!!
+        val currentSkipSilence = playbackManager.getSkipSilence()
         ModalBottomSheet(
             onDismissRequest = { showMoreSheet = false },
             sheetState = rememberModalBottomSheetState(),
@@ -1014,7 +1079,7 @@ fun PlayerScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Audiobook Options",
+                    text = "Playback Options",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
@@ -1022,88 +1087,91 @@ fun PlayerScreen(
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
-                // Toggle Completion Status Action
+                // Skip Silence toggle
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable {
-                            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                app.bookRepository.saveAudiobook(
-                                    book.copy(completed = !book.completed)
-                                )
-                            }
-                            showMoreSheet = false
-                        }
-                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = if (book.completed) Icons.Rounded.CheckCircle else Icons.Rounded.CheckCircleOutline,
+                        imageVector = Icons.Rounded.Hearing,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (book.completed) "Mark as In-Progress" else "Mark as Completed",
+                            text = "Skip Silence",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = if (book.completed) "Keep listening to this book" else "Move to your finished list",
+                            text = "Automatically skip silent sections",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
+                    Switch(
+                        checked = currentSkipSilence,
+                        onCheckedChange = { enabled ->
+                            playbackManager.setSkipSilence(enabled)
+                        },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                        )
+                    )
                 }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-
-                // Metadata info list
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "ABOUT THIS AUDIOBOOK",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 1.sp
+                // Volume Boost row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            showMoreSheet = false
+                            showVolumeBoostDialog = true
+                        }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.VolumeUp,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Genre", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                        Text(book.genre, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                    }
-                    if (!book.year.isNullOrEmpty()) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Published Year", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                            Text(book.year!!, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                    if (!book.narrator.isNullOrEmpty()) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Narrated By", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                            Text(book.narrator!!, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                    if (!book.publisher.isNullOrEmpty()) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Publisher", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                            Text(book.publisher!!, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                    if (!book.description.isNullOrEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Description", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = book.description!!,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
-                            maxLines = 4,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            text = "Volume Boost",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Amplify beyond normal volume",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    val currentGain = playbackManager.getVolumeGain()
+                    if (currentGain > 0f) {
+                        Text(
+                            text = String.format(Locale.US, "%.1f dB", currentGain),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 }

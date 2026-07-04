@@ -1,8 +1,8 @@
 package com.audiora.feature.player
 
-import android.content.ComponentName
-import android.content.Context
+import android.media.audiofx.LoudnessEnhancer
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -68,6 +68,10 @@ class PlaybackManager(
 
     private val _currentChapterIndex = MutableStateFlow(-1)
     val currentChapterIndex: StateFlow<Int> = _currentChapterIndex.asStateFlow()
+
+    // Volume gain for LoudnessEnhancer (skip silence handled via ExoPlayer directly)
+    private val volumeGain = VolumeGain()
+    private var _audioSessionId: Int? = null
 
     /**
      * Loads chapters for the given book.
@@ -176,6 +180,10 @@ class PlaybackManager(
         _playbackSpeed.value = activeController.playbackParameters.speed
         _duration.value = if (activeController.duration > 0) activeController.duration else 0L
         
+        // Track audio session ID from the underlying ExoPlayer for LoudnessEnhancer
+        _audioSessionId = ExoPlayerInstance.player?.audioSessionId
+            ?.takeUnless { it == C.AUDIO_SESSION_ID_UNSET }
+
         activeController.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlayingChanged: Boolean) {
                 _isPlaying.value = isPlayingChanged
@@ -191,6 +199,10 @@ class PlaybackManager(
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isPlaying.value = activeController.isPlaying
                 _duration.value = if (activeController.duration > 0) activeController.duration else 0L
+            }
+
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                _audioSessionId = audioSessionId.takeUnless { it == C.AUDIO_SESSION_ID_UNSET }
             }
 
             override fun onMetadata(metadata: androidx.media3.common.Metadata) {
@@ -227,10 +239,17 @@ class PlaybackManager(
                 val defaultSpeed = settingsRepository?.getDefaultPlaybackSpeed()?.firstOrNull() ?: 1.0f
                 _playbackSpeed.value = defaultSpeed
 
+                // Resolve effective position: use live tracked position if same book (matches Voice's CurrentBookResolver pattern)
+                val effectivePosition = if (_currentBook.value?.id == book.id) {
+                    _currentPosition.value.coerceAtLeast(book.currentPositionMs)
+                } else {
+                    book.currentPositionMs
+                }
+
                 // Seek to saved position with auto-rewind if applicable
-                if (book.currentPositionMs > 0 && book.currentPositionMs < book.durationMs) {
+                if (effectivePosition > 0 && effectivePosition < book.durationMs) {
                     val autoRewindSecs = settingsRepository?.getAutoRewind()?.firstOrNull() ?: 3
-                    val targetPos = (book.currentPositionMs - autoRewindSecs * 1000L).coerceAtLeast(0L)
+                    val targetPos = (effectivePosition - autoRewindSecs * 1000L).coerceAtLeast(0L)
                     activeController.seekTo(targetPos)
                     _currentPosition.value = targetPos
                 } else {
@@ -256,6 +275,16 @@ class PlaybackManager(
 
                 // Set speed & play
                 activeController.setPlaybackSpeed(defaultSpeed)
+
+                // Apply per-book settings: skip silence and volume gain (matches Voice's setBook() pattern)
+                if (book.skipSilence) {
+                    ExoPlayerInstance.player?.skipSilenceEnabled = true
+                }
+                val gainDb = book.volumeGain
+                if (gainDb > 0f) {
+                    _audioSessionId?.let { volumeGain.setGain(gainDb, it) }
+                }
+
                 activeController.play()
             } else {
                 Timber.w("PlaybackManager: MediaController not online yet")
@@ -300,6 +329,29 @@ class PlaybackManager(
         val activeController = controller ?: return
         activeController.setPlaybackSpeed(speed)
         _playbackSpeed.value = speed
+    }
+
+    fun setSkipSilence(enabled: Boolean) {
+        ExoPlayerInstance.player?.skipSilenceEnabled = enabled
+        scope.launch {
+            val book = _currentBook.value ?: return@launch
+            val updated = book.copy(skipSilence = enabled)
+            _currentBook.value = updated
+            bookRepository.saveAudiobook(updated)
+        }
+    }
+
+    fun setVolumeGain(gainDb: Float) {
+        val sessionId = _audioSessionId
+        if (sessionId != null) {
+            volumeGain.setGain(gainDb, sessionId)
+        }
+        scope.launch {
+            val book = _currentBook.value ?: return@launch
+            val updated = book.copy(volumeGain = gainDb)
+            _currentBook.value = updated
+            bookRepository.saveAudiobook(updated)
+        }
     }
 
     fun skipForward() {
@@ -443,6 +495,7 @@ class PlaybackManager(
 
     fun stopPlayback() {
         saveCurrentPositionToDb()
+        volumeGain.reset()
         val activeController = controller
         if (activeController != null) {
             activeController.stop()
@@ -455,6 +508,10 @@ class PlaybackManager(
         _currentChapterIndex.value = -1
         cancelSleepTimer()
     }
+
+    fun getSkipSilence(): Boolean = _currentBook.value?.skipSilence ?: false
+
+    fun getVolumeGain(): Float = _currentBook.value?.volumeGain ?: 0f
 
     fun release() {
         saveCurrentPositionToDb()

@@ -20,7 +20,9 @@ data class Audiobook(
     val lastModified: Long = 0L,
     val language: String = "",
     val copyright: String = "",
-    val chaptersJson: String? = null
+    val chaptersJson: String? = null,
+    val skipSilence: Boolean = false,
+    val volumeGain: Float = 0f
 ) {
     val progress: Float
         get() = if (durationMs > 0) currentPositionMs.toFloat() / durationMs else 0f
