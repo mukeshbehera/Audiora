@@ -68,22 +68,22 @@ fun MyApplicationTheme(
         }
         "CRIMSON_RED" -> {
             baseScheme.copy(
-                primary = if (darkTheme) Color(0xFFEF9A9A) else Color(0xFFD32F2F),
-                primaryContainer = if (darkTheme) Color(0xFFB71C1C) else Color(0xFFFFEBEE),
+                primary = if (darkTheme) Color(0xFFFF8A80) else Color(0xFFFF5252),
+                primaryContainer = if (darkTheme) Color(0xFFC62828) else Color(0xFFFFCDD2),
                 onPrimaryContainer = if (darkTheme) Color(0xFFFFFFFF) else Color(0xFF5D0008)
             )
         }
         "OCEAN_BLUE" -> {
             baseScheme.copy(
-                primary = if (darkTheme) Color(0xFF81D4FA) else Color(0xFF0288D1),
-                primaryContainer = if (darkTheme) Color(0xFF01579B) else Color(0xFFE1F5FE),
+                primary = if (darkTheme) Color(0xFF90CAF9) else Color(0xFF2196F3),
+                primaryContainer = if (darkTheme) Color(0xFF1565C0) else Color(0xFFBBDEFB),
                 onPrimaryContainer = if (darkTheme) Color(0xFFFFFFFF) else Color(0xFF002538)
             )
         }
         "EMERALD_GREEN" -> {
             baseScheme.copy(
-                primary = if (darkTheme) Color(0xFFA5D6A7) else Color(0xFF2E7D32),
-                primaryContainer = if (darkTheme) Color(0xFF1B5E20) else Color(0xFFE8F5E9),
+                primary = if (darkTheme) Color(0xFF81C784) else Color(0xFF4CAF50),
+                primaryContainer = if (darkTheme) Color(0xFF2E7D32) else Color(0xFFC8E6C9),
                 onPrimaryContainer = if (darkTheme) Color(0xFFFFFFFF) else Color(0xFF002200)
             )
         }

@@ -217,7 +217,7 @@ fun SettingsScreen(
                                     Text(
                                         text = when(colorSchemeName) {
                                             "DYNAMIC" -> "Dynamic Color"
-                                            "CRIMSON_RED" -> "Crimson Red"
+                                            "CRIMSON_RED" -> "Cheery Red"
                                             "OCEAN_BLUE" -> "Ocean Blue"
                                             "EMERALD_GREEN" -> "Emerald Green"
                                             "SUNSET_ORANGE" -> "Sunset Orange"

@@ -114,18 +114,26 @@ fun AudioraGlassButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
+    val primary = MaterialTheme.colorScheme.primary
     val gradient = Brush.horizontalGradient(
-        colors = listOf(BrandGradientStart, BrandGradientEnd)
+        colors = listOf(
+            primary,
+            primary.copy(
+                red = (primary.red * 0.7f).coerceIn(0f, 1f),
+                green = (primary.green * 0.7f).coerceIn(0f, 1f),
+                blue = (primary.blue * 0.7f).coerceIn(0f, 1f)
+            )
+        )
     )
     val shape = RoundedCornerShape(28.dp) // Perfect pill at 56dp height
-    
+
     val shadowModifier = if (enabled) {
         Modifier.shadow(
             elevation = 10.dp,
             shape = shape,
             clip = false,
-            ambientColor = BrandGradientEnd.copy(alpha = 0.5f),
-            spotColor = BrandGradientEnd.copy(alpha = 0.5f)
+            ambientColor = primary.copy(alpha = 0.5f),
+            spotColor = primary.copy(alpha = 0.5f)
         )
     } else {
         Modifier
@@ -178,19 +186,27 @@ fun AudioraGlassFAB(
     icon: ImageVector,
     contentDescription: String? = null
 ) {
+    val primary = MaterialTheme.colorScheme.primary
     val gradient = Brush.linearGradient(
-        colors = listOf(BrandGradientStart, BrandGradientEnd)
+        colors = listOf(
+            primary,
+            primary.copy(
+                red = (primary.red * 0.7f).coerceIn(0f, 1f),
+                green = (primary.green * 0.7f).coerceIn(0f, 1f),
+                blue = (primary.blue * 0.7f).coerceIn(0f, 1f)
+            )
+        )
     )
     val shape = RoundedCornerShape(28.dp) // Perfect circle
-    
+
     Box(
         modifier = modifier
             .shadow(
                 elevation = 14.dp,
                 shape = shape,
                 clip = false,
-                ambientColor = BrandGradientEnd.copy(alpha = 0.6f),
-                spotColor = BrandGradientEnd.copy(alpha = 0.6f)
+                ambientColor = primary.copy(alpha = 0.6f),
+                spotColor = primary.copy(alpha = 0.6f)
             )
             .size(56.dp)
             .background(gradient, shape = shape)
