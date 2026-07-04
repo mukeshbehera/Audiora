@@ -323,13 +323,18 @@ fun WelcomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Typography pairings matching logo.png and welcome_page.png: "Audio" in rich purple, "ora" in glowing light purple gradient
-                Row(
+                val isWelcomeDark = LocalDarkTheme.current
+	val audiColor = if (isWelcomeDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+	val taglineColor = MaterialTheme.colorScheme.onBackground
+	val subtitleColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+
+    Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.scale(contentAlpha.value)
                 ) {
                     Text(
                         text = buildAnnotatedString {
-                            withStyle(style = SpanStyle(color = Color(0xFF5B21B6), fontWeight = FontWeight.Bold)) {
+                            withStyle(style = SpanStyle(color = audiColor, fontWeight = FontWeight.Bold)) {
                                 append("Audi")
                             }
                             withStyle(style = SpanStyle(
@@ -352,7 +357,7 @@ fun WelcomeScreen(
                 // First subtle Slogan Text "Listen. Edit. Create."
                 Text(
                     text = "Listen. Edit. Create.",
-                    color = Color(0xFF1E1B29),
+                    color = taglineColor,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
@@ -364,7 +369,7 @@ fun WelcomeScreen(
                 // Subtitle: "Your complete audiobook studio"
                 Text(
                     text = "Your complete\naudiobook studio",
-                    color = Color(0xFF1C1A24).copy(alpha = 0.8f),
+                    color = subtitleColor,
                     fontSize = 17.sp,
                     lineHeight = 24.sp,
                     fontWeight = FontWeight.Normal,
@@ -510,9 +515,13 @@ fun SplashScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.scale(textAlpha.value)
             ) {
+                val isSplashDark = LocalDarkTheme.current
+                val splashAudiColor = if (isSplashDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+                val splashTaglineColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+
                 Text(
                     text = buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = Color(0xFF5B21B6), fontWeight = FontWeight.Bold)) {
+                        withStyle(style = SpanStyle(color = splashAudiColor, fontWeight = FontWeight.Bold)) {
                             append("Audi")
                         }
                         withStyle(style = SpanStyle(
@@ -529,12 +538,12 @@ fun SplashScreen(
                     textAlign = TextAlign.Center
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             Text(
                 text = "Listen. Edit. Create.",
-                color = Color(0xFF1C1A24).copy(alpha = 0.6f),
+                color = splashTaglineColor,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
