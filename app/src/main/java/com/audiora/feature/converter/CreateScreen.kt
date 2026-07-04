@@ -308,8 +308,9 @@ fun CreateScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+                .verticalScroll(scrollState)
+                .navigationBarsPadding(),
         ) {
             
             // Elegantly formatted dynamic Progress indicator
@@ -318,9 +319,7 @@ fun CreateScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(scrollState),
+                modifier = Modifier,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 

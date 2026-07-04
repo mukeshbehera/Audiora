@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.audiora.AudioraApplication
+import com.audiora.domain.util.toDisplayPath
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicEmptyState
 import com.audiora.core.design.GlassmorphicLoadingState
@@ -305,7 +306,7 @@ fun AudiobookDetailScreen(
                                     SpecRow(label = "Added to Audiora", value = formatDate(book.addedAt), icon = Icons.Rounded.Download)
                                     SpecRow(
                                         label = "File Identifier / Stream URI",
-                                        value = if (book.filePath.isNotEmpty()) book.filePath else "Virtual Synth Stream (Seed)",
+                                        value = if (book.filePath.isNotEmpty()) toDisplayPath(book.filePath) else "Virtual Synth Stream (Seed)",
                                         icon = Icons.Rounded.Link,
                                         isSingleLine = false
                                     )

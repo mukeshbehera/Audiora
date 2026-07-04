@@ -3,7 +3,6 @@ package com.audiora.feature.welcome
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.text.TextUtils
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -48,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.domain.model.AudiobookFolder
+import com.audiora.domain.util.toDisplayPath
 import com.audiora.domain.repository.BookRepository
 import com.audiora.domain.repository.SettingsRepository
 import com.audiora.feature.settings.FolderViewModel
@@ -181,24 +181,6 @@ fun FolderIntroLogo(modifier: Modifier = Modifier) {
             drawCircle(Color.White, radius = 1.8.dp.toPx(), center = androidx.compose.ui.geometry.Offset(size.width * 0.72f, size.height * 0.82f))
         }
     }
-}
-
-// Highly reliable Uri decrypter to readable physical paths
-fun getCleanDisplayPath(uriStr: String): String {
-    try {
-        val uri = Uri.parse(uriStr)
-        if (uri.scheme == "content") {
-            val path = uri.path ?: return uriStr
-            if (path.contains("document/primary:")) {
-                val subPath = path.substringAfter("document/primary:").replace("%2F", "/").replace("%3A", "/")
-                return "/storage/emulated/0/$subPath"
-            } else if (path.contains("tree/primary:")) {
-                val subPath = path.substringAfter("tree/primary:").replace("%2F", "/").replace("%3A", "/")
-                return "/storage/emulated/0/$subPath"
-            }
-        }
-    } catch (e: Exception) {}
-    return uriStr.replace("content://", "").substringAfterLast("%3A").replace("%2F", "/")
 }
 
 @Composable
@@ -507,7 +489,7 @@ fun OnboardingFoldersScreen(
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = getCleanDisplayPath(folder.uri),
+                                            text = toDisplayPath(folder.uri),
                                             fontSize = 11.sp,
                                             color = detailTextColor,
                                             maxLines = 1,

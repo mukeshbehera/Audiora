@@ -25,6 +25,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
+import com.audiora.domain.util.toDisplayPath
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -162,6 +163,7 @@ fun FolderManagementView(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
                         .fillMaxSize()
+                        .navigationBarsPadding()
                         .testTag("folder_list")
                 ) {
                     itemsIndexed(folders) { idx, folder ->
@@ -200,7 +202,7 @@ fun FolderManagementView(
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                             Text(
-                                                text = folder.uri,
+                                                text = toDisplayPath(folder.uri),
                                                 fontSize = 10.sp,
                                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                                                 maxLines = 1,
