@@ -27,6 +27,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.domain.util.toDisplayPath
 import timber.log.Timber
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.audiora.core.design.GlassmorphicPrimaryButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,30 +111,22 @@ fun FolderManagementView(
                 )
             )
         },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { launcher.launch(null) },
-                icon = { Icon(Icons.Rounded.Add, contentDescription = "Add Folder") },
-                text = { Text("Register Folder") },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                modifier = Modifier.testTag("add_folder_fab")
-            )
-        },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        Surface(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding),
-            color = MaterialTheme.colorScheme.background
+                .padding(innerPadding)
+                .navigationBarsPadding()
         ) {
             if (folders.isEmpty()) {
-                // Onboarding Empty state
+                // Onboarding Empty state — scrollable so button is reachable
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
+                        .padding(32.dp)
+                        .weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -162,8 +157,8 @@ fun FolderManagementView(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier
-                        .fillMaxSize()
-                        .navigationBarsPadding()
+                        .weight(1f)
+                        .fillMaxWidth()
                         .testTag("folder_list")
                 ) {
                     itemsIndexed(folders) { idx, folder ->
@@ -294,6 +289,20 @@ fun FolderManagementView(
                     }
                 }
             }
+
+            // Inline Register Folder button — always visible, clears nav bar
+            GlassmorphicPrimaryButton(
+                text = "Register Folder",
+                onClick = { launcher.launch(null) },
+                icon = Icons.Rounded.Add,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .testTag("register_folder_btn")
+            )
+
+            // Bottom spacer to clear floating nav bar overlay
+            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 

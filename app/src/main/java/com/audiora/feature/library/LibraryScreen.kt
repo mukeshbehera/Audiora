@@ -191,6 +191,7 @@ fun LibraryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .navigationBarsPadding()
         ) {
 
 
@@ -312,7 +313,7 @@ fun LibraryScreen(
                     // Responsive Grid Layout
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 150.dp),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                         modifier = Modifier
@@ -329,7 +330,7 @@ fun LibraryScreen(
                 } else {
                     // Responsive List Layout
                     LazyColumn(
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         modifier = Modifier
                             .fillMaxSize()

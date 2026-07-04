@@ -86,7 +86,7 @@ fun SettingsScreen(
                 .navigationBarsPadding()
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
+            contentPadding = PaddingValues(bottom = 96.dp)
         ) {
             // SECTION 1: Audiobook Folders
             item {
