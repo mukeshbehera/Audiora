@@ -323,8 +323,7 @@ fun WelcomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Typography pairings matching logo.png and welcome_page.png: "Audio" in rich purple, "ora" in glowing light purple gradient
-                val isWelcomeDark = LocalDarkTheme.current
-	val audiColor = if (isWelcomeDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+	val audiColor = MaterialTheme.colorScheme.primary
 	val taglineColor = MaterialTheme.colorScheme.onBackground
 	val subtitleColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
 
@@ -339,7 +338,7 @@ fun WelcomeScreen(
                             }
                             withStyle(style = SpanStyle(
                                 brush = Brush.linearGradient(
-                                    colors = listOf(Color(0xFF7C3AED), Color(0xFFC084FC))
+                                    colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                                 ),
                                 fontWeight = FontWeight.SemiBold
                             )) {
@@ -398,12 +397,12 @@ fun WelcomeScreen(
                             elevation = 8.dp,
                             shape = CircleShape,
                             clip = false,
-                            ambientColor = Color(0xFF7C3AED).copy(alpha = 0.35f),
-                            spotColor = Color(0xFF7C3AED)
+                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                            spotColor = MaterialTheme.colorScheme.primary
                         )
                         .background(
                             brush = Brush.horizontalGradient(
-                                colors = listOf(Color(0xFF7C3AED), Color(0xFFA855F7))
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
                             ),
                             shape = CircleShape
                         )
@@ -511,8 +510,7 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            val isSplashDark = LocalDarkTheme.current
-            val splashAudiColor = if (isSplashDark) Color(0xFFC084FC) else Color(0xFF5B21B6)
+            val splashAudiColor = MaterialTheme.colorScheme.primary
             val splashTaglineColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
 
             Row(
@@ -527,7 +525,7 @@ fun SplashScreen(
                         }
                         withStyle(style = SpanStyle(
                             brush = Brush.linearGradient(
-                                colors = listOf(Color(0xFF7C3AED), Color(0xFFC084FC))
+                                colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                             ),
                             fontWeight = FontWeight.SemiBold
                         )) {

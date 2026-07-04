@@ -51,7 +51,6 @@ import com.audiora.domain.model.AudiobookFolder
 import com.audiora.domain.repository.BookRepository
 import com.audiora.domain.repository.SettingsRepository
 import com.audiora.feature.settings.FolderViewModel
-import com.audiora.ui.theme.LocalDarkTheme
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -213,8 +212,6 @@ fun OnboardingFoldersScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val isDark = LocalDarkTheme.current
-
     val primaryTextColor = MaterialTheme.colorScheme.onBackground
     val secondaryTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f)
     val detailTextColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
@@ -256,62 +253,63 @@ fun OnboardingFoldersScreen(
             .fillMaxSize()
             .testTag("onboarding_folders_screen")
     ) {
-        // Shared swirling background motif
+        // 1. Shared swirling background motif
         SwirlingBackground(modifier = Modifier.fillMaxSize())
 
-        Column(
+        // 2. Floating top action bar (transparent — overlays scrolling content)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .align(Alignment.TopCenter),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.testTag("onboarding_back_arrow")
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = primaryTextColor
+                )
+            }
+
+            TextButton(
+                onClick = {
+                    coroutineScope.launch {
+                        settingsRepository.setOnboardingCompleted(true)
+                        onNavigateToLibrary()
+                    }
+                },
+                modifier = Modifier.testTag("onboarding_skip_button")
+            ) {
+                Text(
+                    text = "Skip",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
+            }
+        }
+
+        // 3. Scrollable content — fills full screen, scrolls under floating bars
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding(),
+            contentPadding = PaddingValues(
+                start = 24.dp,
+                end = 24.dp,
+                top = 64.dp,
+                bottom = 140.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top custom action bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier.testTag("onboarding_back_arrow")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                        contentDescription = "Back",
-                        tint = primaryTextColor
-                    )
-                }
-
-                TextButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            settingsRepository.setOnboardingCompleted(true)
-                            onNavigateToLibrary()
-                        }
-                    },
-                    modifier = Modifier.testTag("onboarding_skip_button")
-                ) {
-                    Text(
-                        text = "Skip",
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                }
-            }
-
-            // Scrollable Content
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
                 // Header folder logo
                 item {
                     FolderIntroLogo(
@@ -368,7 +366,7 @@ fun OnboardingFoldersScreen(
                                 )
                                 .background(
                                     brush = Brush.horizontalGradient(
-                                        colors = listOf(Color(0xFF7C3AED), Color(0xFFA855F7))
+                                        colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
                                     ),
                                     shape = CircleShape
                                 )
@@ -422,7 +420,7 @@ fun OnboardingFoldersScreen(
                                     Icon(
                                         imageVector = Icons.Rounded.FolderOpen,
                                         contentDescription = "No Folders",
-                                        tint = Color(0xFF7C3AED),
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(32.dp)
                                     )
                                 }
@@ -446,9 +444,9 @@ fun OnboardingFoldersScreen(
                                     onClick = { folderLauncher.launch(null) },
                                     shape = CircleShape,
                                     colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = Color(0xFF7C3AED)
+                                        contentColor = MaterialTheme.colorScheme.primary
                                     ),
-                                    border = BorderStroke(1.dp, if (isDark) Color(0xFF4C1D95) else Color(0xFFD8B4FE)),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                     modifier = Modifier.testTag("empty_add_folder_btn")
                                 ) {
                                     Icon(Icons.Rounded.Add, "Add", modifier = Modifier.size(16.dp))
@@ -491,7 +489,7 @@ fun OnboardingFoldersScreen(
                                         Icon(
                                             imageVector = Icons.Rounded.Folder,
                                             contentDescription = "Folder",
-                                            tint = Color(0xFF7C3AED),
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(24.dp)
                                         )
                                     }
@@ -523,13 +521,13 @@ fun OnboardingFoldersScreen(
                                             Icon(
                                                 imageVector = Icons.Rounded.Book,
                                                 contentDescription = "Books count",
-                                                tint = Color(0xFF7C3AED),
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                             Text(
                                                 text = "$folderBookCount books",
                                                 fontSize = 12.sp,
-                                                color = Color(0xFF7C3AED),
+                                                color = MaterialTheme.colorScheme.primary,
                                                 fontWeight = FontWeight.SemiBold
                                             )
                                         }
@@ -551,11 +549,11 @@ fun OnboardingFoldersScreen(
                                     DropdownMenu(
                                         expanded = showDropdownMenu,
                                         onDismissRequest = { showDropdownMenu = false },
-                                        modifier = Modifier.background(if (isDark) Color(0xFF1F1A2D) else Color.White)
+                                        modifier = Modifier.background(MaterialTheme.colorScheme.surface)
                                     ) {
                                         DropdownMenuItem(
                                             text = { Text("Rescan Folder", color = primaryTextColor) },
-                                            leadingIcon = { Icon(Icons.Rounded.Sync, "Rescan", tint = Color(0xFF7C3AED)) },
+                                            leadingIcon = { Icon(Icons.Rounded.Sync, "Rescan", tint = MaterialTheme.colorScheme.primary) },
                                             onClick = {
                                                 showDropdownMenu = false
                                                 viewModel.rescanFolder(folder.uri)
@@ -564,7 +562,7 @@ fun OnboardingFoldersScreen(
                                         )
                                         DropdownMenuItem(
                                             text = { Text("Rename Display Name", color = primaryTextColor) },
-                                            leadingIcon = { Icon(Icons.Rounded.Edit, "Rename", tint = Color(0xFF7C3AED)) },
+                                            leadingIcon = { Icon(Icons.Rounded.Edit, "Rename", tint = MaterialTheme.colorScheme.primary) },
                                             onClick = {
                                                 showDropdownMenu = false
                                                 renameInputText = folder.name
@@ -604,7 +602,7 @@ fun OnboardingFoldersScreen(
                             Icon(
                                 imageVector = Icons.Rounded.Info,
                                 contentDescription = "Info",
-                                tint = Color(0xFF7C3AED),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
                                     .size(24.dp)
                                     .padding(top = 2.dp)
@@ -635,10 +633,12 @@ fun OnboardingFoldersScreen(
                 }
             }
 
-            // Beautiful Bottom gradient Action Panel (Continue to Library)
+            // Floating Bottom gradient Action Panel (Continue to Library) — transparent, overlays scrolling content
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
                     .padding(horizontal = 24.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -654,12 +654,12 @@ fun OnboardingFoldersScreen(
                             elevation = if (isContinueEnabled) 8.dp else 0.dp,
                             shape = CircleShape,
                             clip = false,
-                            ambientColor = Color(0xFF7C3AED).copy(alpha = 0.35f),
-                            spotColor = Color(0xFF7C3AED)
+                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                            spotColor = MaterialTheme.colorScheme.primary
                         )
                         .background(
                             brush = if (isContinueEnabled) {
-                                Brush.horizontalGradient(colors = listOf(Color(0xFF7C3AED), Color(0xFFA855F7)))
+                                Brush.horizontalGradient(colors = listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)))
                             } else {
                                 Brush.horizontalGradient(colors = listOf(Color(0xFFD1D5DB), Color(0xFFE5E7EB)))
                             },
@@ -773,14 +773,14 @@ fun OnboardingFoldersScreen(
                             Toast.makeText(context, "Name cannot be empty", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED))
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Save", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { folderToRename = null }) {
-                    Text("Cancel", color = Color(0xFF7C3AED))
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             }
         )
@@ -819,7 +819,7 @@ fun OnboardingFoldersScreen(
             },
             dismissButton = {
                 TextButton(onClick = { folderToRemove = null }) {
-                    Text("Cancel", color = Color(0xFF7C3AED))
+                    Text("Cancel", color = MaterialTheme.colorScheme.primary)
                 }
             }
         )

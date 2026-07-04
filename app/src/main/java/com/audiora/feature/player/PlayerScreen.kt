@@ -1203,12 +1203,12 @@ fun PerfectMinimalCoverCard(
                     modifier = Modifier
                         .size(80.dp)
                         .background(
-                            if (isDark) Color(0xFF2A2A36).copy(alpha = 0.5f) else Color(0xFFE2E8F0).copy(alpha = 0.3f),
+                            if (isDark) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                             CircleShape
                         )
                         .border(
                             1.dp,
-                            if (isDark) Color(0xFF3A3A48) else Color(0xFFE2E8F0),
+                            MaterialTheme.colorScheme.outlineVariant,
                             CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -1216,7 +1216,7 @@ fun PerfectMinimalCoverCard(
                     Icon(
                         imageVector = Icons.Rounded.Psychology,
                         contentDescription = null,
-                        tint = if (isDark) Color(0xFFC084FC) else Color(0xFF2D3748),
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(54.dp)
                     )
                 }
