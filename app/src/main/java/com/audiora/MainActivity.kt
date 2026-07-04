@@ -36,17 +36,26 @@ import com.audiora.ui.theme.MyApplicationTheme
 import timber.log.Timber
 
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        const val EXTRA_NAVIGATE_TO_PLAYER = "com.audiora.EXTRA_NAVIGATE_TO_PLAYER"
+    }
+
+    private val pendingPlayerNavigation = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // 1. Core Full Bleed Screen Edge To Edge
         enableEdgeToEdge()
-        
+
         Timber.d("MainActivity launching Edge-To-Edge studio.")
 
         val app = application as AudioraApplication
         val settingsRepository = app.settingsRepository
-        
+
+        processIntent(intent)
+
         setContent {
             val themeMode by settingsRepository.getThemeMode().collectAsState(initial = "SYSTEM")
             val colorSchemeName by settingsRepository.getColorScheme().collectAsState(initial = "AUDIORA_PURPLE")
@@ -56,14 +65,28 @@ class MainActivity : ComponentActivity() {
                 colorSchemeName = colorSchemeName
             ) {
                 // Main app container coordinating Screens Navigation Graph
-                MainAppContainer(settingsRepository)
+                MainAppContainer(settingsRepository, pendingPlayerNavigation)
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent?) {
+        super.onNewIntent(intent)
+        intent?.let { processIntent(it) }
+    }
+
+    private fun processIntent(intent: android.content.Intent) {
+        if (intent.getBooleanExtra(EXTRA_NAVIGATE_TO_PLAYER, false)) {
+            pendingPlayerNavigation.value = true
         }
     }
 }
 
 @Composable
-fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsRepository) {
+fun MainAppContainer(
+    settingsRepository: com.audiora.domain.repository.SettingsRepository,
+    pendingPlayerNavigation: MutableState<Boolean>
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -79,6 +102,22 @@ fun MainAppContainer(settingsRepository: com.audiora.domain.repository.SettingsR
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
     val showBottomNav = currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders" && currentRoute != Screen.Player.route
+
+    // Handle notification tap — navigate to player screen
+    LaunchedEffect(pendingPlayerNavigation.value) {
+        if (pendingPlayerNavigation.value) {
+            val bookId = app.playbackManager.getCurrentBookId()
+            if (bookId != null) {
+                navController.navigate(Screen.Library.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+                navController.navigate("player/$bookId") {
+                    launchSingleTop = true
+                }
+            }
+            pendingPlayerNavigation.value = false
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()

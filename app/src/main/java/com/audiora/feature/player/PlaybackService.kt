@@ -1,5 +1,7 @@
 package com.audiora.feature.player
 
+import android.app.PendingIntent
+import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -7,6 +9,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.audiora.MainActivity
 
 class PlaybackService : MediaSessionService() {
 
@@ -29,7 +32,21 @@ class PlaybackService : MediaSessionService() {
             .setSeekForwardIncrementMs(30000) // 30 seconds ff
             .build()
 
+        // Build a PendingIntent for notification tap — use a flag (not book ID) so it works
+        // regardless of which book is currently playing, matching Voice's approach.
+        val sessionIntent = Intent(this, MainActivity::class.java).apply {
+            putExtra(MainActivity.EXTRA_NAVIGATE_TO_PLAYER, true)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        val sessionActivity = PendingIntent.getActivity(
+            this,
+            0,
+            sessionIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         mediaSession = MediaSession.Builder(this, ExoPlayerInstance.player!!)
+            .setSessionActivity(sessionActivity)
             .build()
     }
 

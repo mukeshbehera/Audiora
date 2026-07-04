@@ -217,6 +217,9 @@ class PlaybackManager(
             // Save preceding book state before changing
             saveCurrentPositionToDb()
 
+            // Capture previous book ID before overwriting _currentBook (used for effectivePosition below)
+            val previousBookId = _currentBook.value?.id
+
             _currentBook.value = book
             _duration.value = book.durationMs
             loadChaptersForBook(book)
@@ -241,7 +244,7 @@ class PlaybackManager(
                 _playbackSpeed.value = defaultSpeed
 
                 // Resolve effective position: use live tracked position if same book (matches Voice's CurrentBookResolver pattern)
-                val effectivePosition = if (_currentBook.value?.id == book.id) {
+                val effectivePosition = if (previousBookId == book.id) {
                     _currentPosition.value.coerceAtLeast(book.currentPositionMs)
                 } else {
                     book.currentPositionMs
@@ -509,6 +512,8 @@ class PlaybackManager(
         _currentChapterIndex.value = -1
         cancelSleepTimer()
     }
+
+    fun getCurrentBookId(): Int? = _currentBook.value?.id
 
     fun getSkipSilence(): Boolean = _currentBook.value?.skipSilence ?: false
 
