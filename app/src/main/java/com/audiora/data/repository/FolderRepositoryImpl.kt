@@ -8,6 +8,8 @@ import com.audiora.data.local.BookDao
 import com.audiora.data.local.BookEntity
 import com.audiora.data.local.FolderDao
 import com.audiora.data.local.FolderEntity
+import com.audiora.data.local.M4bChapterExtractor
+import com.audiora.domain.model.Chapter
 import com.audiora.domain.model.AudiobookFolder
 import com.audiora.domain.repository.FolderRepository
 import kotlinx.coroutines.Dispatchers
@@ -76,6 +78,16 @@ class FolderRepositoryImpl(
                 val existingBook = bookDao.getAudiobookByFilePath(filePathStr)
                 if (existingBook == null) {
                     val metadata = extractMetadata(scanned.uri, scanned.name)
+
+                    // Extract chapters at scan time so they're available instantly at play time
+                    val chaptersJson = try {
+                        val chapters = M4bChapterExtractor.extractFromUri(context, scanned.uri, metadata.durationMs)
+                        if (chapters.isNotEmpty()) Chapter.serializeList(chapters) else null
+                    } catch (e: Exception) {
+                        Timber.e(e, "Error extracting chapters for $filePathStr")
+                        null
+                    }
+
                     val bookEntity = BookEntity(
                         filePath = filePathStr,
                         title = metadata.title,
@@ -91,13 +103,24 @@ class FolderRepositoryImpl(
                         lastModified = scanned.lastModified,
                         folderUri = uri,
                         language = metadata.language,
-                        copyright = metadata.copyright
+                        copyright = metadata.copyright,
+                        chaptersJson = chaptersJson
                     )
                     bookDao.insertAudiobook(bookEntity)
                 } else {
                     val hasChanged = existingBook.fileSize != scanned.size || existingBook.lastModified != scanned.lastModified
                     if (hasChanged) {
                         val metadata = extractMetadata(scanned.uri, scanned.name)
+
+                        // Re-extract chapters when file has changed
+                        val chaptersJson = try {
+                            val chapters = M4bChapterExtractor.extractFromUri(context, scanned.uri, metadata.durationMs)
+                            if (chapters.isNotEmpty()) Chapter.serializeList(chapters) else existingBook.chaptersJson
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error extracting chapters for $filePathStr")
+                            existingBook.chaptersJson
+                        }
+
                         val updatedBook = existingBook.copy(
                             title = metadata.title,
                             author = metadata.author,
@@ -112,9 +135,22 @@ class FolderRepositoryImpl(
                             lastModified = scanned.lastModified,
                             folderUri = uri,
                             language = metadata.language,
-                            copyright = metadata.copyright
+                            copyright = metadata.copyright,
+                            chaptersJson = chaptersJson
                         )
                         bookDao.updateAudiobook(updatedBook)
+                    } else if (existingBook.chaptersJson.isNullOrEmpty()) {
+                        // Upgrade path: extract chapters for previously scanned files
+                        val chaptersJson = try {
+                            val chapters = M4bChapterExtractor.extractFromUri(context, scanned.uri, existingBook.durationMs)
+                            if (chapters.isNotEmpty()) Chapter.serializeList(chapters) else null
+                        } catch (e: Exception) {
+                            Timber.e(e, "Error extracting chapters for $filePathStr")
+                            null
+                        }
+                        if (chaptersJson != null) {
+                            bookDao.updateAudiobook(existingBook.copy(chaptersJson = chaptersJson))
+                        }
                     } else if (existingBook.folderUri != uri) {
                         bookDao.updateAudiobook(existingBook.copy(folderUri = uri))
                     }

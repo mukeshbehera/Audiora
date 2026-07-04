@@ -8,7 +8,6 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.audiora.data.local.M4bChapterExtractor
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.model.Chapter
 import com.audiora.domain.repository.BookRepository
@@ -71,13 +70,12 @@ class PlaybackManager(
     val currentChapterIndex: StateFlow<Int> = _currentChapterIndex.asStateFlow()
 
     /**
-     * Loads chapters for the given book, trying in order:
-     * 1. Cached chapters from DB (chaptersJson) — synchronous, instant
-     * 2. M4B chapter extraction from the file — async, replaces fallback when done
-     * 3. Single "Full Audiobook" entry as fallback — set immediately so UI never waits
+     * Loads chapters for the given book.
+     * Chapters are extracted at scan time and persisted as chaptersJson on the book,
+     * so this is a synchronous, instant operation.
      */
     private fun loadChaptersForBook(book: Audiobook) {
-        // 1. Check cached chapters JSON first (instant — no IO needed)
+        // 1. Check cached chapters JSON (extracted at scan time)
         if (!book.chaptersJson.isNullOrEmpty()) {
             val decoded = Chapter.deserializeList(book.chaptersJson)
             if (decoded.isNotEmpty()) {
@@ -87,9 +85,9 @@ class PlaybackManager(
             }
         }
 
-        // 2. Set fallback immediately so chapters sheet shows content with zero delay
+        // 2. Fallback: single "Full Audiobook" entry for files without embedded chapters
         val fallbackDuration = if (book.durationMs > 0) book.durationMs else 3600000L
-        val fallback = listOf(
+        _chapters.value = listOf(
             Chapter(
                 title = book.title.ifEmpty { "Full Audiobook" },
                 startMs = 0L,
@@ -98,41 +96,7 @@ class PlaybackManager(
                 index = 0
             )
         )
-        _chapters.value = fallback
         _currentChapterIndex.value = 0
-
-        // 3. Launch async extraction — replaces fallback when done
-        scope.launch(Dispatchers.IO) {
-            val extracted = try {
-                val isContentUri = book.filePath.startsWith("content://")
-                if (isContentUri) {
-                    M4bChapterExtractor.extractFromUri(context, android.net.Uri.parse(book.filePath), book.durationMs)
-                } else if (book.filePath.isNotEmpty()) {
-                    M4bChapterExtractor.extractFromFile(context, book.filePath, book.durationMs)
-                } else {
-                    emptyList()
-                }
-            } catch (e: Throwable) {
-                Timber.e(e, "PlaybackManager: Error extracting chapters")
-                emptyList()
-            }
-
-            if (extracted.isNotEmpty()) {
-                // Persist extracted chapters to DB for future opens
-                try {
-                    if (book.id > 0) {
-                        bookRepository.updateBookChapters(context, book.id, extracted)
-                    }
-                } catch (e: Exception) {
-                    Timber.e(e, "PlaybackManager: Error persisting extracted chapters")
-                }
-
-                withContext(Dispatchers.Main) {
-                    _chapters.value = extracted
-                    _currentChapterIndex.value = findChapterIndexForPosition(_currentPosition.value, extracted)
-                }
-            }
-        }
     }
 
     private fun findChapterIndexForPosition(positionMs: Long, list: List<Chapter>): Int {
