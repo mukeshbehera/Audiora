@@ -841,7 +841,7 @@ fun EditScreen(
     }
 }
 
-private fun parseTimeToMs
+private fun parseTimeToMs(timeStr: String): Long? {
     val cleanStr = timeStr.replace("\\s".toRegex(), "").replace(".", ":")
     val parts = cleanStr.split(":")
     return try {
