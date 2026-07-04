@@ -70,9 +70,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: android.content.Intent?) {
+    override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
-        intent?.let { processIntent(it) }
+        processIntent(intent)
     }
 
     private fun processIntent(intent: android.content.Intent) {
