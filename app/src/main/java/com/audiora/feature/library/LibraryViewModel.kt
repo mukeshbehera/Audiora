@@ -5,10 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.repository.BookRepository
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class LibraryViewModel(
@@ -16,11 +14,6 @@ class LibraryViewModel(
 ) : ViewModel() {
 
     val audiobooks: StateFlow<List<Audiobook>> = bookRepository.getAudiobooks()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
 
     init {
         // Prepopulate database with mock data if it's empty

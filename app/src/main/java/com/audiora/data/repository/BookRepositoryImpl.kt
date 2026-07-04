@@ -7,21 +7,37 @@ import com.audiora.data.local.BookmarkEntity
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.model.Bookmark
 import com.audiora.domain.repository.BookRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class BookRepositoryImpl(
     private val bookDao: BookDao,
-    private val bookmarkDao: BookmarkDao
+    private val bookmarkDao: BookmarkDao,
+    private val appScope: CoroutineScope
 ) : BookRepository {
 
-    override fun getAudiobooks(): Flow<List<Audiobook>> {
-        return bookDao.getAllAudiobooks().map { entities ->
-            entities.map { it.toDomain() }
+    // In-memory cache mirroring Voice's BookContentRepoImpl pattern: eagerly subscribed
+    // to Room on appScope so subscribers always get the latest value without DB delay.
+    private val _audiobooks = MutableStateFlow<List<Audiobook>>(emptyList())
+
+    init {
+        appScope.launch {
+            bookDao.getAllAudiobooks().map { entities ->
+                entities.map { it.toDomain() }
+            }.collect { list ->
+                _audiobooks.value = list
+            }
         }
     }
+
+    override fun getAudiobooks(): StateFlow<List<Audiobook>> = _audiobooks.asStateFlow()
 
     override fun getAudiobook(id: Int): Flow<Audiobook?> {
         return bookDao.getAudiobookById(id).map { it?.toDomain() }

@@ -61,7 +61,7 @@ class AudioraApplication : Application() {
         ).fallbackToDestructiveMigration() // Simple, robust migrations for V1 prototyping
          .build()
 
-        bookRepository = BookRepositoryImpl(database.bookDao(), database.bookmarkDao())
+        bookRepository = BookRepositoryImpl(database.bookDao(), database.bookmarkDao(), appScope)
         settingsRepository = SettingsRepositoryImpl(applicationContext)
         folderRepository = FolderRepositoryImpl(applicationContext, database.folderDao(), database.bookDao())
         playbackManager = com.audiora.feature.player.PlaybackManager(applicationContext, bookRepository)

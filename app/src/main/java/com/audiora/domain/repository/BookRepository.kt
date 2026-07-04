@@ -3,9 +3,10 @@ package com.audiora.domain.repository
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.model.Bookmark
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 interface BookRepository {
-    fun getAudiobooks(): Flow<List<Audiobook>>
+    fun getAudiobooks(): StateFlow<List<Audiobook>>
     fun getAudiobook(id: Int): Flow<Audiobook?>
     suspend fun saveAudiobook(audiobook: Audiobook)
     suspend fun deleteAudiobook(id: Int)

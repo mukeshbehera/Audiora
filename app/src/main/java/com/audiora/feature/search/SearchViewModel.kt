@@ -25,11 +25,6 @@ class SearchViewModel(
     val recentSearches = _recentSearches.asStateFlow()
 
     private val allAudiobooks: StateFlow<List<Audiobook>> = bookRepository.getAudiobooks()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
 
     val searchResults: StateFlow<List<Audiobook>> = combine(allAudiobooks, _searchQuery) { books, query ->
         if (query.isBlank()) {

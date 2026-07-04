@@ -12,6 +12,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.resetMain
@@ -99,7 +100,7 @@ class ExampleRobolectricTest {
     ).allowMainThreadQueries().build()
     
     val dao = database.bookDao()
-    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     
     // Check initial state
     var list = repository.getAudiobooks().first()
@@ -162,7 +163,7 @@ class ExampleRobolectricTest {
     ).allowMainThreadQueries().build()
     
     val dao = database.bookDao()
-    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     
     val testBook = com.audiora.domain.model.Audiobook(
       id = 55,
@@ -219,7 +220,7 @@ class ExampleRobolectricTest {
       com.audiora.data.local.AppDatabase::class.java
     ).allowMainThreadQueries().build()
     
-    val repository = com.audiora.data.repository.BookRepositoryImpl(database.bookDao(), database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(database.bookDao(), database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     val bookId = 42
     
     // Check initial state
@@ -263,7 +264,7 @@ class ExampleRobolectricTest {
       com.audiora.data.local.AppDatabase::class.java
     ).allowMainThreadQueries().build()
     
-    val repository = com.audiora.data.repository.BookRepositoryImpl(database.bookDao(), database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(database.bookDao(), database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     val playbackManager = com.audiora.feature.player.PlaybackManager(context, repository)
     
     // Check initial state
@@ -464,7 +465,7 @@ class ExampleRobolectricTest {
     ).allowMainThreadQueries().build()
     
     val dao = database.bookDao()
-    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     
     val testBook = com.audiora.domain.model.Audiobook(
       id = 99,
@@ -504,7 +505,7 @@ class ExampleRobolectricTest {
       com.audiora.data.local.AppDatabase::class.java
     ).allowMainThreadQueries().build()
     val dao = database.bookDao()
-    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     
     val initialChapters = listOf(
       com.audiora.domain.model.Chapter("Chap A", 0L, 40000L, 40000L),
@@ -553,7 +554,7 @@ class ExampleRobolectricTest {
       .allowMainThreadQueries()
       .build()
     val dao = database.bookDao()
-    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     
     val initialChapters = listOf(
       com.audiora.domain.model.Chapter("Chapter 1", 0L, 50000L, 50000L),
@@ -644,7 +645,7 @@ class ExampleRobolectricTest {
     ).allowMainThreadQueries().build()
     
     val dao = database.bookDao()
-    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao())
+    val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
     
     val viewModel = com.audiora.feature.detail.AudiobookDetailViewModel(repository, 42)
     
@@ -670,7 +671,7 @@ class ExampleRobolectricTest {
       ).allowMainThreadQueries().build()
 
       val dao = database.bookDao()
-      val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao())
+      val repository = com.audiora.data.repository.BookRepositoryImpl(dao, database.bookmarkDao(), CoroutineScope(Dispatchers.Unconfined))
 
       // Save test audiobooks
       val book1 = com.audiora.domain.model.Audiobook(
