@@ -147,7 +147,14 @@ fun LibraryScreen(
                             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
                         )
                     } else {
-                        ScreenTitle(text = "Audiora")
+                        Column {
+                            ScreenTitle(text = "Audiora")
+                            Text(
+                                text = "Browse your audiobook collection",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -176,7 +183,7 @@ fun LibraryScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
@@ -187,15 +194,16 @@ fun LibraryScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .navigationBarsPadding()
+                .padding(horizontal = 16.dp)
         ) {
-
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Genre filter row
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
+                contentPadding = PaddingValues(horizontal = 0.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(genres) { genre ->
@@ -226,7 +234,7 @@ fun LibraryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 2.dp),
+                    .padding(vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -280,7 +288,6 @@ fun LibraryScreen(
                     GlassmorphicCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
                             .testTag("empty_state_card"),
                         cornerRadius = 24.dp
                     ) {
@@ -308,8 +315,7 @@ fun LibraryScreen(
                     // Responsive Grid Layout
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 150.dp),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                         modifier = Modifier
                             .fillMaxSize()
@@ -325,7 +331,7 @@ fun LibraryScreen(
                 } else {
                     // Responsive List Layout
                     LazyColumn(
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
+                        contentPadding = PaddingValues(bottom = 96.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                         modifier = Modifier
                             .fillMaxSize()

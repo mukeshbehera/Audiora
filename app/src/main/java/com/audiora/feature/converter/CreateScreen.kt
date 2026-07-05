@@ -269,7 +269,14 @@ fun CreateScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    ScreenTitle(text = "Create Audiobook")
+                    Column {
+                        ScreenTitle(text = "Create Audiobook")
+                        Text(
+                            text = "Convert and merge audio into audiobooks",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background
@@ -284,9 +291,9 @@ fun CreateScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 20.dp, vertical = 8.dp)
-                .verticalScroll(scrollState)
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp)
+                .verticalScroll(scrollState),
         ) {
             
             // Elegantly formatted dynamic Progress indicator
