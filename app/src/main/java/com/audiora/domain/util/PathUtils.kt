@@ -6,8 +6,11 @@ import android.net.Uri
  * Converts a raw SAF content URI or absolute file path into a clean, human-readable
  * relative path for display purposes (e.g. "/Downloads/Audiobooks").
  *
- * Strips content URI scheme, authority, percent-encoding, and device root prefixes
- * so the user sees only the meaningful portion of the path.
+ * SAF tree URIs produce nested paths like:
+ *   tree/primary:Downloads/Audiobooks/document/primary:Downloads/Audiobooks/file.m4b
+ * This function sequentially strips all known SAF prefixes so only the meaningful
+ * file path remains. The display path is for UI only — the original URI is preserved
+ * for all file access operations.
  */
 fun toDisplayPath(uriStr: String?): String {
     if (uriStr.isNullOrBlank()) return ""
@@ -16,7 +19,9 @@ fun toDisplayPath(uriStr: String?): String {
         val uri = Uri.parse(uriStr)
         if (uri.scheme == "content") {
             val path = uri.path ?: return uriStr
-            val subPath = when {
+
+            // Extract meaningful subpath after the first SAF prefix
+            var subPath: String? = when {
                 path.contains("tree/primary:") ->
                     path.substringAfter("tree/primary:")
                 path.contains("document/primary:") ->
@@ -25,15 +30,23 @@ fun toDisplayPath(uriStr: String?): String {
                     path.substringAfter("primary:")
                 else -> null
             }
+
             if (subPath != null) {
+                // Nested SAF paths (tree/primary:X/document/primary:X/file) need
+                // a second pass to strip the inner document/primary: prefix
+                if ("document/primary:" in subPath) {
+                    subPath = subPath.substringAfter("document/primary:")
+                } else if ("tree/primary:" in subPath) {
+                    subPath = subPath.substringAfter("tree/primary:")
+                }
                 val decoded = decodePath(subPath)
                 return "/$decoded"
             }
-            // Try to extract any meaningful path from the URI
+
+            // Fallback: extract the last path segment
             val lastSegment = uri.lastPathSegment
             if (!lastSegment.isNullOrBlank()) {
                 val decoded = java.net.URLDecoder.decode(lastSegment, "UTF-8")
-                // Remove "primary:" prefix if present
                 return if (decoded.startsWith("primary:")) {
                     "/${decoded.removePrefix("primary:")}"
                 } else {
@@ -54,11 +67,8 @@ fun toDisplayPath(uriStr: String?): String {
             }
         }
 
-        // If it doesn't look like a raw URI, return as-is
-        val result = uriStr
-
-        // Final cleanup: strip any remaining SAF artifact prefixes that may leak through
-        result
+        // Final cleanup: strip any remaining SAF artifact prefixes
+        uriStr
             .removePrefix("primary:")
             .removePrefix("/primary:")
             .removePrefix("document/primary:")
@@ -70,7 +80,6 @@ fun toDisplayPath(uriStr: String?): String {
 
 private fun decodePath(encoded: String): String {
     val decoded = java.net.URLDecoder.decode(encoded, "UTF-8")
-    // Remove "primary:" if the decode didn't handle it
     return if (decoded.startsWith("primary:")) {
         decoded.removePrefix("primary:")
     } else {
