@@ -41,6 +41,7 @@ import androidx.compose.ui.window.Dialog
 import com.audiora.core.design.ClickableGlassmorphicCard
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicPrimaryButton
+import com.audiora.core.design.ScreenTitle
 import com.audiora.core.design.SectionHeader
 import com.audiora.data.local.ImportedFile
 import com.audiora.data.local.StorageImportManager
@@ -257,7 +258,6 @@ fun CreateScreen(
     }
 
     val adaptiveBg = MaterialTheme.colorScheme.background
-    val adaptiveTitle = MaterialTheme.colorScheme.onBackground
     val adaptiveSecondaryText = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
     val adaptiveTertiaryText = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
 
@@ -267,37 +267,12 @@ fun CreateScreen(
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
-                    Text(
-                        text = "Create Audiobook",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = adaptiveTitle,
-                        modifier = Modifier.testTag("create_title_label")
-                    )
+                    ScreenTitle(text = "Create Audiobook")
                 },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            if (currentStep > 1) {
-                                currentStep--
-                            } else {
-                                onNavigateBack()
-                            }
-                        },
-                        modifier = Modifier.testTag("create_back_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.ChevronLeft,
-                            contentDescription = "Navigate back",
-                            tint = adaptiveTitle,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = adaptiveBg
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
