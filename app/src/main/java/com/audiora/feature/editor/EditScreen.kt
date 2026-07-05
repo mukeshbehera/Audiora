@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicPrimaryButton
 import com.audiora.core.design.GlassmorphicTextField
+import com.audiora.domain.util.toDisplayPath
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -237,9 +238,8 @@ fun EditScreen(
                                 fontSize = 16.sp
                             )
                             Text(
-                                text = selectedBook?.let { 
-                                    val fileName = it.filePath.substringAfterLast("/") 
-                                    "File: $fileName"
+                                text = selectedBook?.let {
+                                    "File: ${toDisplayPath(it.filePath)}"
                                 } ?: "No book chosen",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
