@@ -70,7 +70,7 @@ fun LibraryScreen(
 
     val focusManager = LocalFocusManager.current
     val genres = remember(audiobooks) {
-        val base = listOf("All", "Sci-Fi", "Philosophy", "Fantasy", "Cyberpunk", "Self-Help")
+        val base = listOf("All")
         val custom = audiobooks.map { it.genre }.filter { it.isNotEmpty() && it !in base }.distinct()
         base + custom
     }
