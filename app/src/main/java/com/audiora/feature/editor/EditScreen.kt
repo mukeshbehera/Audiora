@@ -211,33 +211,18 @@ fun EditScreen(
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clickable { showBookSelector = true },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.EditNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
-                            )
-                        }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = selectedBook?.title ?: "Select Audiobook...",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                style = MaterialTheme.typography.titleMedium
                             )
                             Text(
                                 text = selectedBook?.let {
                                     "File: ${toDisplayPath(it.filePath)}"
                                 } ?: "No book chosen",
-                                fontSize = 12.sp,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                             )
                         }
@@ -287,12 +272,13 @@ fun EditScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = book.title,
+                                            style = MaterialTheme.typography.bodyMedium,
                                             fontWeight = if (selectedBook?.id == book.id) FontWeight.Bold else FontWeight.Normal,
                                             color = if (selectedBook?.id == book.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = book.author,
-                                            fontSize = 11.sp,
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                         )
                                     }

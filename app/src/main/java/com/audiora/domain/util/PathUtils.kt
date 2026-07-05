@@ -55,7 +55,14 @@ fun toDisplayPath(uriStr: String?): String {
         }
 
         // If it doesn't look like a raw URI, return as-is
-        uriStr
+        val result = uriStr
+
+        // Final cleanup: strip any remaining SAF artifact prefixes that may leak through
+        result
+            .removePrefix("primary:")
+            .removePrefix("/primary:")
+            .removePrefix("document/primary:")
+            .removePrefix("tree/primary:")
     } catch (e: Exception) {
         uriStr
     }
