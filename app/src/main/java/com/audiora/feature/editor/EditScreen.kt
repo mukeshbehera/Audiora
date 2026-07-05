@@ -31,6 +31,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicPrimaryButton
 import com.audiora.core.design.GlassmorphicTextField
+import com.audiora.core.design.ScreenTitle
+import com.audiora.core.design.SectionHeader
 import com.audiora.domain.util.toDisplayPath
 import kotlinx.coroutines.launch
 
@@ -107,16 +109,10 @@ fun EditScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(
-                            text = "Metadata Editor",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.testTag("metadata_editor_title")
-                        )
+                        ScreenTitle(text = "Metadata Editor")
                         Text(
                             text = "Direct tag injection for M4B containers",
-                            fontSize = 11.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
@@ -316,12 +312,7 @@ fun EditScreen(
 
                 if (selectedBook != null) {
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Cover Art Artwork",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    SectionHeader(text = "Cover Art Artwork")
 
                     GlassmorphicCard(
                         modifier = Modifier.fillMaxWidth()
@@ -444,12 +435,7 @@ fun EditScreen(
 
                 if (activeTab == 0) {
                     // --- TAB 0: ATTRIBUTES EDITOR ---
-                    Text(
-                        text = "Attributes Configuration",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    SectionHeader(text = "Attributes Configuration")
 
                     // Editable Fields
                     GlassmorphicTextField(
@@ -554,12 +540,7 @@ fun EditScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Chapters Studio",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            SectionHeader(text = "Chapters Studio")
                             Button(
                                 onClick = {
                                     newChapterTitleInput = "Chapter ${chaptersList.size + 1}"

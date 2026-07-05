@@ -125,10 +125,12 @@ fun MainAppContainer(
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
+            // Screens with their own Scaffold handle insets independently.
+            // Only splash/welcome/onboarding need the outer padding since they lack a Scaffold.
             val paddingModifier = if (currentRoute == "splash" || currentRoute == "welcome" || currentRoute == "onboarding_folders") {
-                Modifier
-            } else {
                 Modifier.padding(top = innerPadding.calculateTopPadding())
+            } else {
+                Modifier
             }
 
             // NavHost hosting screens with smooth premium transitions

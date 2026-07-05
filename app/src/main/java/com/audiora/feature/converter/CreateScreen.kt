@@ -41,6 +41,7 @@ import androidx.compose.ui.window.Dialog
 import com.audiora.core.design.ClickableGlassmorphicCard
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicPrimaryButton
+import com.audiora.core.design.SectionHeader
 import com.audiora.data.local.ImportedFile
 import com.audiora.data.local.StorageImportManager
 import com.audiora.domain.model.Chapter
@@ -382,8 +383,7 @@ fun CreateScreen(
                         // Options title
                         Text(
                             text = "Options",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelLarge,
                             color = adaptiveSecondaryText,
                             modifier = Modifier.padding(top = 8.dp)
                         )
@@ -417,8 +417,7 @@ fun CreateScreen(
                         if (importedFiles.isNotEmpty()) {
                             Text(
                                 text = "Selected Files (${importedFiles.size})",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.labelLarge,
                                 color = adaptiveSecondaryText,
                                 modifier = Modifier.padding(top = 8.dp)
                             )
@@ -476,12 +475,7 @@ fun CreateScreen(
                     
                     2 -> {
                         // ==================== STEP 2: ENTER METADATA ====================
-                        Text(
-                            text = "Enter Audiobook Details",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = adaptiveSecondaryText
-                        )
+                        SectionHeader(text = "Enter Audiobook Details")
                         
                         val textFieldBg = MaterialTheme.colorScheme.surface
                         val textFieldBorder = MaterialTheme.colorScheme.outlineVariant
@@ -625,12 +619,7 @@ fun CreateScreen(
 
                     3 -> {
                         // ==================== STEP 3: CHOOSE COVER ====================
-                        Text(
-                            text = "Select Master Cover Theme",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = adaptiveSecondaryText
-                        )
+                        SectionHeader(text = "Select Master Cover Theme")
                         Text(
                             text = "Choose a gorgeous, futuristic gradient cover visual scheme for the finished M4B Audiobook.",
                             fontSize = 12.sp,
@@ -730,12 +719,7 @@ fun CreateScreen(
 
                     4 -> {
                         // ==================== STEP 4: CHAPTER CONFIGS ====================
-                        Text(
-                            text = "Configure Chapters Strategy",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = adaptiveSecondaryText
-                        )
+                        SectionHeader(text = "Configure Chapters Strategy")
 
                         // Radio options selector styled clean and unified
                         Column(

@@ -43,6 +43,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.AudioraApplication
 import com.audiora.core.design.GlassmorphicTextField
 import com.audiora.domain.model.Audiobook
+import com.audiora.core.design.ScreenTitle
+import com.audiora.core.design.SectionHeader
 import com.audiora.ui.theme.LocalDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -145,14 +147,7 @@ fun LibraryScreen(
                             keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
                         )
                     } else {
-                        Text(
-                            text = "Audiora",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontFamily = FontFamily.SansSerif,
-                            modifier = Modifier.testTag("app_bar_title")
-                        )
+                        ScreenTitle(text = "Audiora")
                     }
                 },
                 actions = {

@@ -33,6 +33,8 @@ import com.audiora.core.design.ClickableGlassmorphicCard
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicEmptyState
 import com.audiora.core.design.GlassmorphicTextField
+import com.audiora.core.design.ScreenTitle
+import com.audiora.core.design.SectionHeader
 import com.audiora.feature.library.AudiobookCoverArt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,16 +60,10 @@ fun SearchScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(
-                            text = "Search Library",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.testTag("search_title")
-                        )
+                        ScreenTitle(text = "Search Library")
                         Text(
                             text = "Locate books by title, author, or narrator tagline",
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
@@ -143,12 +139,7 @@ fun SearchScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Recent Searches",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            SectionHeader(text = "Recent Searches")
                             if (recentSearches.isNotEmpty()) {
                                 TextButton(
                                     onClick = { searchViewModel.clearRecentSearches() },
@@ -255,7 +246,7 @@ fun SearchScreen(
                     } else {
                         LazyColumn(
                             verticalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(bottom = 24.dp),
+                            contentPadding = PaddingValues(bottom = 96.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("search_results_list")

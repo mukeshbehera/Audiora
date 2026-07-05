@@ -33,6 +33,33 @@ import com.audiora.ui.theme.BrandGradientStart
 import com.audiora.ui.theme.BrandGradientEnd
 
 /**
+ * ScreenTitle — consistent screen-level title in TopAppBars and headers.
+ * Uses headlineMedium (20sp, Bold) with primary color.
+ */
+@Composable
+fun ScreenTitle(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.headlineMedium,
+        color = MaterialTheme.colorScheme.primary
+    )
+}
+
+/**
+ * SectionHeader — consistent section heading within screen content.
+ * Uses titleMedium (16sp, SemiBold) with primary color.
+ */
+@Composable
+fun SectionHeader(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier
+    )
+}
+
+/**
  * AudioraGlassCard: Matches the specifications exactly:
  * - Corner radius: 24dp - 32dp (Default 24dp)
  * - Light Background: rgba(255, 255, 255, 0.65)

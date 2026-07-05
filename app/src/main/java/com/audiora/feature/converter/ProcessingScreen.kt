@@ -355,6 +355,7 @@ fun ProcessingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .navigationBarsPadding()
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
@@ -390,8 +391,7 @@ fun ProcessingScreen(
                 // Display Numeric Progress String
                 Text(
                     text = "${(progress * 100).toInt()}%",
-                    fontSize = 44.sp,
-                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.displayLarge,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.testTag("processing_percentage")
                 )
@@ -403,8 +403,7 @@ fun ProcessingScreen(
             ) {
                 Text(
                     text = currentStatus,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.testTag("processing_status_label")
@@ -412,7 +411,7 @@ fun ProcessingScreen(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "This may take a few minutes.",
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                     textAlign = TextAlign.Center
                 )
@@ -560,8 +559,7 @@ fun TimelineStepRow(
         // Segment text description
         Text(
             text = label,
-            fontSize = 14.sp,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+            style = if (isActive) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelMedium,
             color = when {
                 isCompleted || isActive -> MaterialTheme.colorScheme.onBackground
                 else -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)

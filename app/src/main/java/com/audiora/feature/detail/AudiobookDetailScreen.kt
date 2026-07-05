@@ -31,6 +31,7 @@ import com.audiora.domain.util.toDisplayPath
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicEmptyState
 import com.audiora.core.design.GlassmorphicLoadingState
+import com.audiora.core.design.SectionHeader
 import com.audiora.domain.model.Audiobook
 import com.audiora.feature.library.AudiobookCoverArt
 import java.text.SimpleDateFormat
@@ -167,6 +168,7 @@ fun AudiobookDetailScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(scrollState)
+                            .navigationBarsPadding()
                             .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
@@ -260,20 +262,15 @@ fun AudiobookDetailScreen(
                         Column(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "Synopsis",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            SectionHeader(text = "Synopsis")
                             GlassmorphicCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 cornerRadius = 14.dp
                             ) {
                                 Text(
                                     text = book.description,
-                                    fontSize = 13.sp,
-                                    lineHeight = 18.sp,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    lineHeight = 20.sp,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                                     modifier = Modifier.testTag("detail_description")
                                 )
@@ -284,12 +281,7 @@ fun AudiobookDetailScreen(
                         Column(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "Metadata Specifications",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            SectionHeader(text = "Metadata Specifications")
                             GlassmorphicCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 cornerRadius = 16.dp
@@ -318,11 +310,8 @@ fun AudiobookDetailScreen(
                         Column(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
+                            SectionHeader(
                                 text = "Export System",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.testTag("detail_export_section_heading")
                             )
                             GlassmorphicCard(
@@ -396,11 +385,8 @@ fun AudiobookDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
+                                SectionHeader(
                                     text = "Logical Chapters (${chapters.size})",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.testTag("detail_chapter_header")
                                 )
                                 Box(
@@ -442,7 +428,7 @@ fun AudiobookDetailScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(96.dp))
                     }
                 }
             }
@@ -568,13 +554,12 @@ fun SpecRow(
         Column {
             Text(
                 text = label,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
             )
             Text(
                 text = value,
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = if (isSingleLine) 1 else 5,

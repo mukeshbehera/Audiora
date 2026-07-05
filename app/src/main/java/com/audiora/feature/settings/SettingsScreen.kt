@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
+import com.audiora.core.design.SectionHeader
+import com.audiora.core.design.ScreenTitle
 import com.audiora.domain.model.PlaybackSettings
 
 enum class SettingsDialogType {
@@ -58,16 +60,10 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(
-                            text = "Audiora Settings",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.testTag("settings_top_app_bar_title")
-                        )
+                        ScreenTitle(text = "Audiora Settings")
                         Text(
                             text = "Manage your listening studio configuration",
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                         )
                     }
@@ -90,13 +86,7 @@ fun SettingsScreen(
         ) {
             // SECTION 1: Audiobook Folders
             item {
-                Text(
-                    text = "Audiobook Folders",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                SectionHeader(text = "Audiobook Folders")
             }
             item {
                 GlassmorphicCard(
@@ -139,12 +129,7 @@ fun SettingsScreen(
 
             // SECTION 2 & 3: Appearance & Theme Customization
             item {
-                Text(
-                    text = "Appearance & Style",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SectionHeader(text = "Appearance & Style")
             }
             item {
                 GlassmorphicCard(
@@ -240,12 +225,7 @@ fun SettingsScreen(
 
             // SECTION 4: Playback Configuration
             item {
-                Text(
-                    text = "Playback Settings",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SectionHeader(text = "Playback Settings")
             }
             item {
                 GlassmorphicCard(
@@ -396,12 +376,7 @@ fun SettingsScreen(
 
             // SECTION 5: About Screen / Credits
             item {
-                Text(
-                    text = "About Audiora",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SectionHeader(text = "About Audiora")
             }
             item {
                 GlassmorphicCard(

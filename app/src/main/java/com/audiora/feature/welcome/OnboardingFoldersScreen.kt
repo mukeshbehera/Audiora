@@ -46,6 +46,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
+import com.audiora.core.design.SectionHeader
 import com.audiora.domain.model.AudiobookFolder
 import com.audiora.domain.util.toDisplayPath
 import com.audiora.domain.repository.BookRepository
@@ -305,8 +306,7 @@ fun OnboardingFoldersScreen(
                 item {
                     Text(
                         text = "Select Your Audiobook Folders",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineLarge,
                         color = primaryTextColor,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 12.dp)
@@ -314,10 +314,9 @@ fun OnboardingFoldersScreen(
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Audiora scans the folders you choose to find your audiobooks and keep your library up to date.",
-                        fontSize = 14.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = secondaryTextColor,
                         textAlign = TextAlign.Center,
-                        lineHeight = 20.sp,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
@@ -331,12 +330,7 @@ fun OnboardingFoldersScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            text = "Your Audiobook Folders",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = primaryTextColor
-                        )
+                        SectionHeader(text = "Your Audiobook Folders")
 
                         // Add Folder custom gradient button
                         Box(
@@ -490,7 +484,7 @@ fun OnboardingFoldersScreen(
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
                                             text = toDisplayPath(folder.uri),
-                                            fontSize = 11.sp,
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = detailTextColor,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
@@ -508,9 +502,8 @@ fun OnboardingFoldersScreen(
                                             )
                                             Text(
                                                 text = "$folderBookCount books",
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.SemiBold
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         }
                                     }

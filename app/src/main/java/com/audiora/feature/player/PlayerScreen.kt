@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.audiora.AudioraApplication
 import com.audiora.core.design.GlassmorphicCard
+import com.audiora.core.design.SectionHeader
 import com.audiora.feature.library.AudiobookCoverArt
 import com.audiora.ui.theme.LocalDarkTheme
 import java.util.Locale
@@ -167,13 +168,8 @@ fun PlayerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Table of Chapters",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
+                SectionHeader(text = "Table of Chapters")
+
                 Text(
                     text = "${chapters.size} Chapters found in this audiobook",
                     fontSize = 12.sp,
@@ -261,12 +257,7 @@ fun PlayerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = "Sleep Timer",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                SectionHeader(text = "Sleep Timer")
 
                 if (sleepTimerType != SleepTimerType.OFF) {
                     val activeLabel = when (sleepTimerType) {
@@ -425,12 +416,7 @@ fun PlayerScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Bookmarks",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    SectionHeader(text = "Bookmarks")
                     
                     IconButton(
                         onClick = {
@@ -1078,12 +1064,7 @@ fun PlayerScreen(
                     .navigationBarsPadding(),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "Playback Options",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                SectionHeader(text = "Playback Options")
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
