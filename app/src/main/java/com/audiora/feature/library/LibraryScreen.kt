@@ -316,6 +316,7 @@ fun LibraryScreen(
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(minSize = 150.dp),
                         contentPadding = PaddingValues(bottom = 96.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(20.dp),
                         modifier = Modifier
                             .fillMaxSize()
@@ -542,7 +543,7 @@ fun AudiobookGridCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Duration display & completion status
             Row(
@@ -731,7 +732,7 @@ fun AudiobookListCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // Progress metrics and bars
                 Row(
