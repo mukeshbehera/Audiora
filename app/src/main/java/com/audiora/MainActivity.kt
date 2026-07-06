@@ -100,11 +100,8 @@ fun MainAppContainer(
     val currentPosition by playbackManager.currentPosition.collectAsState()
     val duration by playbackManager.duration.collectAsState()
 
-    // Positive route match: bottom nav + mini player only render on known main-screen routes.
-    // Using an allowlist (not an exclusion list) so null (NavHost not yet initialized) yields false.
-    val bottomNavRoutes = setOf(Screen.Library.route, Screen.Create.route, "edit", Screen.Search.route, Screen.Settings.route)
-    val showBottomNav = currentRoute != null && (currentRoute in bottomNavRoutes || currentRoute?.substringBefore("?") in bottomNavRoutes)
-    val showMiniPlayer = showBottomNav && currentBook != null && currentRoute != Screen.Player.route
+    val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
+    val showBottomNav = currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders" && currentRoute != Screen.Player.route
 
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
