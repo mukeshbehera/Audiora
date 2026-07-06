@@ -287,7 +287,7 @@ fun OnboardingFoldersScreen(
             contentPadding = PaddingValues(
                 start = 24.dp,
                 end = 24.dp,
-                top = 64.dp,
+                top = 8.dp,
                 bottom = 140.dp
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp),
