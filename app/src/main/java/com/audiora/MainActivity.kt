@@ -127,7 +127,7 @@ fun MainAppContainer(
         ) { innerPadding ->
             // Screens with their own Scaffold handle insets independently.
             // Only splash/welcome/onboarding need the outer padding since they lack a Scaffold.
-            val paddingModifier = if (currentRoute == "splash" || currentRoute == "welcome" || currentRoute == "onboarding_folders") {
+            val paddingModifier = if (currentRoute == "splash" || currentRoute == "welcome") {
                 Modifier.padding(top = innerPadding.calculateTopPadding())
             } else {
                 Modifier
