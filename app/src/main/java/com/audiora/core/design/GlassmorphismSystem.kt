@@ -294,6 +294,12 @@ fun AudioraGlassTextField(
 
 /**
  * AudioraGlassBottomBar: Floating glass nav bar.
+ *
+ * Glassmorphism properties:
+ * - Semi-transparent surface background (0.75f alpha) — underlying content shows through
+ * - Top-edge glass reflection highlight (frosted edge shine)
+ * - Subtle rounded border
+ * - Purple-tinted glow shadow in dark mode
  */
 @Composable
 fun AudioraGlassBottomBar(
@@ -301,23 +307,39 @@ fun AudioraGlassBottomBar(
     content: @Composable RowScope.() -> Unit
 ) {
     val isDark = LocalDarkTheme.current
-    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
     val borderColor = MaterialTheme.colorScheme.outlineVariant
-    
+    val glassHighlight = if (isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.35f)
+
+    val shape = RoundedCornerShape(28.dp)
+
     Box(
         modifier = modifier
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(
                 elevation = 16.dp,
-                shape = RoundedCornerShape(28.dp),
+                shape = shape,
                 clip = false,
                 ambientColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000),
                 spotColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000)
             )
-            .background(containerColor, RoundedCornerShape(28.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(28.dp))
+            .background(containerColor, shape)
+            .border(1.dp, borderColor, shape)
             .height(72.dp)
+            .clip(shape)
     ) {
+        // Frosted glass top-edge highlight — simulates light refracting on the curved glass surface
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(glassHighlight, Color.Transparent)
+                    )
+                )
+        )
+
+        // Content layer — navigation items stay crisp
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
