@@ -213,13 +213,10 @@ private class GlassBackdropNode(
         // 2. Container color overlay with vertical fade at edges
         drawRect(
             brush = Brush.verticalGradient(
-                colors = listOf(
-                    containerColor.copy(alpha = 0f),
-                    containerColor,
-                    containerColor,
-                    containerColor.copy(alpha = 0f)
-                ),
-                positions = listOf(0f, 0.35f, 0.65f, 1f)
+                0f to containerColor.copy(alpha = 0f),
+                0.35f to containerColor,
+                0.65f to containerColor,
+                1f to containerColor.copy(alpha = 0f)
             ),
             size = size
         )
