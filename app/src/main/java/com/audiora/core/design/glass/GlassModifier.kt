@@ -77,6 +77,7 @@ private class CaptureBackdropNode(
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         layer.windowPosition = coordinates.positionInWindow()
+        invalidateDraw()
     }
 
     override fun onAttach() {
@@ -227,6 +228,7 @@ private class GlassBackdropNode(
 
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         nodeWindowPosition = coordinates.positionInWindow()
+        invalidateDraw()
     }
 
     private fun rebuildEffects() {
