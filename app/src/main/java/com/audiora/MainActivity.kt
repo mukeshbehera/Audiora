@@ -28,6 +28,9 @@ import com.audiora.feature.player.MiniPlayer
 import com.audiora.feature.player.PlayerScreen
 import com.audiora.feature.search.SearchScreen
 import com.audiora.feature.settings.SettingsScreen
+import com.audiora.core.design.glass.BackdropLayer
+import com.audiora.core.design.glass.backdropCapture
+import com.audiora.core.design.glass.rememberBackdropLayer
 import com.audiora.feature.welcome.WelcomeScreen
 import com.audiora.feature.welcome.SplashScreen
 import com.audiora.feature.welcome.OnboardingFoldersScreen
@@ -103,6 +106,9 @@ fun MainAppContainer(
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
     val showBottomNav = currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders" && currentRoute != Screen.Player.route
 
+    // Glass backdrop layer — captures content behind the bottom nav bar for real-time refraction
+    val glassBackdropLayer = rememberBackdropLayer()
+
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
         if (pendingPlayerNavigation.value) {
@@ -123,7 +129,9 @@ fun MainAppContainer(
         modifier = Modifier.fillMaxSize()
     ) {
         Scaffold(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .backdropCapture(glassBackdropLayer)
         ) { innerPadding ->
             // Screens with their own Scaffold handle insets independently.
             // Only splash/welcome/onboarding need the outer padding since they lack a Scaffold.
@@ -320,7 +328,9 @@ fun MainAppContainer(
                 }
 
                 // Elegant premium floating glass bottom bar
-                com.audiora.core.design.AudioraGlassBottomBar {
+                com.audiora.core.design.AudioraGlassBottomBar(
+                    backdropLayer = glassBackdropLayer
+                ) {
                     Screen.items.forEach { screen ->
                         val selected = currentRoute?.substringBefore("?") == screen.route
 
