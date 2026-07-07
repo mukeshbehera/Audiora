@@ -210,17 +210,8 @@ private class GlassBackdropNode(
             }
         }
 
-        // 2. Container color overlay — crisp glass edge with ~2px fade zones
-        drawRect(
-            brush = Brush.verticalGradient(
-                0f to containerColor.copy(alpha = 0f),
-                0.01f to containerColor,
-                0.98f to containerColor,
-                0.99f to containerColor.copy(alpha = 0.30f),
-                1f to containerColor.copy(alpha = 0.85f)
-            ),
-            size = size
-        )
+        // 2. Container color overlay — uniform throughout
+        drawRect(color = containerColor, size = size)
 
         // 3. Border
         if (borderWidthPx > 0f && borderColor.alpha > 0f) {
@@ -243,10 +234,8 @@ private class GlassBackdropNode(
 
     private fun rebuildEffects() {
         effectScope.applyEffects {
-            // createChainEffect(new, prev): prev(outer) runs first on source, then new(inner).
-            // So call order is pipeline order: blur → lens → vibrancy
             blur(blurRadiusPx)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && refractionHeightPx > 0f) {
                 lens(
                     refractionHeightPx = refractionHeightPx,
                     refractionAmountPx = refractionAmountPx,
