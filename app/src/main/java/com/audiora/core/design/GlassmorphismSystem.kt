@@ -341,8 +341,8 @@ fun AudioraGlassBottomBar(
                         borderColor = borderColor,
                         borderWidthPx = with(LocalDensity.current) { 2.dp.toPx() },
                         blurRadiusPx = with(LocalDensity.current) { 12.dp.toPx() },
-                        refractionHeightPx = with(LocalDensity.current) { 8.dp.toPx() },
-                        refractionAmountPx = with(LocalDensity.current) { 8.dp.toPx() }
+                        refractionHeightPx = with(LocalDensity.current) { 4.dp.toPx() },
+                        refractionAmountPx = with(LocalDensity.current) { 4.dp.toPx() }
                     )
                 } else {
                     Modifier
