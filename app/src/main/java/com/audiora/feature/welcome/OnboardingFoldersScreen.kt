@@ -239,46 +239,7 @@ fun OnboardingFoldersScreen(
         // 1. Shared swirling background motif
         SwirlingBackground(modifier = Modifier.fillMaxSize())
 
-        // 2. Floating top action bar (transparent — overlays scrolling content)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-                .align(Alignment.TopCenter),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.testTag("onboarding_back_arrow")
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = primaryTextColor
-                )
-            }
-
-            TextButton(
-                onClick = {
-                    coroutineScope.launch {
-                        settingsRepository.setOnboardingCompleted(true)
-                        onNavigateToLibrary()
-                    }
-                },
-                modifier = Modifier.testTag("onboarding_skip_button")
-            ) {
-                Text(
-                    text = "Skip",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-            }
-        }
-
-        // 3. Scrollable content — fills full screen, scrolls under floating bars
+        // 2. Scrollable content — fills full screen, scrolls under floating bars
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -703,6 +664,45 @@ fun OnboardingFoldersScreen(
                 }
                 
                 Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
+        // 3. Floating top action bar — placed after LazyColumn so it sits on top in z-order
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .align(Alignment.TopCenter),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.testTag("onboarding_back_arrow")
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = primaryTextColor
+                )
+            }
+
+            TextButton(
+                onClick = {
+                    coroutineScope.launch {
+                        settingsRepository.setOnboardingCompleted(true)
+                        onNavigateToLibrary()
+                    }
+                },
+                modifier = Modifier.testTag("onboarding_skip_button")
+            ) {
+                Text(
+                    text = "Skip",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
             }
         }
 
