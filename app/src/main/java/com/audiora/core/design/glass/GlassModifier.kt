@@ -231,7 +231,8 @@ private class GlassBackdropNode(
 
     private fun rebuildEffects() {
         effectScope.applyEffects {
-            vibrancy()
+            // createChainEffect(new, prev): prev(outer) runs first on source, then new(inner).
+            // So call order is pipeline order: blur → lens → vibrancy
             blur(blurRadiusPx)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 lens(
@@ -240,6 +241,7 @@ private class GlassBackdropNode(
                     chromaticAberration = chromaticAberration
                 )
             }
+            vibrancy()
         }
     }
 
