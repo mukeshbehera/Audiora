@@ -6,8 +6,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.DrawStyle
+import androidx.compose.ui.graphics.Stroke
+import androidx.compose.ui.graphics.RenderEffect
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.layer.GraphicsLayer
@@ -189,7 +192,7 @@ private class GlassBackdropNode(
             if (effectScope.update(this) || needsEffectRebuild) {
                 rebuildEffects(); needsEffectRebuild = false
             }
-            eLayer.renderEffect = effectScope.platformRenderEffect
+            eLayer.renderEffect = effectScope.platformRenderEffect?.asComposeRenderEffect()
 
             val sourceGL = backdropLayer.graphicsLayer
             if (sourceGL != null) {
@@ -213,12 +216,11 @@ private class GlassBackdropNode(
         // 3. Border
         if (borderWidthPx > 0f && borderColor.alpha > 0f) {
             val outline = shape.createOutline(size, layoutDirection, this)
-            val paint = androidx.compose.ui.graphics.Paint().apply {
-                color = borderColor
-                strokeWidth = borderWidthPx
-                style = PaintingStyle.Stroke
-            }
-            drawOutline(outline, paint)
+            drawOutline(
+                outline = outline,
+                color = borderColor,
+                style = Stroke(width = borderWidthPx)
+            )
         }
 
         // 4. Actual content (nav items)
