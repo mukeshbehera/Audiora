@@ -43,7 +43,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.AudioraApplication
 import com.audiora.core.design.GlassmorphicTextField
 import com.audiora.domain.model.Audiobook
-import com.audiora.core.design.ScreenTitle
 import com.audiora.core.design.SectionHeader
 import com.audiora.ui.theme.LocalDarkTheme
 
@@ -148,7 +147,11 @@ fun LibraryScreen(
                         )
                     } else {
                         Column {
-                            ScreenTitle(text = "Audiora")
+                            Text(
+                                text = "Audiora",
+                                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 32.sp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
                             Text(
                                 text = "Browse your audiobook collection",
                                 style = MaterialTheme.typography.bodySmall,

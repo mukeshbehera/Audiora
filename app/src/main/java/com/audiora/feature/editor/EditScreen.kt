@@ -168,8 +168,8 @@ fun EditScreen(
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (allBooks.isEmpty()) {
                 GlassmorphicCard(
@@ -177,7 +177,6 @@ fun EditScreen(
                     cornerRadius = 20.dp
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -210,7 +209,6 @@ fun EditScreen(
                     cornerRadius = 20.dp
                 ) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
@@ -297,16 +295,14 @@ fun EditScreen(
                 }
 
                 if (selectedBook != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     SectionHeader(text = "Cover Art Artwork")
 
                     GlassmorphicCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             val currentCoverPath = selectedBook?.coverPath ?: "default"
@@ -318,15 +314,15 @@ fun EditScreen(
                                 genre = selectedBook?.genre ?: "Default",
                                 coverColorSeed = currentCoverPath,
                                 modifier = Modifier
-                                    .width(120.dp)
+                                    .width(140.dp)
                                     .testTag("edit_cover_art_preview")
                             )
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Button(
@@ -377,8 +373,6 @@ fun EditScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
                 val chaptersList by viewModel.chapters.collectAsStateWithLifecycle()
 
                 // Segmented Tabs to switch between Metadata Attributes and Chapters Editor
@@ -416,8 +410,6 @@ fun EditScreen(
                         Text("Chapters (${chaptersList.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
 
                 if (activeTab == 0) {
                     // --- TAB 0: ATTRIBUTES EDITOR ---
@@ -559,7 +551,7 @@ fun EditScreen(
                         if (chaptersList.isEmpty()) {
                             GlassmorphicCard(modifier = Modifier.fillMaxWidth()) {
                                 Column(
-                                    modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
@@ -579,7 +571,7 @@ fun EditScreen(
                                     modifier = Modifier.fillMaxWidth().testTag("chapter_card_$index")
                                 ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Box(
@@ -779,7 +771,7 @@ fun EditScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center
