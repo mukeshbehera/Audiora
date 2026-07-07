@@ -315,7 +315,7 @@ fun AudioraGlassBottomBar(
     content: @Composable RowScope.() -> Unit
 ) {
     val isDark = LocalDarkTheme.current
-    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.40f)
+    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.32f)
     val borderColor = MaterialTheme.colorScheme.outlineVariant
     val glassHighlight = if (isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.35f)
 
