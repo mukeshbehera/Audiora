@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -209,8 +210,19 @@ private class GlassBackdropNode(
             }
         }
 
-        // 2. Container color overlay
-        drawRect(containerColor)
+        // 2. Container color overlay with vertical fade at edges
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    containerColor.copy(alpha = 0f),
+                    containerColor,
+                    containerColor,
+                    containerColor.copy(alpha = 0f)
+                ),
+                positions = listOf(0f, 0.35f, 0.65f, 1f)
+            ),
+            size = size
+        )
 
         // 3. Border
         if (borderWidthPx > 0f && borderColor.alpha > 0f) {
