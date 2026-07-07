@@ -215,6 +215,11 @@ private class GlassBackdropNode(
             brush = Brush.verticalGradient(
                 0f to containerColor.copy(alpha = 0f),
                 0.02f to containerColor,
+                0.05f to containerColor,
+                0.10f to containerColor,
+                0.15f to containerColor,
+                0.25f to containerColor,
+                0.30f to containerColor,
                 0.97f to containerColor,
                 0.99f to containerColor.copy(alpha = 0.55f),
                 1f to containerColor.copy(alpha = 0.85f)
