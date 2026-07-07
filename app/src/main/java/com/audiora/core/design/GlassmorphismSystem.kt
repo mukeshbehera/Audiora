@@ -315,7 +315,7 @@ fun AudioraGlassBottomBar(
     content: @Composable RowScope.() -> Unit
 ) {
     val isDark = LocalDarkTheme.current
-    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.55f)
+    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.40f)
     val borderColor = MaterialTheme.colorScheme.outlineVariant
     val glassHighlight = if (isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.35f)
 
@@ -331,6 +331,7 @@ fun AudioraGlassBottomBar(
                 ambientColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000),
                 spotColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000)
             )
+            .clip(shape)
             .then(
                 if (backdropLayer != null) {
                     Modifier.glassBackdrop(
@@ -338,7 +339,7 @@ fun AudioraGlassBottomBar(
                         shape = shape,
                         containerColor = containerColor,
                         borderColor = borderColor,
-                        borderWidthPx = with(LocalDensity.current) { 1.dp.toPx() },
+                        borderWidthPx = with(LocalDensity.current) { 2.dp.toPx() },
                         blurRadiusPx = with(LocalDensity.current) { 8.dp.toPx() },
                         refractionHeightPx = with(LocalDensity.current) { 24.dp.toPx() },
                         refractionAmountPx = with(LocalDensity.current) { 24.dp.toPx() }
@@ -350,7 +351,6 @@ fun AudioraGlassBottomBar(
                 }
             )
             .height(72.dp)
-            .clip(shape)
     ) {
         // Frosted glass top-edge highlight — only drawn for visual-only fallback
         if (backdropLayer == null) {
