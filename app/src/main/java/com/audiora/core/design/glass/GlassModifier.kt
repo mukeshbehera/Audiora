@@ -196,8 +196,8 @@ private class GlassBackdropNode(
             if (sourceGL != null) {
                 val sourceSize = sourceGL.size
                 if (sourceSize.width > 0 && sourceSize.height > 0) {
-                    val dx = backdropLayer.windowPosition.x - nodeWindowPosition.x
-                    val dy = backdropLayer.windowPosition.y - nodeWindowPosition.y
+                    val dx = nodeWindowPosition.x - backdropLayer.windowPosition.x
+                    val dy = nodeWindowPosition.y - backdropLayer.windowPosition.y
                     eLayer.record(size.toIntSize()) {
                         drawContext.canvas.translate(-dx, -dy)
                         drawLayer(sourceGL)
