@@ -665,44 +665,44 @@ fun OnboardingFoldersScreen(
                 
                 Spacer(modifier = Modifier.height(8.dp))
             }
-        }
 
-        // 3. Floating top action bar — placed after LazyColumn so it sits on top in z-order
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-                .align(Alignment.TopCenter),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier.testTag("onboarding_back_arrow")
+            // 3. Floating top action bar — placed after LazyColumn so it sits on top in z-order
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .align(Alignment.TopCenter),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = primaryTextColor
-                )
-            }
+                IconButton(
+                    onClick = onBack,
+                    modifier = Modifier.testTag("onboarding_back_arrow")
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = primaryTextColor
+                    )
+                }
 
-            TextButton(
-                onClick = {
-                    coroutineScope.launch {
-                        settingsRepository.setOnboardingCompleted(true)
-                        onNavigateToLibrary()
-                    }
-                },
-                modifier = Modifier.testTag("onboarding_skip_button")
-            ) {
-                Text(
-                    text = "Skip",
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            settingsRepository.setOnboardingCompleted(true)
+                            onNavigateToLibrary()
+                        }
+                    },
+                    modifier = Modifier.testTag("onboarding_skip_button")
+                ) {
+                    Text(
+                        text = "Skip",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
             }
         }
 
