@@ -323,7 +323,7 @@ fun AudioraGlassBottomBar(
 
     Box(
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .shadow(
                 elevation = 16.dp,
                 shape = shape,
