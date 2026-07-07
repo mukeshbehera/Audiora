@@ -68,7 +68,8 @@ private class CaptureBackdropNode(
         if (gLayer != null) {
             val s = size.toIntSize()
             if (s.width > 0 && s.height > 0) {
-                gLayer.record(s) { drawContent() }
+                val scope = this
+                gLayer.record(s) { scope.drawContent() }
             }
         }
     }
@@ -188,7 +189,7 @@ private class GlassBackdropNode(
             if (effectScope.update(this) || needsEffectRebuild) {
                 rebuildEffects(); needsEffectRebuild = false
             }
-            eLayer.renderEffect = effectScope.renderEffect
+            eLayer.renderEffect = effectScope.platformRenderEffect
 
             val sourceGL = backdropLayer.graphicsLayer
             if (sourceGL != null) {
@@ -229,7 +230,7 @@ private class GlassBackdropNode(
     }
 
     private fun rebuildEffects() {
-        effectScope.apply {
+        effectScope.applyEffects {
             vibrancy()
             blur(blurRadiusPx)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

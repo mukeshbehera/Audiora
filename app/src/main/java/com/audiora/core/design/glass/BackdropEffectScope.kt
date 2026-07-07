@@ -2,16 +2,14 @@ package com.audiora.core.design.glass
 
 import android.os.Build
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.asAndroidRenderEffect
-import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 
 /**
  * Scope for building a RenderEffect chain (blur → lens → vibrancy).
- * Ported from AndroidLiquidGlass's BackdropEffectScope.
+ * Stores the Android platform [android.graphics.RenderEffect] directly
+ * to avoid Compose/Android conversion issues.
  */
 class BackdropEffectScopeImpl : Density {
 
@@ -23,16 +21,15 @@ class BackdropEffectScopeImpl : Density {
     var padding: Float = 0f
 
     /**
-     * The compiled Compose RenderEffect chain.
-     * Set by [apply] then read to assign to a GraphicsLayer.
+     * The compiled Android platform RenderEffect chain.
+     * Set by [applyEffects] then read to assign to a GraphicsLayer.renderEffect.
      */
-    var renderEffect: RenderEffect? = null
+    var platformRenderEffect: android.graphics.RenderEffect? = null
 
     private val runtimeShaders = mutableMapOf<String, android.graphics.RuntimeShader>()
 
     /**
      * Sync density/size/layoutDirection from a DrawScope.
-     * Returns true if any value changed (caller should rebuild effects).
      */
     fun update(scope: DrawScope): Boolean {
         val changed = scope.density != density ||
@@ -49,12 +46,12 @@ class BackdropEffectScopeImpl : Density {
     }
 
     /**
-     * Reset and rebuild the effect chain from scratch.
+     * Reset and rebuild the effect chain.
      */
-    fun apply(effects: BackdropEffectScope.() -> Unit) {
+    fun applyEffects(block: BackdropEffectScopeImpl.() -> Unit) {
         padding = 0f
-        renderEffect = null
-        effects()
+        platformRenderEffect = null
+        block()
     }
 
     /**
@@ -66,23 +63,18 @@ class BackdropEffectScopeImpl : Density {
         size = Size.Unspecified
         layoutDirection = LayoutDirection.Ltr
         padding = 0f
-        renderEffect = null
+        platformRenderEffect = null
         runtimeShaders.clear()
     }
 
-    // ---- Internal effect chain building ----
+    // ---- Internal ----
 
-    /**
-     * Chain an Android platform [android.graphics.RenderEffect] onto the pipeline.
-     * API 31+ guard is applied internally.
-     */
     private fun addEffect(effect: android.graphics.RenderEffect) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val current = renderEffect?.asAndroidRenderEffect()
-        renderEffect = if (current != null) {
-            android.graphics.RenderEffect.createChainEffect(effect, current).asComposeRenderEffect()
+        platformRenderEffect = if (platformRenderEffect != null) {
+            android.graphics.RenderEffect.createChainEffect(effect, platformRenderEffect!!)
         } else {
-            effect.asComposeRenderEffect()
+            effect
         }
     }
 
@@ -104,11 +96,6 @@ class BackdropEffectScopeImpl : Density {
     /**
      * Liquid-glass lens refraction via AGSL runtime shader.
      * API 33+. No-op below API 33.
-     *
-     * @param refractionHeightPx Edge region height in px (how far from edge the refraction extends)
-     * @param refractionAmountPx Max displacement in px of refracted content
-     * @param depthEffect Apply depth-based normal perturbation
-     * @param chromaticAberration Enable chromatic dispersion (7 color samples)
      */
     fun lens(
         refractionHeightPx: Float = 72f,
@@ -128,19 +115,13 @@ class BackdropEffectScopeImpl : Density {
             android.graphics.RuntimeShader(shaderString)
         }
 
-        // Position
         shader.setFloatUniform("size", size.width, size.height)
         shader.setFloatUniform("offset", 0f, 0f)
-
-        // Corner radii (uniform for all 4 corners when using RoundedCornerShape)
         val maxR = size.minDimension / 2f
         shader.setFloatUniform("cornerRadii", floatArrayOf(maxR, maxR, maxR, maxR))
-
-        // Refraction params
         shader.setFloatUniform("refractionHeight", refractionHeightPx)
         shader.setFloatUniform("refractionAmount", refractionAmountPx)
         shader.setFloatUniform("depthEffect", if (depthEffect) 1f else 0f)
-
         if (chromaticAberration) {
             shader.setFloatUniform("chromaticAberration", 1f)
         }
@@ -151,7 +132,7 @@ class BackdropEffectScopeImpl : Density {
     }
 
     /**
-     * Subtle color boost — slightly increased saturation + contrast.
+     * Subtle color boost — increased saturation + contrast.
      * API 31+. No-op below API 31.
      */
     fun vibrancy() {
