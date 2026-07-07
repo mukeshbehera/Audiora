@@ -210,14 +210,14 @@ private class GlassBackdropNode(
             }
         }
 
-        // 2. Container color overlay with subtle edge fades
+        // 2. Container color overlay — narrow edge fades, bottom stays opaque to mask refraction
         drawRect(
             brush = Brush.verticalGradient(
                 0f to containerColor.copy(alpha = 0f),
-                0.05f to containerColor,
-                0.82f to containerColor,
-                0.94f to containerColor.copy(alpha = 0.12f),
-                1f to containerColor.copy(alpha = 0.06f)
+                0.03f to containerColor,
+                0.92f to containerColor,
+                0.97f to containerColor.copy(alpha = 0.40f),
+                1f to containerColor.copy(alpha = 0.25f)
             ),
             size = size
         )
