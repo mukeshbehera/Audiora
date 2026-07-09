@@ -224,6 +224,27 @@ class PlaybackManager(
             _duration.value = book.durationMs
             loadChaptersForBook(book)
 
+            // Calculate target position BEFORE touching player, so all async reads complete
+            // before we enter the player critical path (matches Voice's approach of computing
+            // the position before calling setMediaItems).
+            val defaultSpeed = settingsRepository?.getDefaultPlaybackSpeed()?.firstOrNull() ?: 1.0f
+            _playbackSpeed.value = defaultSpeed
+
+            val effectivePosition = if (previousBookId == book.id) {
+                _currentPosition.value.coerceAtLeast(book.currentPositionMs)
+            } else {
+                book.currentPositionMs
+            }
+
+            val targetPos: Long
+            if (effectivePosition in 1 until book.durationMs) {
+                val autoRewindSecs = settingsRepository?.getAutoRewind()?.firstOrNull() ?: 3
+                targetPos = (effectivePosition - autoRewindSecs * 1000L).coerceAtLeast(0L)
+            } else {
+                targetPos = 0L
+            }
+            _currentPosition.value = targetPos
+
             // Set up fallback stream if filePath is missing
             val uriToPlay = if (book.filePath.isNotEmpty()) {
                 book.filePath
@@ -236,29 +257,11 @@ class PlaybackManager(
             if (activeController != null) {
                 activeController.stop()
                 val mediaItem = MediaItem.fromUri(uriToPlay)
-                activeController.setMediaItem(mediaItem)
+                // Pass start position atomically in setMediaItem — matches Voice's
+                // player.setMediaItems(items, startIndex, positionInChapterMs) pattern.
+                // This eliminates the race between prepare() and seekTo().
+                activeController.setMediaItem(mediaItem, targetPos)
                 activeController.prepare()
-                
-                // Get playback speed default and update local state
-                val defaultSpeed = settingsRepository?.getDefaultPlaybackSpeed()?.firstOrNull() ?: 1.0f
-                _playbackSpeed.value = defaultSpeed
-
-                // Resolve effective position: use live tracked position if same book (matches Voice's CurrentBookResolver pattern)
-                val effectivePosition = if (previousBookId == book.id) {
-                    _currentPosition.value.coerceAtLeast(book.currentPositionMs)
-                } else {
-                    book.currentPositionMs
-                }
-
-                // Seek to saved position with auto-rewind if applicable
-                if (effectivePosition > 0 && effectivePosition < book.durationMs) {
-                    val autoRewindSecs = settingsRepository?.getAutoRewind()?.firstOrNull() ?: 3
-                    val targetPos = (effectivePosition - autoRewindSecs * 1000L).coerceAtLeast(0L)
-                    activeController.seekTo(targetPos)
-                    _currentPosition.value = targetPos
-                } else {
-                    _currentPosition.value = 0L
-                }
 
                 // Apply defaults: sleep timer
                 val sleepDefault = settingsRepository?.getSleepTimerDefault()?.firstOrNull() ?: 30
