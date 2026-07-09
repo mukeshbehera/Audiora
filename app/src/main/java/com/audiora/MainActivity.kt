@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import kotlinx.coroutines.flow.first
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -229,7 +230,7 @@ fun MainAppContainer(
                 )
             ) { backStackEntry ->
                 val bookId = backStackEntry.arguments?.getInt("bookId") ?: return@composable
-                val book by app.bookRepository.getAudiobook(bookId).collectAsState(initial = null)
+                val currentBook by app.playbackManager.currentBook.collectAsStateWithLifecycle()
                 // Use bookId as stable key so this only fires on navigation, not on Room re-emissions
                 LaunchedEffect(bookId) {
                     val loadedBook = app.bookRepository.getAudiobook(bookId).first()
@@ -237,14 +238,29 @@ fun MainAppContainer(
                         app.playbackManager.playBook(loadedBook)
                     }
                 }
-                PlayerScreen(
-                    onNavigateBack = {
-                        navController.navigate(Screen.Library.route) {
-                            popUpTo(Screen.Library.route) { inclusive = true }
-                            launchSingleTop = true
-                        }
+
+                if (currentBook == null) {
+                    // Loading state — playBook() sets currentBook synchronously so this
+                    // should only be visible for <1 frame. Never shows "No Audiobook Loaded".
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
-                )
+                } else {
+                    PlayerScreen(
+                        onNavigateBack = {
+                            navController.navigate(Screen.Library.route) {
+                                popUpTo(Screen.Library.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
+                }
             }
             composable(
                 route = "edit?bookId={bookId}",

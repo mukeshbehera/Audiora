@@ -213,16 +213,18 @@ class PlaybackManager(
     }
 
     fun playBook(book: Audiobook) {
+        // Capture previous book ID before overwriting (used for effectivePosition below)
+        val previousBookId = _currentBook.value?.id
+
+        // Set book state synchronously — PlayerScreen sees this immediately
+        // instead of rendering "No Audiobook Loaded" for several frames.
+        _currentBook.value = book
+        _duration.value = book.durationMs
+        loadChaptersForBook(book)
+
         scope.launch {
             // Save preceding book state before changing
             saveCurrentPositionToDb()
-
-            // Capture previous book ID before overwriting _currentBook (used for effectivePosition below)
-            val previousBookId = _currentBook.value?.id
-
-            _currentBook.value = book
-            _duration.value = book.durationMs
-            loadChaptersForBook(book)
 
             // Calculate target position BEFORE touching player, so all async reads complete
             // before we enter the player critical path (matches Voice's approach of computing
