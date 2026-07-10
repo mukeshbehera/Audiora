@@ -82,7 +82,7 @@ jobs:
 
           # Rename release APK
           if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            NEW_RELEASE_APK="${APP_NAME}_v${VERSION_NAME}-release.apk"
+            NEW_RELEASE_APK="${APP_NAME}_v${VERSION_NAME}.apk"
             cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/${NEW_RELEASE_APK}
             echo "RELEASE_APK_NAME=${NEW_RELEASE_APK}" >> $GITHUB_ENV
             echo "Created release APK: ${NEW_RELEASE_APK}"
