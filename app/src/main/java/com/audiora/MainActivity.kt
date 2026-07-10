@@ -287,7 +287,17 @@ fun MainAppContainer(
                 )
             }
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    onNavigateToFolders = {
+                        navController.navigate("settings/folders")
+                    }
+                )
+            }
+            composable("settings/folders") {
+                com.audiora.feature.settings.FolderManagementView(
+                    onBack = { navController.navigateUp() },
+                    modifier = Modifier
+                )
             }
             composable(
                 route = Screen.Details.route,

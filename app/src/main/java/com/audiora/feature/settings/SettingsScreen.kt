@@ -36,18 +36,10 @@ enum class SettingsDialogType {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onNavigateToFolders: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = viewModel()
 ) {
-    var showFolderManagement by remember { mutableStateOf(false) }
-
-    if (showFolderManagement) {
-        FolderManagementView(
-            onBack = { showFolderManagement = false },
-            modifier = modifier
-        )
-        return
-    }
 
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val colorSchemeName by viewModel.colorSchemeName.collectAsStateWithLifecycle()
@@ -97,7 +89,7 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { showFolderManagement = true }
+                                .clickable { onNavigateToFolders() }
                                 .padding(16.dp)
                                 .testTag("folders_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
