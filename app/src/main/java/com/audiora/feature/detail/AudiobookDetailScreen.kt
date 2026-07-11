@@ -116,6 +116,7 @@ fun AudiobookDetailScreen(
                 Box(
                     modifier = Modifier
                         .navigationBarsPadding()
+                        .padding(bottom = 12.dp)
                         .shadow(
                             elevation = 10.dp,
                             shape = RoundedCornerShape(16.dp),
@@ -387,7 +388,6 @@ fun SpecRow(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = if (isSingleLine) 1 else 5,
                 overflow = if (isSingleLine) TextOverflow.Ellipsis else TextOverflow.Clip
