@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -24,8 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import com.audiora.AudioraApplication
 import com.audiora.domain.util.toDisplayPath
 import com.audiora.core.design.GlassmorphicCard
@@ -53,25 +52,13 @@ fun AudiobookDetailScreen(
     val uiState by detailViewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
-    val exportStatus by detailViewModel.exportStatus.collectAsStateWithLifecycle()
-    val exportProgress by detailViewModel.exportProgress.collectAsStateWithLifecycle()
-
-    val exportLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.CreateDocument("audio/mp4")
-    ) { uri ->
-        if (uri != null) {
-            detailViewModel.exportAudiobook(context, uri)
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
                         text = "Audiobook Details",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.testTag("detail_title_label")
                     )
@@ -89,22 +76,6 @@ fun AudiobookDetailScreen(
                     }
                 },
                 actions = {
-                    if (uiState is DetailUiState.Success) {
-                        val book = (uiState as DetailUiState.Success).audiobook
-                        IconButton(
-                            onClick = {
-                                val suggestedName = "${book.title.replace("[^a-zA-Z0-9]".toRegex(), "_")}.m4b"
-                                exportLauncher.launch(suggestedName)
-                            },
-                            modifier = Modifier.testTag("detail_export_top_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Download,
-                                contentDescription = "Export M4B",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
                     IconButton(
                         onClick = {
                             if (uiState is DetailUiState.Success) {
@@ -129,16 +100,54 @@ fun AudiobookDetailScreen(
         floatingActionButton = {
             if (uiState is DetailUiState.Success) {
                 val book = (uiState as DetailUiState.Success).audiobook
-                ExtendedFloatingActionButton(
-                    onClick = {
-                        app.playbackManager.playBook(book)
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White,
-                    icon = { Icon(Icons.Rounded.PlayArrow, contentDescription = "Play Audiobook") },
-                    text = { Text("Listen Now") },
-                    modifier = Modifier.testTag("detail_play_fab")
+                val primary = MaterialTheme.colorScheme.primary
+                val gradient = Brush.horizontalGradient(
+                    colors = listOf(
+                        primary,
+                        primary.copy(
+                            red = (primary.red * 0.7f).coerceIn(0f, 1f),
+                            green = (primary.green * 0.7f).coerceIn(0f, 1f),
+                            blue = (primary.blue * 0.7f).coerceIn(0f, 1f)
+                        )
+                    )
                 )
+                Box(
+                    modifier = Modifier
+                        .navigationBarsPadding()
+                        .shadow(
+                            elevation = 10.dp,
+                            shape = RoundedCornerShape(16.dp),
+                            clip = false,
+                            ambientColor = primary.copy(alpha = 0.5f),
+                            spotColor = primary.copy(alpha = 0.5f)
+                        )
+                        .height(56.dp)
+                        .background(gradient, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .clickable { app.playbackManager.playBook(book) }
+                        .testTag("detail_play_fab"),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.PlayArrow,
+                            contentDescription = "Play Audiobook",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Listen Now",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         },
         modifier = modifier.fillMaxSize()
@@ -216,8 +225,7 @@ fun AudiobookDetailScreen(
 
                                 Text(
                                     text = book.title,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Black,
+                                    style = MaterialTheme.typography.headlineSmall,
                                     color = MaterialTheme.colorScheme.onBackground,
                                     maxLines = 3,
                                     overflow = TextOverflow.Ellipsis,
@@ -226,8 +234,7 @@ fun AudiobookDetailScreen(
 
                                 Text(
                                     text = "By ${book.author}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
+                                    style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                                     modifier = Modifier.testTag("detail_author")
                                 )
@@ -246,8 +253,7 @@ fun AudiobookDetailScreen(
                                     )
                                     Text(
                                         text = formatDuration(book.durationMs),
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleSmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.testTag("detail_duration")
                                     )
@@ -257,25 +263,6 @@ fun AudiobookDetailScreen(
 
                         // Horizontal separator
                         HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
-
-                        // Description Section
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            SectionHeader(text = "Synopsis")
-                            GlassmorphicCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                cornerRadius = 14.dp
-                            ) {
-                                Text(
-                                    text = book.description,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    lineHeight = 20.sp,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
-                                    modifier = Modifier.testTag("detail_description")
-                                )
-                            }
-                        }
 
                         // Complete Audiobook Metadata Specs Container
                         Column(
@@ -302,72 +289,6 @@ fun AudiobookDetailScreen(
                                         icon = Icons.Rounded.Link,
                                         isSingleLine = false
                                     )
-                                }
-                            }
-                        }
-
-                        // Export Audiobook Interactive Panel Card
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            SectionHeader(
-                                text = "Export System",
-                                modifier = Modifier.testTag("detail_export_section_heading")
-                            )
-                            GlassmorphicCard(
-                                modifier = Modifier.fillMaxWidth(),
-                                cornerRadius = 16.dp
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(
-                                        modifier = Modifier.weight(0.65f),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        Text(
-                                            text = "Save As M4B Audiobook",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onBackground
-                                        )
-                                        Text(
-                                            text = "Pick directory and export standard, tag-preserved audiobook audio file.",
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                                        )
-                                    }
-                                    Button(
-                                        onClick = {
-                                            val suggestedName = "${book.title.replace("[^a-zA-Z0-9]".toRegex(), "_")}.m4b"
-                                            exportLauncher.launch(suggestedName)
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier
-                                            .weight(0.35f)
-                                            .testTag("detail_export_button")
-                                    ) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Download,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                            Text(
-                                                text = "Export",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }
@@ -433,102 +354,6 @@ fun AudiobookDetailScreen(
                 }
             }
 
-            if (exportStatus !is ExportStatus.Idle) {
-                AlertDialog(
-                    onDismissRequest = {
-                        if (exportStatus !is ExportStatus.Exporting) {
-                            detailViewModel.resetExportStatus()
-                        }
-                    },
-                    confirmButton = {
-                        if (exportStatus is ExportStatus.Success || exportStatus is ExportStatus.Error) {
-                            Button(
-                                onClick = { detailViewModel.resetExportStatus() },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                modifier = Modifier.testTag("export_complete_ok_button")
-                            ) {
-                                Text("OK")
-                            }
-                        }
-                    },
-                    title = {
-                        Text(
-                            text = when (exportStatus) {
-                                is ExportStatus.Exporting -> "Exporting Audiobook..."
-                                is ExportStatus.Success -> "Export Successful!"
-                                is ExportStatus.Error -> "Export Failed"
-                                else -> ""
-                            },
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    text = {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            when (val status = exportStatus) {
-                                is ExportStatus.Exporting -> {
-                                    CircularProgressIndicator(
-                                        progress = { exportProgress },
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                                        modifier = Modifier.size(56.dp).testTag("export_progress_indicator")
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "${(exportProgress * 100).toInt()}% Done",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "Please keep the app open while we copy and finalize your premium M4B audiobook file.",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                                is ExportStatus.Success -> {
-                                    Icon(
-                                        imageVector = Icons.Rounded.CheckCircle,
-                                        contentDescription = "Success",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(64.dp).testTag("export_success_icon")
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Your high-fidelity M4B audiobook has been exported safely to your selected destination.",
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                                is ExportStatus.Error -> {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Error,
-                                        contentDescription = "Error",
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(64.dp).testTag("export_error_icon")
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = status.message,
-                                        fontSize = 13.sp,
-                                        color = MaterialTheme.colorScheme.error,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                                else -> {}
-                            }
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(24.dp)
-                )
-            }
         }
     }
 }
@@ -595,21 +420,19 @@ fun ChapterRow(
             Column {
                 Text(
                     text = title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
                     text = timeRange,
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                 )
             }
         }
         Text(
             text = durationStr,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
         )
     }
