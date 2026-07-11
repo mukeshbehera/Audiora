@@ -196,6 +196,9 @@ fun MainAppContainer(
                     },
                     onNavigateToPlayer = { bookId ->
                         navController.navigate("player/$bookId")
+                    },
+                    onNavigateToDetails = { bookId ->
+                        navController.navigate("details/$bookId")
                     }
                 )
             }

@@ -2,9 +2,11 @@ package com.audiora.core.design
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -377,23 +379,68 @@ fun GlassmorphicCard(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ClickableGlassmorphicCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     cornerRadius: Dp = 24.dp,
+    onLongClick: (() -> Unit)? = null,
     containerColor: Color = Color.Unspecified,
     borderColor: Color = Color.Unspecified,
     borderWidth: Dp = 1.dp,
     shadowElevation: Dp = 4.dp,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    AudioraGlassCard(
-        modifier = modifier,
-        cornerRadius = cornerRadius,
-        onClick = onClick,
-        content = content
-    )
+    val isDark = LocalDarkTheme.current
+    val container = containerColor.takeIf { it != Color.Unspecified }
+        ?: MaterialTheme.colorScheme.surface.copy(alpha = 0.65f)
+    val border = borderColor.takeIf { it != Color.Unspecified }
+        ?: MaterialTheme.colorScheme.outlineVariant
+
+    val shadowModifier = if (isDark) {
+        Modifier.shadow(
+            elevation = 12.dp,
+            shape = RoundedCornerShape(cornerRadius),
+            clip = false,
+            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+        )
+    } else {
+        Modifier.shadow(
+            elevation = 6.dp,
+            shape = RoundedCornerShape(cornerRadius),
+            clip = false,
+            ambientColor = Color(0x0F000000),
+            spotColor = Color(0x0F000000)
+        )
+    }
+
+    Surface(
+        modifier = modifier.then(shadowModifier),
+        shape = RoundedCornerShape(cornerRadius),
+        color = container,
+        border = BorderStroke(borderWidth, border)
+    ) {
+        Box(
+            modifier = Modifier
+                .then(
+                    if (onLongClick != null) {
+                        Modifier.combinedClickable(
+                            onClick = onClick,
+                            onLongClick = onLongClick
+                        )
+                    } else {
+                        Modifier.clickable(onClick = onClick)
+                    }
+                )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                content = content
+            )
+        }
+    }
 }
 
 @Composable

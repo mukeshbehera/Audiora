@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
@@ -34,23 +35,24 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.audiora.AudioraApplication
 import com.audiora.core.design.ClickableGlassmorphicCard
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicEmptyState
-import androidx.compose.ui.platform.LocalContext
+import com.audiora.core.design.SectionHeader
+import com.audiora.domain.model.Audiobook
+import com.audiora.ui.theme.LocalDarkTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.audiora.AudioraApplication
-import com.audiora.core.design.GlassmorphicTextField
-import com.audiora.domain.model.Audiobook
-import com.audiora.core.design.SectionHeader
-import com.audiora.ui.theme.LocalDarkTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToPlayer: (Int) -> Unit,
+    onNavigateToDetails: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -66,6 +68,11 @@ fun LibraryScreen(
     var isSearchBarVisible by remember { mutableStateOf(false) }
     var selectedGenre by remember { mutableStateOf("All") }
     var sortBy by remember { mutableStateOf("Recent") } // Recent, Title, Duration
+
+    // Context menu state
+    var showContextMenuFor by remember { mutableStateOf<Audiobook?>(null) }
+    var showRemoveConfirmFor by remember { mutableStateOf<Audiobook?>(null) }
+    val scope = rememberCoroutineScope()
 
     val focusManager = LocalFocusManager.current
     val genres = remember(audiobooks) {
@@ -90,6 +97,157 @@ fun LibraryScreen(
             else -> result.sortedByDescending { it.addedAt } // "Recent"
         }
         result
+    }
+
+    // Long-press context menu bottom sheet
+    if (showContextMenuFor != null) {
+        val book = showContextMenuFor!!
+        ModalBottomSheet(
+            onDismissRequest = { showContextMenuFor = null },
+            sheetState = rememberModalBottomSheetState(),
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                SectionHeader(text = "Audiobook Options")
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                // Audiobook Details
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            showContextMenuFor = null
+                            onNavigateToDetails(book.id)
+                        }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Audiobook Details",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "View metadata, chapters, and export",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Rounded.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                // Remove from Library
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable {
+                            showContextMenuFor = null
+                            showRemoveConfirmFor = book
+                        }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Remove from Library",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            text = "Remove from your library without deleting the file",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Remove confirmation dialog
+    if (showRemoveConfirmFor != null) {
+        val book = showRemoveConfirmFor!!
+        AlertDialog(
+            onDismissRequest = { showRemoveConfirmFor = null },
+            title = {
+                Text(
+                    text = "Remove Audiobook",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Are you sure you want to remove '${book.title}' from your library? This will not delete the original file.",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val bookId = book.id
+                        showRemoveConfirmFor = null
+                        scope.launch(Dispatchers.IO) {
+                            app.bookRepository.deleteAudiobook(bookId)
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Remove", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRemoveConfirmFor = null }) {
+                    Text("Cancel", fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(24.dp)
+        )
     }
 
     Scaffold(
@@ -328,7 +486,8 @@ fun LibraryScreen(
                         items(filteredAudiobooks, key = { it.id }) { book ->
                             AudiobookGridCard(
                                 audiobook = book,
-                                onSelect = { onNavigateToPlayer(book.id) }
+                                onSelect = { onNavigateToPlayer(book.id) },
+                                onLongClick = { showContextMenuFor = book }
                             )
                         }
                     }
@@ -344,7 +503,8 @@ fun LibraryScreen(
                         items(filteredAudiobooks, key = { it.id }) { book ->
                             AudiobookListCard(
                                 audiobook = book,
-                                onSelect = { onNavigateToPlayer(book.id) }
+                                onSelect = { onNavigateToPlayer(book.id) },
+                                onLongClick = { showContextMenuFor = book }
                             )
                         }
                     }
@@ -503,10 +663,12 @@ fun AudiobookCoverArt(
 fun AudiobookGridCard(
     audiobook: Audiobook,
     onSelect: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     ClickableGlassmorphicCard(
         onClick = onSelect,
+        onLongClick = onLongClick,
         modifier = modifier
             .fillMaxWidth()
             .testTag("book_card_${audiobook.id}"),
@@ -634,10 +796,12 @@ fun AudiobookGridCard(
 fun AudiobookListCard(
     audiobook: Audiobook,
     onSelect: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     ClickableGlassmorphicCard(
         onClick = onSelect,
+        onLongClick = onLongClick,
         modifier = modifier
             .fillMaxWidth()
             .testTag("book_card_${audiobook.id}"),
