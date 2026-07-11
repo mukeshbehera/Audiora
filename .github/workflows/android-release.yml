@@ -1,0 +1,72 @@
+name: Android APK Release (Signed)
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build and Attach Signed Release APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Grant Execute Permission to Gradle Wrapper
+        run: chmod +x gradlew
+
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -alias androiddebugkey \
+            -storepass android -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug, O=Android, C=US"
+
+      - name: Setup Release Signing
+        env:
+          RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE }}
+        run: ./scripts/ci_signing_setup.sh
+
+      - name: Build Signed Release APK
+        env:
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file="$PWD/signing/release.keystore" \
+            -Pandroid.injected.signing.store.password="$RELEASE_STORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$RELEASE_KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$RELEASE_KEY_PASSWORD"
+
+      - name: Rename Release APK
+        run: |
+          APP_NAME="Audiora"
+          # Derive version from the Git tag (e.g., v4.0.1 -> 4.0.1)
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "APP_NAME=${APP_NAME}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            NEW_RELEASE_APK="${APP_NAME}_v${VERSION}.apk"
+            cp app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/${NEW_RELEASE_APK}
+            echo "RELEASE_APK_NAME=${NEW_RELEASE_APK}" >> $GITHUB_ENV
+            echo "Created release APK: ${NEW_RELEASE_APK}"
+          fi
+
+      - name: Attach APK to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/release/${{ env.RELEASE_APK_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
