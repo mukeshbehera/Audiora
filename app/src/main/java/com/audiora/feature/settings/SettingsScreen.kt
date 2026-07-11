@@ -20,7 +20,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.SectionHeader
 import com.audiora.core.design.ScreenTitle
-import com.audiora.domain.model.PlaybackSettings
+import com.audiora.BuildConfig
 
 enum class SettingsDialogType {
     THEME,
@@ -396,7 +396,8 @@ fun SettingsScreen(
                                 )
                                 Column {
                                     Text("App Version", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Text("Version 1.1.0 (Release Candidate)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+                                    val versionLabel = if (BuildConfig.DEBUG) "Debug Build" else "Version ${BuildConfig.VERSION_NAME}"
+                                    Text(versionLabel, fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
                                 }
                             }
                         }
