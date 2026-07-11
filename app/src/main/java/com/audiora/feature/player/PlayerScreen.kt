@@ -678,9 +678,9 @@ fun PlayerScreen(
                 // Book Cover Art Component (Prism Custom Card with shadow)
                 Box(
                     modifier = Modifier
-                        .weight(1.3f)
-                        .padding(vertical = 12.dp)
-                        .fillMaxWidth(0.85f),
+                        .weight(2.0f)
+                        .padding(vertical = 16.dp)
+                        .fillMaxWidth(0.92f),
                     contentAlignment = Alignment.Center
                 ) {
                     PerfectMinimalCoverCard(
@@ -690,16 +690,6 @@ fun PlayerScreen(
                         modifier = Modifier.fillMaxHeight().aspectRatio(1f)
                     )
                 }
-
-                // Centered Soft Down Chevron
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f),
-                    modifier = Modifier
-                        .size(36.dp)
-                        .padding(vertical = 4.dp)
-                )
 
                 // Chapter Typography Stack
                 val currentChapterObj = chapters.getOrNull(currentChapterIndex)
@@ -715,7 +705,7 @@ fun PlayerScreen(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.6f)
+                        .weight(0.5f)
                         .testTag("player_chapter_heading_container")
                 ) {
                     Text(
@@ -743,7 +733,7 @@ fun PlayerScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.7f)
+                        .weight(0.6f)
                 ) {
                     Slider(
                         value = displayProgress.coerceIn(0f, 1f),
@@ -888,7 +878,7 @@ fun PlayerScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(0.9f)
+                        .weight(0.8f)
                         .padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
