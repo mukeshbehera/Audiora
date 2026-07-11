@@ -212,7 +212,7 @@ class PlaybackManager(
         })
     }
 
-    fun playBook(book: Audiobook) {
+    fun playBook(book: Audiobook, autoPlay: Boolean = false) {
         // Capture previous book ID before overwriting (used for effectivePosition below)
         val previousBookId = _currentBook.value?.id
 
@@ -294,7 +294,9 @@ class PlaybackManager(
                     _audioSessionId?.let { volumeGain.setGain(gainDb, it) }
                 }
 
-                activeController.play()
+                if (autoPlay) {
+                    activeController.play()
+                }
             } else {
                 Timber.w("PlaybackManager: MediaController not online yet")
             }
@@ -308,18 +310,9 @@ class PlaybackManager(
         } else {
             val activeBook = _currentBook.value
             if (activeBook != null && activeController.mediaItemCount == 0) {
-                playBook(activeBook)
+                playBook(activeBook, autoPlay = true)
             } else {
-                scope.launch {
-                    val autoRewindSecs = settingsRepository?.getAutoRewind()?.firstOrNull() ?: 3
-                    if (autoRewindSecs > 0) {
-                        val currentPos = activeController.currentPosition
-                        val targetPos = (currentPos - autoRewindSecs * 1000L).coerceAtLeast(0L)
-                        activeController.seekTo(targetPos)
-                        _currentPosition.value = targetPos
-                    }
-                    activeController.play()
-                }
+                activeController.play()
             }
         }
     }
