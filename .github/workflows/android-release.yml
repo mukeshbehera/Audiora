@@ -38,7 +38,10 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
+          # Derive version from Git tag (e.g., v2.2.2 -> 2.2.2)
+          VERSION="${GITHUB_REF_NAME#v}"
           ./gradlew assembleRelease \
+            -PversionName="$VERSION" \
             -Pandroid.injected.signing.store.file="$PWD/signing/release.keystore" \
             -Pandroid.injected.signing.store.password="$RELEASE_STORE_PASSWORD" \
             -Pandroid.injected.signing.key.alias="$RELEASE_KEY_ALIAS" \
