@@ -42,7 +42,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = PlaybackSettings(15, 3, 1.0f, 30)
+            initialValue = PlaybackSettings(15, 3, 1.0f, 0)
         )
 
     fun setThemeMode(mode: String) {

@@ -117,7 +117,7 @@ class SettingsRepositoryImpl(private val context: Context) : SettingsRepository 
                 throw exception
             }
         }.map { preferences ->
-            preferences[PreferencesKeys.SLEEP_TIMER_DEFAULT] ?: 30
+            preferences[PreferencesKeys.SLEEP_TIMER_DEFAULT] ?: 0
         }
 
     override suspend fun setSleepTimerDefault(minutes: Int) {

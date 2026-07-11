@@ -424,7 +424,7 @@ fun SettingsScreen(
                                 )
                                 Column {
                                     Text("GitHub Repository", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                    Text("https://github.com/audiora/audiobook-player", fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
+                                    Text("https://github.com/mukeshbehera/Audiora", fontSize = 11.sp, color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f))
                                 }
                             }
                             Icon(
