@@ -116,7 +116,7 @@ fun AudiobookDetailScreen(
                 Box(
                     modifier = Modifier
                         .navigationBarsPadding()
-                        .padding(bottom = 12.dp)
+                        .padding(bottom = 96.dp)
                         .shadow(
                             elevation = 10.dp,
                             shape = RoundedCornerShape(16.dp),
