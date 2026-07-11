@@ -73,7 +73,7 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .navigationBarsPadding()
                 .padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 96.dp)
         ) {
             // SECTION 1: Audiobook Folders
@@ -90,7 +90,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { onNavigateToFolders() }
-                                .padding(12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("folders_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -134,7 +134,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.THEME }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("appearance_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -168,14 +168,14 @@ fun SettingsScreen(
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
                         // Color Scheme Selection Row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.COLOR_SCHEME }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("color_scheme_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -230,7 +230,7 @@ fun SettingsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.SKIP_AMOUNT }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("playback_skip_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -256,14 +256,14 @@ fun SettingsScreen(
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
                         // Auto Rewind Row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.AUTO_REWIND }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("playback_rewind_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -293,14 +293,14 @@ fun SettingsScreen(
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
                         // Default Speed Row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.PLAYBACK_SPEED }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("playback_speed_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -326,14 +326,14 @@ fun SettingsScreen(
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
                         // Sleep Timer Row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.SLEEP_TIMER }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("playback_sleep_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -380,7 +380,7 @@ fun SettingsScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("about_version_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -401,14 +401,14 @@ fun SettingsScreen(
                             }
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
                         // GitHub Repository Row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { /* Open GitHub in mock / Toast or simple action */ }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("about_github_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -435,14 +435,14 @@ fun SettingsScreen(
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
                         // Open Source Licenses Row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.LICENSES }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("about_licenses_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -468,14 +468,14 @@ fun SettingsScreen(
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f), modifier = Modifier.padding(horizontal = 14.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f))
 
                         // Privacy Policy Row
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { activeDialog = SettingsDialogType.PRIVACY }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .padding(vertical = 12.dp)
                                 .testTag("about_privacy_row"),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
