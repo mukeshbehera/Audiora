@@ -678,7 +678,7 @@ fun PlayerScreen(
                 // Book Cover Art Component (Prism Custom Card with shadow)
                 Box(
                     modifier = Modifier
-                        .weight(2.0f)
+                        .weight(2.5f)
                         .padding(vertical = 16.dp)
                         .fillMaxWidth(0.92f),
                     contentAlignment = Alignment.Center
@@ -779,7 +779,7 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(0.8f)
-                        .padding(vertical = 12.dp),
+                        .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -879,7 +879,7 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(0.8f)
-                        .padding(top = 8.dp),
+                        .padding(top = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
