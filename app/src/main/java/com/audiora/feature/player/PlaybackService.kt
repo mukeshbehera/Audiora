@@ -92,8 +92,15 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
-        return mediaSession.takeUnless { session ->
-            session.invokeIsReleased
+        return mediaSession?.takeUnless { session ->
+            try {
+                MediaSession::class.java.getDeclaredMethod("isReleased")
+                    .apply { isAccessible = true }
+                    .invoke(session) as Boolean
+            } catch (e: Exception) {
+                Timber.w(e, "Couldn't check if it's released")
+                false
+            }
         }.also {
             if (it == null) {
                 Timber.w("onGetSession returns null because the session is already released")
@@ -130,28 +137,10 @@ class PlaybackService : MediaLibraryService() {
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
         ): MediaSession.ConnectionResult {
-            return MediaSession.ConnectionResult.accept(
-                session.availableSessionCommands,
-                session.availablePlayerCommands,
-            )
+            return super.onConnect(session, controller)
         }
     }
 }
-
-/**
- * Workaround to check whether the session is released via reflection.
- * Mirrors Voice's same workaround:
- * https://github.com/androidx/media/issues/422
- */
-private val MediaSession.invokeIsReleased: Boolean
-    get() = try {
-        MediaSession::class.java.getDeclaredMethod("isReleased")
-            .apply { isAccessible = true }
-            .invoke(this) as Boolean
-    } catch (e: Exception) {
-        Timber.w(e, "Couldn't check if it's released")
-        false
-    }
 
 /**
  * Process-safe singleton holding the ExoPlayer reference.
