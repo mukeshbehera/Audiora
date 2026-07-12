@@ -14,14 +14,14 @@ import kotlinx.coroutines.flow.StateFlow
  *   - PlayerScreen reads [playStateFlow] directly — no controller dependency.
  */
 class PlayStateManager {
-    val playStateFlow: StateFlow<PlayState>
-        field = MutableStateFlow(PlayState.Paused)
+    private val _playStateFlow = MutableStateFlow(PlayState.Paused)
+    val playStateFlow: StateFlow<PlayState> = _playStateFlow
 
     var playState: PlayState
         set(value) {
-            playStateFlow.value = value
+            _playStateFlow.value = value
         }
-        get() = playStateFlow.value
+        get() = _playStateFlow.value
 
     enum class PlayState {
         Playing,
