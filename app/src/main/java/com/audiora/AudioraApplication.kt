@@ -36,8 +36,22 @@ class AudioraApplication : Application() {
     // App-scoped coroutine scope for background tasks that must outlive any screen
     val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    private fun createNotificationChannel() {
+        val channel = android.app.NotificationChannel(
+            "media_playback",
+            "Playback",
+            android.app.NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Media playback controls"
+            setShowBadge(false)
+        }
+        val manager = getSystemService(android.app.NotificationManager::class.java)
+        manager.createNotificationChannel(channel)
+    }
+
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
 
         // 1. Initialize Timber Logging
         if (BuildConfig.DEBUG) {

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -258,11 +259,39 @@ class PlaybackManager(
             val activeController = controller
             if (activeController != null) {
                 activeController.stop()
-                val mediaItem = MediaItem.fromUri(uriToPlay)
+
+                // Build MediaItem with rich metadata so the notification shows
+                // cover art, title, and author — matches Voice's MediaItemBuilder pattern.
+                val mediaItemBuilder = MediaItem.Builder()
+                    .setUri(uriToPlay)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(book.title)
+                            .setArtist(book.author)
+                            .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK)
+                            .apply {
+                                // Convert cover file path to a content:// URI via FileProvider
+                                // so the system UI (notification, lock screen) can read it.
+                                if (!book.coverPath.isNullOrBlank()) {
+                                    val coverFile = java.io.File(book.coverPath)
+                                    if (coverFile.exists()) {
+                                        val coverUri = androidx.core.content.FileProvider.getUriForFile(
+                                            context,
+                                            context.packageName + ".coverprovider",
+                                            coverFile
+                                        )
+                                        setArtworkUri(coverUri)
+                                    }
+                                }
+                            }
+                            .build()
+                    )
+                    .build()
+
                 // Pass start position atomically in setMediaItem — matches Voice's
                 // player.setMediaItems(items, startIndex, positionInChapterMs) pattern.
                 // This eliminates the race between prepare() and seekTo().
-                activeController.setMediaItem(mediaItem, targetPos)
+                activeController.setMediaItem(mediaItemBuilder, targetPos)
                 activeController.prepare()
 
                 // Apply defaults: sleep timer
