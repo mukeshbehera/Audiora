@@ -47,12 +47,24 @@ fun PlayerScreen(
     val context = LocalContext.current
     val app = context.applicationContext as AudioraApplication
     val playbackManager = app.playbackManager
+    val playStateManager = app.playStateManager
 
+    // Read book data from Room Flow — position is always correct on first frame.
+    // This matches Voice's approach of reading persisted position from the data model,
+    // not from a state flow that starts at 0 and corrects later.
     val currentBook by playbackManager.currentBook.collectAsStateWithLifecycle()
-    val isPlaying by playbackManager.isPlaying.collectAsStateWithLifecycle()
-    val currentPosition by playbackManager.currentPosition.collectAsStateWithLifecycle()
-    val duration by playbackManager.duration.collectAsStateWithLifecycle()
+    val isPlayingState by playStateManager.playStateFlow.collectAsStateWithLifecycle()
+    val isPlaying = isPlayingState == PlayStateManager.PlayState.Playing
     val playbackSpeed by playbackManager.playbackSpeed.collectAsStateWithLifecycle()
+
+    // Position comes from the Room-backed book model when available (correct from first frame).
+    // The StateFlow is only used during slider drag preview.
+    val dragPosition by playbackManager.currentPosition.collectAsStateWithLifecycle()
+    var draggingPosition by remember { mutableStateOf<Float?>(null) }
+    val displayPositionMs = draggingPosition?.let { (it * (currentBook?.durationMs ?: 1L)).toLong() }
+        ?: currentBook?.currentPositionMs
+        ?: 0L
+    val displayDuration = currentBook?.durationMs ?: 0L
 
     var showSpeedDialog by remember { mutableStateOf(false) }
 
@@ -417,12 +429,12 @@ fun PlayerScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     SectionHeader(text = "Bookmarks")
-                    
+
                     IconButton(
                         onClick = {
                             val activeBook = currentBook
                             if (activeBook != null) {
-                                val position = currentPosition
+                                val position = displayPositionMs
                                 val formattedTime = formatTime(position)
                                 val defaultName = "Bookmark at $formattedTime"
                                 scope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -727,8 +739,7 @@ fun PlayerScreen(
                 }
 
                 // Seek Timeline Slider with smooth mechanics
-                var draggingPosition by remember { mutableStateOf<Float?>(null) }
-                val displayProgress = draggingPosition ?: if (duration > 0) (currentPosition.toFloat() / duration.toFloat()) else 0f
+                val displayProgress = draggingPosition ?: if (displayDuration > 0) (displayPositionMs.toFloat() / displayDuration.toFloat()) else 0f
 
                 Column(
                     modifier = Modifier
@@ -740,7 +751,7 @@ fun PlayerScreen(
                         onValueChange = { draggingPosition = it },
                         onValueChangeFinished = {
                             draggingPosition?.let {
-                                val targetPositionMs = (it * duration).toLong()
+                                val targetPositionMs = (it * displayDuration).toLong()
                                 playbackManager.seekTo(targetPositionMs)
                             }
                             draggingPosition = null
@@ -758,7 +769,7 @@ fun PlayerScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val elapsedMs = if (draggingPosition != null) (draggingPosition!! * duration).toLong() else currentPosition
+                        val elapsedMs = if (draggingPosition != null) (draggingPosition!! * displayDuration).toLong() else displayPositionMs
                         Text(
                             text = formatStandardTime(elapsedMs),
                             fontSize = 12.sp,
@@ -766,7 +777,7 @@ fun PlayerScreen(
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
                         Text(
-                            text = formatStandardTime(duration),
+                            text = formatStandardTime(displayDuration),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
@@ -786,7 +797,7 @@ fun PlayerScreen(
                     // Quick Bookmark borders button
                     IconButton(
                         onClick = {
-                            val position = currentPosition
+                            val position = displayPositionMs
                             val formattedTime = formatStandardTime(position)
                             val defaultName = "Bookmark at $formattedTime"
                             scope.launch(kotlinx.coroutines.Dispatchers.IO) {

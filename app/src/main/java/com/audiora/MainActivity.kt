@@ -233,18 +233,19 @@ fun MainAppContainer(
                 )
             ) { backStackEntry ->
                 val bookId = backStackEntry.arguments?.getInt("bookId") ?: return@composable
-                val currentBook by app.playbackManager.currentBook.collectAsStateWithLifecycle()
-                // Use bookId as stable key so this only fires on navigation, not on Room re-emissions
+
+                // Use reactive Room Flow so book data (including position) is always up to date.
+                // Voice's BookPlayViewModel uses the same pattern: repo.flow(bookId).filterNotNull().
+                val book by remember(bookId) {
+                    app.bookRepository.getAudiobook(bookId)
+                }.collectAsStateWithLifecycle(initialValue = null)
+
                 LaunchedEffect(bookId) {
-                    val loadedBook = app.bookRepository.getAudiobook(bookId).first()
-                    if (loadedBook != null) {
-                        app.playbackManager.playBook(loadedBook)
-                    }
+                    book?.let { app.playbackManager.ensureBookLoaded(it) }
                 }
 
-                if (currentBook == null) {
-                    // Loading state — playBook() sets currentBook synchronously so this
-                    // should only be visible for <1 frame. Never shows "No Audiobook Loaded".
+                if (book == null) {
+                    // Rare — only visible on cold start before Room cache loads
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center

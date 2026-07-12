@@ -42,6 +42,9 @@ class PlaybackManager(
         (context.applicationContext as? com.audiora.AudioraApplication)?.settingsRepository
     }
 
+    private val playStateManager: PlayStateManager
+        get() = (context.applicationContext as com.audiora.AudioraApplication).playStateManager
+
     private var controllerFuture: ListenableFuture<MediaController>? = null
     var controller: MediaController? = null
         private set
@@ -189,6 +192,10 @@ class PlaybackManager(
         activeController.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlayingChanged: Boolean) {
                 _isPlaying.value = isPlayingChanged
+                playStateManager.playState = if (isPlayingChanged)
+                    PlayStateManager.PlayState.Playing
+                else
+                    PlayStateManager.PlayState.Paused
                 if (!isPlayingChanged) {
                     saveCurrentPositionToDb()
                 }
@@ -201,6 +208,10 @@ class PlaybackManager(
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isPlaying.value = activeController.isPlaying
                 _duration.value = if (activeController.duration > 0) activeController.duration else 0L
+                playStateManager.playState = if (activeController.isPlaying)
+                    PlayStateManager.PlayState.Playing
+                else
+                    PlayStateManager.PlayState.Paused
             }
 
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -211,6 +222,40 @@ class PlaybackManager(
                 // Chapters are now handled via M4bChapterExtractor — ignore runtime metadata chapters
             }
         })
+    }
+
+    /**
+     * Ensures the player is ready for the given book.
+     *
+     * This is a NO-OP if the player is already configured for this book,
+     * eliminating the delay when navigating to the Now Playing screen.
+     * Only prepares the player on cold start (first launch after app restart).
+     */
+    fun ensureBookLoaded(book: Audiobook) {
+        val activeController = controller
+        if (activeController == null) {
+            Timber.d("ensureBookLoaded: controller not connected yet")
+            return
+        }
+
+        // Check if this book is already loaded in the player
+        val currentUri = activeController.currentMediaItem?.localConfiguration?.uri?.toString()
+        val bookFileUri = if (book.filePath.isNotEmpty()) book.filePath else null
+
+        if (currentUri != null && bookFileUri != null && currentUri == bookFileUri &&
+            activeController.playbackState != Player.STATE_IDLE
+        ) {
+            Timber.d("ensureBookLoaded: book already loaded, skipping player init")
+            // Still sync the book state to the UI even if player is already running
+            _currentBook.value = book
+            _duration.value = book.durationMs
+            loadChaptersForBook(book)
+            _currentPosition.value = book.currentPositionMs
+            return
+        }
+
+        Timber.d("ensureBookLoaded: cold start, preparing player")
+        playBook(book)
     }
 
     fun playBook(book: Audiobook, autoPlay: Boolean = false) {
@@ -418,9 +463,13 @@ class PlaybackManager(
                 val activeController = controller
                 if (activeController != null && activeController.isPlaying) {
                     val currentPos = activeController.currentPosition
+
+                    // Update _currentPosition for slider drag preview fallback.
+                    // Primary position data now flows from the Room-backed book model
+                    // directly to PlayerScreen, eliminating progress bar jumps on navigation.
                     _currentPosition.value = currentPos
                     _duration.value = if (activeController.duration > 0) activeController.duration else _duration.value
-                    
+
                     // Update current chapter index
                     updateCurrentChapterIndex(currentPos)
                     
