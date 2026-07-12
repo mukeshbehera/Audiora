@@ -232,9 +232,16 @@ class PlaybackManager(
      * Only prepares the player on cold start (first launch after app restart).
      */
     fun ensureBookLoaded(book: Audiobook) {
+        // Always set the book state synchronously so PlayerScreen renders immediately
+        // with the correct metadata. This must happen before any async checks.
+        _currentBook.value = book
+        _duration.value = book.durationMs
+        loadChaptersForBook(book)
+        _currentPosition.value = book.currentPositionMs
+
         val activeController = controller
         if (activeController == null) {
-            Timber.d("ensureBookLoaded: controller not connected yet")
+            Timber.d("ensureBookLoaded: controller not connected yet — screen renders from Room data, audio will start when controller connects")
             return
         }
 
@@ -246,11 +253,6 @@ class PlaybackManager(
             activeController.playbackState != Player.STATE_IDLE
         ) {
             Timber.d("ensureBookLoaded: book already loaded, skipping player init")
-            // Still sync the book state to the UI even if player is already running
-            _currentBook.value = book
-            _duration.value = book.durationMs
-            loadChaptersForBook(book)
-            _currentPosition.value = book.currentPositionMs
             return
         }
 
