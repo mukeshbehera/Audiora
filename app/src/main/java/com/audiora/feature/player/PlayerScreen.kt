@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.audiora.AudioraApplication
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.SectionHeader
+import com.audiora.domain.model.Audiobook
 import com.audiora.feature.library.AudiobookCoverArt
 import com.audiora.ui.theme.LocalDarkTheme
 import java.util.Locale
@@ -41,6 +42,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerScreen(
+    book: Audiobook? = null,
     onNavigateBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -49,10 +51,11 @@ fun PlayerScreen(
     val playbackManager = app.playbackManager
     val playStateManager = app.playStateManager
 
-    // Read book data from Room Flow — position is always correct on first frame.
-    // This matches Voice's approach of reading persisted position from the data model,
-    // not from a state flow that starts at 0 and corrects later.
-    val currentBook by playbackManager.currentBook.collectAsStateWithLifecycle()
+    // Book is provided by the navigator's Room Flow so PlayerScreen renders
+    // immediately with correct data. This avoids the timing race where
+    // playbackManager.currentBook is still null when this composable first
+    // composes (since ensureBookLoaded() runs in a LaunchedEffect).
+    val currentBook: Audiobook? = book
     val isPlayingState by playStateManager.playStateFlow.collectAsStateWithLifecycle()
     val isPlaying = isPlayingState == PlayStateManager.PlayState.Playing
     val playbackSpeed by playbackManager.playbackSpeed.collectAsStateWithLifecycle()

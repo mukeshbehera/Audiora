@@ -257,6 +257,7 @@ fun MainAppContainer(
                     }
                 } else {
                     PlayerScreen(
+                        book = book,
                         onNavigateBack = {
                             navController.navigate(Screen.Library.route) {
                                 popUpTo(Screen.Library.route) { inclusive = true }
