@@ -17,7 +17,6 @@ import com.audiora.MainActivity
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import timber.log.Timber
-import java.util.List
 
 /**
  * Media playback service hosted in a foreground process.
@@ -123,7 +122,7 @@ class PlaybackService : MediaLibraryService() {
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>,
-        ): ListenableFuture<List<MediaItem>> {
+        ): ListenableFuture<MutableList<MediaItem>> {
             return Futures.immediateFuture(mediaItems)
         }
 
@@ -153,3 +152,12 @@ private val MediaSession.invokeIsReleased: Boolean
         Timber.w(e, "Couldn't check if it's released")
         false
     }
+
+/**
+ * Process-safe singleton holding the ExoPlayer reference.
+ * PlaybackManager accesses this for skipSilence, volume gain (audio session ID).
+ * Mirrors Voice's approach of accessing the player from the service process.
+ */
+internal object ExoPlayerInstance {
+    var player: ExoPlayer? = null
+}
