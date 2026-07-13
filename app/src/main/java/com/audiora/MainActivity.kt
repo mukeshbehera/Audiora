@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filterNotNull
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -240,8 +241,15 @@ fun MainAppContainer(
                     app.bookRepository.getAudiobook(bookId)
                 }.collectAsStateWithLifecycle(initialValue = null)
 
+                // Wait for Room's first emission before initializing the player.
+                // A LaunchedEffect capturing `book` at composition-time would see null
+                // (Room hasn't emitted yet) and silently skip initialization. Instead,
+                // collect the flow directly with .first() like the original code did.
                 LaunchedEffect(bookId) {
-                    book?.let { app.playbackManager.ensureBookLoaded(it) }
+                    app.bookRepository.getAudiobook(bookId)
+                        .filterNotNull()
+                        .first()
+                        .let { app.playbackManager.ensureBookLoaded(it) }
                 }
 
                 if (book == null) {
