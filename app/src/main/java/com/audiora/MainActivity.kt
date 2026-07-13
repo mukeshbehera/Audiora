@@ -103,13 +103,11 @@ fun MainAppContainer(
     val duration by playbackManager.duration.collectAsState()
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
-    // Bottom nav must only show on tab routes — default to false when route is
-    // null (first frame, navigation transitions) to prevent layout-shift flashes.
+    // Bottom nav only shows for tab destinations. Route may include query parameters
+    // (e.g. "edit?bookId=42"), so compare the base route only. Default to false when
+    // route is null (first frame / navigation transitions) to prevent layout-shift flashes.
     val showBottomNav = currentRoute != null &&
-        currentRoute != "splash" &&
-        currentRoute != "welcome" &&
-        currentRoute != "onboarding_folders" &&
-        currentRoute != Screen.Player.route
+        currentRoute.substringBefore("?") in Screen.tabRouteStrings
 
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
@@ -144,37 +142,34 @@ fun MainAppContainer(
         // Bottom-nav tab destinations — used by transition lambdas to skip animations
         // on tab switches for a snappy feel. Push navigation (Library→Player/Details)
         // keeps the fade+scale animation for a smooth premium transition.
-        val tabRoutes = listOf(
-            Screen.Library.route, Screen.Create.route,
-            "edit", Screen.Search.route, Screen.Settings.route
-        )
+        // Uses Screen.tabRouteStrings as single source of truth (shared with showBottomNav).
         NavHost(
             navController = navController,
             startDestination = "splash",
             modifier = paddingModifier,
             enterTransition = {
-                if (targetState.destination.route in tabRoutes) {
+                if (targetState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeIn(animationSpec = tween(0))
                 } else {
                     fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
                 }
             },
             exitTransition = {
-                if (initialState.destination.route in tabRoutes) {
+                if (initialState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeOut(animationSpec = tween(0))
                 } else {
                     fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
                 }
             },
             popEnterTransition = {
-                if (targetState.destination.route in tabRoutes) {
+                if (targetState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeIn(animationSpec = tween(0))
                 } else {
                     fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
                 }
             },
             popExitTransition = {
-                if (initialState.destination.route in tabRoutes) {
+                if (initialState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeOut(animationSpec = tween(0))
                 } else {
                     fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
@@ -206,8 +201,9 @@ fun MainAppContainer(
                     settingsRepository = settingsRepository,
                     onNavigateToLibrary = {
                         navController.navigate(Screen.Library.route) {
-                            popUpTo("welcome") { inclusive = true }
-                            popUpTo("onboarding_folders") { inclusive = true }
+                            // Clear the entire onboarding back stack before entering Library.
+                            // popUpTo(0) with inclusive=true removes all previous destinations.
+                            popUpTo(0) { inclusive = true }
                         }
                     },
                     onBack = {
