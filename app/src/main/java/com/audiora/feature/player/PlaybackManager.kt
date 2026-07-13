@@ -527,7 +527,6 @@ class PlaybackManager(
         // Matches Voice's PositionUpdater: playStateFlow → distinctUntilChanged → collectLatest.
         scope.launch {
             playStateManager.playStateFlow
-                .distinctUntilChanged()
                 .collectLatest { playState ->
                     if (playState != PlayStateManager.PlayState.Playing) return@collectLatest
 
