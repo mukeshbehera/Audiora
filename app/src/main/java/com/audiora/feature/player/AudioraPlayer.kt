@@ -27,6 +27,20 @@ class AudioraPlayer(player: Player) : ForwardingPlayer(player) {
             .build()
     }
 
+    /**
+     * Redirect STATE_BUFFERING to STATE_READY to prevent visual artifacts on seeking.
+     * Matches Voice's VoicePlayer.getPlaybackState() pattern.
+     *
+     * The underlying player briefly reports buffering during seek operations, causing the
+     * UI to flicker between "playing" and "buffering" states. Since audiobooks are local
+     * files, buffering is effectively instantaneous — treating it as READY is safe and
+     * eliminates the visual jank.
+     */
+    override fun getPlaybackState(): Int = when (val state = super.getPlaybackState()) {
+        Player.STATE_BUFFERING -> Player.STATE_READY
+        else -> state
+    }
+
     override fun seekToPreviousMediaItem() {
         Timber.d("AudioraPlayer: seekToPreviousMediaItem -> seekBack")
         seekBack()

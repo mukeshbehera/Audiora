@@ -52,22 +52,25 @@ fun PlayerScreen(
     val playStateManager = app.playStateManager
 
     // Book is provided by the navigator's Room Flow so PlayerScreen renders
-    // immediately with correct data. This avoids the timing race where
-    // playbackManager.currentBook is still null when this composable first
-    // composes (since ensureBookLoaded() runs in a LaunchedEffect).
+    // immediately with correct metadata (title, cover, chapters, duration).
+    // This avoids the timing race where playbackManager.currentBook is still null
+    // when this composable first composes (since ensureBookLoaded() runs in a LaunchedEffect).
     val currentBook: Audiobook? = book
     val isPlayingState by playStateManager.playStateFlow.collectAsStateWithLifecycle()
     val isPlaying = isPlayingState == PlayStateManager.PlayState.Playing
     val playbackSpeed by playbackManager.playbackSpeed.collectAsStateWithLifecycle()
 
-    // Position comes from the Room-backed book model when available (correct from first frame).
-    // The StateFlow is only used during slider drag preview.
-    val dragPosition by playbackManager.currentPosition.collectAsStateWithLifecycle()
+    // Position source: use the StateFlow as the primary source for liveness.
+    // The Room-backed book provides metadata; the StateFlow provides the live seek position.
+    // ensureBookLoaded() sets _currentPosition from book.currentPositionMs synchronously,
+    // so the StateFlow has the correct value from frame 1 (no 0L flash).
+    // This avoids the snap-back bug where reading from currentBook?.currentPositionMs
+    // gives a stale Room value until the async DB save completes after a seek.
+    val livePosition by playbackManager.currentPosition.collectAsStateWithLifecycle()
     var draggingPosition by remember { mutableStateOf<Float?>(null) }
-    val displayPositionMs = draggingPosition?.let { (it * (currentBook?.durationMs ?: 1L)).toLong() }
-        ?: currentBook?.currentPositionMs
-        ?: 0L
     val displayDuration = currentBook?.durationMs ?: 0L
+    val displayPositionMs = draggingPosition?.let { (it * displayDuration).toLong() }
+        ?: livePosition
 
     var showSpeedDialog by remember { mutableStateOf(false) }
 

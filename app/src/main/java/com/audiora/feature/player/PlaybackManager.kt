@@ -16,10 +16,7 @@ import com.audiora.domain.repository.BookRepository
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.*
 import timber.log.Timber
 
 enum class SleepTimerType(val label: String) {
@@ -192,10 +189,6 @@ class PlaybackManager(
         activeController.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlayingChanged: Boolean) {
                 _isPlaying.value = isPlayingChanged
-                playStateManager.playState = if (isPlayingChanged)
-                    PlayStateManager.PlayState.Playing
-                else
-                    PlayStateManager.PlayState.Paused
                 if (!isPlayingChanged) {
                     saveCurrentPositionToDb()
                 }
@@ -208,10 +201,16 @@ class PlaybackManager(
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isPlaying.value = activeController.isPlaying
                 _duration.value = if (activeController.duration > 0) activeController.duration else 0L
-                playStateManager.playState = if (activeController.isPlaying)
-                    PlayStateManager.PlayState.Playing
-                else
-                    PlayStateManager.PlayState.Paused
+                // Consolidate play state from playbackState + playWhenReady.
+                // Matches Voice's PlayStateDelegatingListener pattern.
+                playStateManager.playState = when {
+                    playbackState == Player.STATE_ENDED || playbackState == Player.STATE_IDLE ->
+                        PlayStateManager.PlayState.Paused
+                    activeController.playWhenReady ->
+                        PlayStateManager.PlayState.Playing
+                    else ->
+                        PlayStateManager.PlayState.Paused
+                }
             }
 
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -458,55 +457,63 @@ class PlaybackManager(
     }
 
     private fun startPositionTracker() {
+        // Observe play state with collectLatest so the tracking loop automatically cancels
+        // when paused and restarts when playing resumes.
+        // Matches Voice's PositionUpdater: playStateFlow → distinctUntilChanged → collectLatest.
         scope.launch {
-            var counter = 0
-            while (isActive) {
-                delay(500)
-                val activeController = controller
-                if (activeController != null && activeController.isPlaying) {
-                    val currentPos = activeController.currentPosition
+            playStateManager.playStateFlow
+                .distinctUntilChanged()
+                .collectLatest { playState ->
+                    if (playState != PlayStateManager.PlayState.Playing) return@collectLatest
 
-                    // Update _currentPosition for slider drag preview fallback.
-                    // Primary position data now flows from the Room-backed book model
-                    // directly to PlayerScreen, eliminating progress bar jumps on navigation.
-                    _currentPosition.value = currentPos
-                    _duration.value = if (activeController.duration > 0) activeController.duration else _duration.value
+                    // Counter for periodic DB saves (~2min at 500ms interval)
+                    var saveCounter = 0
+                    while (isActive) {
+                        delay(500)
+                        val activeController = controller
+                        if (activeController == null || !activeController.isPlaying) continue
 
-                    // Update current chapter index
-                    updateCurrentChapterIndex(currentPos)
-                    
-                    // Sleep Timer Check
-                    val currentType = _sleepTimerType.value
-                    if (currentType != SleepTimerType.OFF && currentType != SleepTimerType.END_OF_CHAPTER) {
-                        val remaining = _sleepTimerRemaining.value
-                        if (remaining > 0) {
-                            val nextRemaining = (remaining - 500L).coerceAtLeast(0L)
-                            _sleepTimerRemaining.value = nextRemaining
-                            if (nextRemaining == 0L) {
-                                activeController.pause()
-                                _sleepTimerType.value = SleepTimerType.OFF
+                        val currentPos = activeController.currentPosition
+
+                        // Update position StateFlow for PlayerScreen slider
+                        _currentPosition.value = currentPos
+                        _duration.value = if (activeController.duration > 0) activeController.duration else _duration.value
+
+                        // Update current chapter index
+                        updateCurrentChapterIndex(currentPos)
+
+                        // Sleep Timer Check (timed)
+                        val currentType = _sleepTimerType.value
+                        if (currentType != SleepTimerType.OFF && currentType != SleepTimerType.END_OF_CHAPTER) {
+                            val remaining = _sleepTimerRemaining.value
+                            if (remaining > 0) {
+                                val nextRemaining = (remaining - 500L).coerceAtLeast(0L)
+                                _sleepTimerRemaining.value = nextRemaining
+                                if (nextRemaining == 0L) {
+                                    activeController.pause()
+                                    _sleepTimerType.value = SleepTimerType.OFF
+                                }
+                            }
+                        } else if (currentType == SleepTimerType.END_OF_CHAPTER) {
+                            val currentChapters = _chapters.value
+                            val currentIdx = _currentChapterIndex.value
+                            if (currentChapters.isNotEmpty() && currentIdx in currentChapters.indices) {
+                                val chapter = currentChapters[currentIdx]
+                                if (currentPos >= chapter.endMs - 1200L) {
+                                    activeController.pause()
+                                    _sleepTimerType.value = SleepTimerType.OFF
+                                }
                             }
                         }
-                    } else if (currentType == SleepTimerType.END_OF_CHAPTER) {
-                        val currentChapters = _chapters.value
-                        val currentIdx = _currentChapterIndex.value
-                        if (currentChapters.isNotEmpty() && currentIdx in currentChapters.indices) {
-                            val chapter = currentChapters[currentIdx]
-                            if (currentPos >= chapter.endMs - 1200L) { // Trigger within last ~1.2 seconds of chapter
-                                activeController.pause()
-                                _sleepTimerType.value = SleepTimerType.OFF
-                            }
-                        }
-                    }
 
-                    // Periodically (approx. every 10 seconds) write the updated state into the DB
-                    counter++
-                    if (counter >= 20) {
-                        counter = 0
-                        saveCurrentPositionToDb()
+                        // Periodically write state to DB (~every 2 minutes)
+                        saveCounter++
+                        if (saveCounter >= 240) {
+                            saveCounter = 0
+                            saveCurrentPositionToDb()
+                        }
                     }
                 }
-            }
         }
     }
 

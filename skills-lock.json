@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "android-clean-architecture": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/android-clean-architecture/SKILL.md",
+      "computedHash": "8f7efca3efcc228560c39c366e846d4bf22e585f9847610634f53b7622f7795c"
+    },
+    "android-native-dev": {
+      "source": "minimax-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/android-native-dev/SKILL.md",
+      "computedHash": "684fcc00a9c41bc9c148a2f7df705eeb777ec1f0555d6d00d30eeb5939f3195d"
+    },
+    "kotlin-coroutines-flows": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/kotlin-coroutines-flows/SKILL.md",
+      "computedHash": "6a7ffc10aa82c49c9f08427a534b0538d40e3254bdbabfd93b7ce47df2673cbe"
+    },
+    "performance-optimization": {
+      "source": "addyosmani/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/performance-optimization/SKILL.md",
+      "computedHash": "a59703bda55d80ef8189704ee3dc8c35bf8134582cf0cf0dbf6618b97c961826"
+    },
+    "understand-anything-knowledge-graph": {
+      "source": "aradotso/trending-skills",
+      "sourceType": "github",
+      "skillPath": "skills/understand-anything-knowledge-graph/SKILL.md",
+      "computedHash": "f9534ff5617d2899d308c9f3ecb6d1912c7c3710c61130e0888334e039eb86c6"
+    }
+  }
+}
