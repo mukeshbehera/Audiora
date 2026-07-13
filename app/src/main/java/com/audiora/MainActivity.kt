@@ -328,6 +328,11 @@ fun MainAppContainer(
                     },
                     onNavigateToEdit = { editId ->
                         navController.navigate("edit?bookId=$editId")
+                    },
+                    onNavigateToPlayer = { playBookId ->
+                        navController.navigate("player/$playBookId") {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }

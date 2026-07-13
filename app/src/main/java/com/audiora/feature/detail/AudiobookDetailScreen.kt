@@ -44,6 +44,7 @@ fun AudiobookDetailScreen(
     bookId: Int,
     onNavigateBack: () -> Unit,
     onNavigateToEdit: (Int) -> Unit = {},
+    onNavigateToPlayer: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -127,7 +128,10 @@ fun AudiobookDetailScreen(
                         .height(56.dp)
                         .background(gradient, RoundedCornerShape(16.dp))
                         .clip(RoundedCornerShape(16.dp))
-                        .clickable { app.playbackManager.playBook(book) }
+                        .clickable {
+                            app.playbackManager.playBook(book)
+                            onNavigateToPlayer(book.id)
+                        }
                         .testTag("detail_play_fab"),
                     contentAlignment = Alignment.Center
                 ) {
