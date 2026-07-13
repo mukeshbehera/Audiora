@@ -144,33 +144,36 @@ fun MainAppContainer(
         // Bottom-nav tab destinations — used by transition lambdas to skip animations
         // on tab switches for a snappy feel. Push navigation (Library→Player/Details)
         // keeps the fade+scale animation for a smooth premium transition.
+        // Evaluate eagerly during composition (not inside animation lambda) to avoid
+        // ExceptionInInitializerError from deferred class loading during animation frames.
+        val tabRouteSet = Screen.tabRouteStrings
         NavHost(
             navController = navController,
             startDestination = "splash",
             modifier = paddingModifier,
             enterTransition = {
-                if (targetState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
+                if (targetState.destination.route?.substringBefore("?") in tabRouteSet) {
                     fadeIn(animationSpec = tween(0))
                 } else {
                     fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
                 }
             },
             exitTransition = {
-                if (initialState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
+                if (initialState.destination.route?.substringBefore("?") in tabRouteSet) {
                     fadeOut(animationSpec = tween(0))
                 } else {
                     fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
                 }
             },
             popEnterTransition = {
-                if (targetState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
+                if (targetState.destination.route?.substringBefore("?") in tabRouteSet) {
                     fadeIn(animationSpec = tween(0))
                 } else {
                     fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
                 }
             },
             popExitTransition = {
-                if (initialState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
+                if (initialState.destination.route?.substringBefore("?") in tabRouteSet) {
                     fadeOut(animationSpec = tween(0))
                 } else {
                     fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
