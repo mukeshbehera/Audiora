@@ -103,13 +103,16 @@ fun MainAppContainer(
     val duration by playbackManager.duration.collectAsState()
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
-    // Allowlist-based bottom nav: only renders on known tab routes.
-    // Using an allowlist (not exclusion) ensures null (NavHost uninitialized) and
-    // splash/onboarding routes all correctly yield false. Route comparison handles
-    // query-parameterized destinations like "edit?bookId=-1" via substringBefore("?").
-    val bottomNavRoutes = Screen.tabRouteStrings
-    val showBottomNav = currentRoute != null &&
-        (currentRoute in bottomNavRoutes || currentRoute.substringBefore("?") in bottomNavRoutes)
+    // Gate the bottom nav so it NEVER renders until the user has exited the
+    // onboarding flow. This prevents layout-shift flashes during navigation
+    // transitions where currentRoute may temporarily resolve to a nav-eligible
+    // route while the composable for that route hasn't rendered yet.
+    var onboardingCompleted by remember { mutableStateOf(false) }
+    val nonNavRoutes = setOf("splash", "welcome", "onboarding_folders")
+    val showBottomNav = onboardingCompleted &&
+        currentRoute != null &&
+        currentRoute !in nonNavRoutes &&
+        !currentRoute.startsWith("player/")
 
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
@@ -192,6 +195,7 @@ fun MainAppContainer(
                         navController.navigate(destination) {
                             popUpTo("splash") { inclusive = true }
                         }
+                        if (!isFirstTime) onboardingCompleted = true
                     }
                 )
             }
@@ -208,6 +212,7 @@ fun MainAppContainer(
                     booksRepository = app.bookRepository,
                     settingsRepository = settingsRepository,
                     onNavigateToLibrary = {
+                        onboardingCompleted = true
                         navController.navigate(Screen.Library.route) {
                             // Clear the entire onboarding back stack before entering Library.
                             // popUpTo(0) with inclusive=true removes all previous destinations.
