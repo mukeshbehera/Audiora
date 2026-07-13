@@ -27,7 +27,9 @@ data class BookEntity(
     val copyright: String = "",
     val skipSilence: Boolean = false,
     val volumeGain: Float = 0f,
-    val chaptersJson: String? = null
+    val chaptersJson: String? = null,
+    val playbackSpeed: Float = 0f,
+    val lastPlayedAt: Long = 0L
 ) {
     fun toDomain(): Audiobook {
         return Audiobook(
@@ -52,7 +54,9 @@ data class BookEntity(
             copyright = copyright,
             chaptersJson = chaptersJson,
             skipSilence = skipSilence,
-            volumeGain = volumeGain
+            volumeGain = volumeGain,
+            playbackSpeed = playbackSpeed,
+            lastPlayedAt = lastPlayedAt
         )
     }
 
@@ -80,7 +84,9 @@ data class BookEntity(
                 copyright = domain.copyright,
                 chaptersJson = domain.chaptersJson,
                 skipSilence = domain.skipSilence,
-                volumeGain = domain.volumeGain
+                volumeGain = domain.volumeGain,
+                playbackSpeed = domain.playbackSpeed,
+                lastPlayedAt = domain.lastPlayedAt
             )
         }
     }

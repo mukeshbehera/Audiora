@@ -22,7 +22,11 @@ data class Audiobook(
     val copyright: String = "",
     val chaptersJson: String? = null,
     val skipSilence: Boolean = false,
-    val volumeGain: Float = 0f
+    val volumeGain: Float = 0f,
+    // Per-book playback speed. 0f means "use global default".
+    val playbackSpeed: Float = 0f,
+    // Timestamp of last playback start (epoch millis). 0L means never played.
+    val lastPlayedAt: Long = 0L,
 ) {
     val progress: Float
         get() = if (durationMs > 0) currentPositionMs.toFloat() / durationMs else 0f

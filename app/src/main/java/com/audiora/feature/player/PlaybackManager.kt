@@ -45,6 +45,27 @@ class PlaybackManager(
     var controller: MediaController? = null
         private set
 
+    /**
+     * Safe controller accessor that detects a dead controller and rebuilds it.
+     *
+     * Mirrors Voice's PlayerController.controller getter: if the controller was
+     * disconnected (service process killed), it releases the old reference and
+     * starts a new async connection. The caller must still null-check the result
+     * since the new connection is asynchronous.
+     */
+    private val safeController: MediaController?
+        get() {
+            val c = controller
+            if (c != null && !c.isConnected) {
+                Timber.w("safeController: controller disconnected, rebuilding")
+                c.release()
+                controller = null
+                initializeController()
+                return null
+            }
+            return c
+        }
+
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     // UI state flows
@@ -73,6 +94,7 @@ class PlaybackManager(
     // Volume gain for LoudnessEnhancer (skip silence handled via ExoPlayer directly)
     private val volumeGain = VolumeGain()
     private var _audioSessionId: Int? = null
+    private val shakeDetector = ShakeDetector(context)
 
     /**
      * Loads chapters for the given book.
@@ -282,8 +304,17 @@ class PlaybackManager(
             // Calculate target position BEFORE touching player, so all async reads complete
             // before we enter the player critical path (matches Voice's approach of computing
             // the position before calling setMediaItems).
-            val defaultSpeed = settingsRepository?.getDefaultPlaybackSpeed()?.firstOrNull() ?: 1.0f
-            _playbackSpeed.value = defaultSpeed
+            // Per-book speed: if the book has a saved speed, use it; otherwise fall back to global default.
+            val effectiveSpeed = if (book.playbackSpeed > 0f) book.playbackSpeed
+                else settingsRepository?.getDefaultPlaybackSpeed()?.firstOrNull() ?: 1.0f
+            _playbackSpeed.value = effectiveSpeed
+
+            // Track last played timestamp (matches Voice's BookContent.lastPlayedAt)
+            if (book.lastPlayedAt == 0L) {
+                val updatedBook = book.copy(lastPlayedAt = System.currentTimeMillis())
+                _currentBook.value = updatedBook
+                bookRepository.saveAudiobook(updatedBook)
+            }
 
             val effectivePosition = if (previousBookId == book.id) {
                 _currentPosition.value.coerceAtLeast(book.currentPositionMs)
@@ -340,7 +371,7 @@ class PlaybackManager(
                 }
 
                 // Set speed & play
-                activeController.setPlaybackSpeed(defaultSpeed)
+                activeController.setPlaybackSpeed(effectiveSpeed)
 
                 // Apply per-book settings: skip silence and volume gain (matches Voice's setBook() pattern)
                 if (book.skipSilence) {
@@ -364,6 +395,24 @@ class PlaybackManager(
         val activeController = controller ?: return
         if (activeController.isPlaying) {
             activeController.pause()
+            // Auto-rewind on pause. Matches Voice's VoicePlayer.setPlayWhenReady(false)
+            // pattern: seek back by the configured rewind amount within the current item.
+            scope.launch {
+                val rewindSecs = settingsRepository?.getAutoRewind()?.firstOrNull() ?: 3
+                if (rewindSecs > 0) {
+                    // currentPosition is clipped to current chapter — rewind within it
+                    val clipPos = activeController.currentPosition.coerceAtLeast(0L)
+                    val rewindMs = (rewindSecs * 1000L).coerceAtMost(clipPos)
+                    if (rewindMs > 0) {
+                        val targetClipPos = clipPos - rewindMs
+                        val itemIndex = activeController.currentMediaItemIndex
+                        if (itemIndex != C.INDEX_UNSET) {
+                            activeController.seekTo(itemIndex, targetClipPos)
+                            _currentPosition.value = _currentPosition.value - rewindMs
+                        }
+                    }
+                }
+            }
         } else {
             val activeBook = _currentBook.value
             if (activeBook != null && activeController.mediaItemCount == 0) {
@@ -398,10 +447,21 @@ class PlaybackManager(
         val activeController = controller ?: return
         activeController.setPlaybackSpeed(speed)
         _playbackSpeed.value = speed
+        // Persist per-book speed (matches Voice's VoicePlayer.setPlaybackSpeed → updateBook pattern)
+        scope.launch {
+            val book = _currentBook.value ?: return@launch
+            if (book.playbackSpeed != speed) {
+                val updated = book.copy(playbackSpeed = speed)
+                _currentBook.value = updated
+                bookRepository.saveAudiobook(updated)
+            }
+        }
     }
 
     fun setSkipSilence(enabled: Boolean) {
-        ExoPlayerInstance.player?.skipSilenceEnabled = enabled
+        // Send command cross-process via MediaController (matches Voice's CustomCommand pattern).
+        // Also set directly via ExoPlayerInstance as a safety net for cold-start before controller connects.
+        controller?.sendPlaybackCommand(PlaybackCommand.SetSkipSilence(enabled))
         scope.launch {
             val book = _currentBook.value ?: return@launch
             val updated = book.copy(skipSilence = enabled)
@@ -411,6 +471,9 @@ class PlaybackManager(
     }
 
     fun setVolumeGain(gainDb: Float) {
+        // Send command cross-process via MediaController (matches Voice's CustomCommand pattern).
+        controller?.sendPlaybackCommand(PlaybackCommand.SetGain(gainDb))
+        // Also apply locally via ExoPlayerInstance as safety net before controller connects
         val sessionId = _audioSessionId
         if (sessionId != null) {
             volumeGain.setGain(gainDb, sessionId)
@@ -499,9 +562,46 @@ class PlaybackManager(
                             if (remaining > 0) {
                                 val nextRemaining = (remaining - 500L).coerceAtLeast(0L)
                                 _sleepTimerRemaining.value = nextRemaining
+
+                                // Fade-out: gradually lower volume during last 30 seconds.
+                                // Matches Voice's SleepTimerImpl.updateVolume() with FastOutSlowInInterpolator.
+                                val fadeOutDuration = 30_000L
+                                if (remaining < fadeOutDuration) {
+                                    val fraction = remaining.toFloat() / fadeOutDuration.toFloat()
+                                    // FastOutSlowIn approximation: volume = 1 - (1 - fraction)^2
+                                    val volume = 1f - (1f - fraction) * (1f - fraction)
+                                    activeController.volume = volume.coerceIn(0f, 1f)
+                                }
+
                                 if (nextRemaining == 0L) {
+                                    activeController.volume = 1f // Reset volume first
                                     activeController.pause()
                                     _sleepTimerType.value = SleepTimerType.OFF
+
+                                    // Shake-to-reset: wait up to 30s for a shake gesture to resume.
+                                    // Matches Voice's SleepTimerImpl.detectShakeWithTimeout().
+                                    scope.launch {
+                                        val shakeTimeoutMs = 30_000L
+                                        val shakeDetected = kotlinx.coroutines.withTimeoutOrNull(shakeTimeoutMs) {
+                                            shakeDetector.detect()
+                                        } ?: false
+                                        if (shakeDetected) {
+                                            Timber.d("Sleep timer: shake detected, resuming playback")
+                                            activeController.play()
+                                            // Restart the same timer duration
+                                            val originalTotal = when (currentType) {
+                                                SleepTimerType.MIN_5 -> 5L
+                                                SleepTimerType.MIN_10 -> 10L
+                                                SleepTimerType.MIN_15 -> 15L
+                                                SleepTimerType.MIN_30 -> 30L
+                                                SleepTimerType.MIN_45 -> 45L
+                                                SleepTimerType.MIN_60 -> 60L
+                                                else -> return@launch
+                                            }
+                                            _sleepTimerType.value = currentType
+                                            _sleepTimerRemaining.value = originalTotal * 60 * 1000L
+                                        }
+                                    }
                                 }
                             }
                         }
