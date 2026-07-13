@@ -5,7 +5,6 @@ import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -116,10 +115,6 @@ class PlaybackManager(
         return if (positionMs >= list.last().endMs) list.lastIndex else 0
     }
 
-    private fun updateCurrentChapterIndex(positionMs: Long) {
-        _currentChapterIndex.value = findChapterIndexForPosition(positionMs, _chapters.value)
-    }
-
     // Sleep Timer state flows
     private val _sleepTimerType = MutableStateFlow(SleepTimerType.OFF)
     val sleepTimerType: StateFlow<SleepTimerType> = _sleepTimerType.asStateFlow()
@@ -211,6 +206,14 @@ class PlaybackManager(
                     else ->
                         PlayStateManager.PlayState.Paused
                 }
+                // End-of-chapter sleep timer — now reliable since per-chapter MediaItems
+                // trigger STATE_ENDED when ClippingConfiguration end is reached.
+                // Matches Voice's VoicePlayer.endOfChapterSleepTimerListener pattern.
+                if (playbackState == Player.STATE_ENDED && _sleepTimerType.value == SleepTimerType.END_OF_CHAPTER) {
+                    activeController.pause()
+                    _sleepTimerType.value = SleepTimerType.OFF
+                    Timber.d("EndOfChapter sleep timer: triggered at chapter end boundary")
+                }
             }
 
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -244,11 +247,14 @@ class PlaybackManager(
             return
         }
 
-        // Check if this book is already loaded in the player
+        // Check if this book is already loaded in the player.
+        // With per-chapter MediaItems, also compare item count to detect chapter changes.
         val currentUri = activeController.currentMediaItem?.localConfiguration?.uri?.toString()
         val bookFileUri = if (book.filePath.isNotEmpty()) book.filePath else null
+        val expectedItemCount = MediaItemsBuilder.getChapters(book).size
 
         if (currentUri != null && bookFileUri != null && currentUri == bookFileUri &&
+            activeController.mediaItemCount == expectedItemCount &&
             activeController.playbackState != Player.STATE_IDLE
         ) {
             Timber.d("ensureBookLoaded: book already loaded, skipping player init")
@@ -294,50 +300,26 @@ class PlaybackManager(
             }
             _currentPosition.value = targetPos
 
-            // Set up fallback stream if filePath is missing
-            val uriToPlay = if (book.filePath.isNotEmpty()) {
-                book.filePath
-            } else {
-                // High-fidelity public domain stream
-                "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-            }
-
             val activeController = controller
             if (activeController != null) {
                 activeController.stop()
 
-                // Build MediaItem with rich metadata so the notification shows
-                // cover art, title, and author — matches Voice's MediaItemBuilder pattern.
-                val mediaItemBuilder = MediaItem.Builder()
-                    .setUri(uriToPlay)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(book.title)
-                            .setArtist(book.author)
-                            .setMediaType(MediaMetadata.MEDIA_TYPE_AUDIO_BOOK)
-                            .apply {
-                                // Convert cover file path to a content:// URI via FileProvider
-                                // so the system UI (notification, lock screen) can read it.
-                                if (!book.coverPath.isNullOrBlank()) {
-                                    val coverFile = java.io.File(book.coverPath)
-                                    if (coverFile.exists()) {
-                                        val coverUri = androidx.core.content.FileProvider.getUriForFile(
-                                            context,
-                                            context.packageName + ".coverprovider",
-                                            coverFile
-                                        )
-                                        setArtworkUri(coverUri)
-                                    }
-                                }
-                            }
-                            .build()
-                    )
-                    .build()
+                // Build per-chapter MediaItems with ClippingConfiguration.
+                // Each chapter gets its own MediaItem clipped to its time range,
+                // enabling native chapter transitions and Android Auto support.
+                val chapters = _chapters.value
+                val targetChapterIndex = findChapterIndexForPosition(targetPos, chapters)
+                    .coerceIn(0, chapters.lastIndex.coerceAtLeast(0))
+                val targetChapter = chapters.getOrNull(targetChapterIndex)
+                val targetPositionInChapter = if (targetChapter != null) {
+                    (targetPos - targetChapter.startMs).coerceIn(0L, targetChapter.durationMs)
+                } else {
+                    0L
+                }
+                _currentChapterIndex.value = targetChapterIndex
 
-                // Pass start position atomically in setMediaItem — matches Voice's
-                // player.setMediaItems(items, startIndex, positionInChapterMs) pattern.
-                // This eliminates the race between prepare() and seekTo().
-                activeController.setMediaItem(mediaItemBuilder, targetPos)
+                val mediaItems = MediaItemsBuilder.buildMediaItems(book, context)
+                activeController.setMediaItems(mediaItems, targetChapterIndex, targetPositionInChapter)
                 activeController.prepare()
 
                 // Apply defaults: sleep timer
@@ -394,9 +376,19 @@ class PlaybackManager(
 
     fun seekTo(positionMs: Long) {
         val activeController = controller ?: return
-        activeController.seekTo(positionMs)
+        // With per-chapter MediaItems, map absolute position to (chapterIndex, offsetInChapter).
+        val chapters = _chapters.value
+        val chapterIndex = findChapterIndexForPosition(positionMs, chapters)
+            .coerceIn(0, chapters.lastIndex.coerceAtLeast(0))
+        val chapter = chapters.getOrNull(chapterIndex)
+        val offsetInChapter = if (chapter != null) {
+            (positionMs - chapter.startMs).coerceIn(0L, chapter.durationMs)
+        } else {
+            0L
+        }
+        activeController.seekTo(chapterIndex, offsetInChapter)
         _currentPosition.value = positionMs
-        updateCurrentChapterIndex(positionMs)
+        _currentChapterIndex.value = chapterIndex
         scope.launch {
             saveCurrentPositionToDb()
         }
@@ -435,12 +427,15 @@ class PlaybackManager(
         val activeController = controller ?: return
         scope.launch {
             val skipAmt = settingsRepository?.getSkipAmount()?.firstOrNull() ?: 15
-            val currentPos = activeController.currentPosition
-            val maxDur = if (activeController.duration > 0) activeController.duration else _duration.value
-            val targetPos = (currentPos + skipAmt * 1000L).coerceAtMost(maxDur)
-            activeController.seekTo(targetPos)
-            _currentPosition.value = targetPos
-            saveCurrentPositionToDb()
+            // currentPosition returns position within the clipped MediaItem (chapter offset)
+            val currentClipPos = activeController.currentPosition
+            val currentItemIndex = activeController.currentMediaItemIndex
+                .takeUnless { it == C.INDEX_UNSET } ?: return@launch
+            val chapters = _chapters.value
+            val chapter = chapters.getOrNull(currentItemIndex) ?: return@launch
+            val absolutePos = chapter.startMs + currentClipPos
+            val targetAbsolutePos = (absolutePos + skipAmt * 1000L).coerceAtMost(_duration.value.coerceAtLeast(absolutePos))
+            seekTo(targetAbsolutePos)
         }
     }
 
@@ -448,11 +443,15 @@ class PlaybackManager(
         val activeController = controller ?: return
         scope.launch {
             val skipAmt = settingsRepository?.getSkipAmount()?.firstOrNull() ?: 15
-            val currentPos = activeController.currentPosition
-            val targetPos = (currentPos - skipAmt * 1000L).coerceAtLeast(0L)
-            activeController.seekTo(targetPos)
-            _currentPosition.value = targetPos
-            saveCurrentPositionToDb()
+            // currentPosition returns position within the clipped MediaItem (chapter offset)
+            val currentClipPos = activeController.currentPosition
+            val currentItemIndex = activeController.currentMediaItemIndex
+                .takeUnless { it == C.INDEX_UNSET } ?: return@launch
+            val chapters = _chapters.value
+            val chapter = chapters.getOrNull(currentItemIndex) ?: return@launch
+            val absolutePos = chapter.startMs + currentClipPos
+            val targetAbsolutePos = (absolutePos - skipAmt * 1000L).coerceAtLeast(0L)
+            seekTo(targetAbsolutePos)
         }
     }
 
@@ -473,16 +472,27 @@ class PlaybackManager(
                         val activeController = controller
                         if (activeController == null || !activeController.isPlaying) continue
 
-                        val currentPos = activeController.currentPosition
+                        // Read current media item index to determine the active chapter.
+                        // With per-chapter MediaItems, currentMediaItemIndex maps directly to
+                        // the chapter index.
+                        val currentMediaItemIndex = activeController.currentMediaItemIndex
+                            .takeUnless { it == C.INDEX_UNSET } ?: continue
+                        val chapters = _chapters.value
+                        val currentChapter = chapters.getOrNull(currentMediaItemIndex) ?: continue
+
+                        // Position within the clipped MediaItem (chapter offset)
+                        val clippedPosition = activeController.currentPosition
+                            .takeUnless { it == C.TIME_UNSET } ?: continue
+
+                        // Compute absolute position in the book file
+                        val absolutePosition = currentChapter.startMs + clippedPosition
 
                         // Update position StateFlow for PlayerScreen slider
-                        _currentPosition.value = currentPos
+                        _currentPosition.value = absolutePosition
+                        _currentChapterIndex.value = currentMediaItemIndex
                         _duration.value = if (activeController.duration > 0) activeController.duration else _duration.value
 
-                        // Update current chapter index
-                        updateCurrentChapterIndex(currentPos)
-
-                        // Sleep Timer Check (timed)
+                        // Sleep Timer Check (timed only — EOC is handled via STATE_ENDED callback)
                         val currentType = _sleepTimerType.value
                         if (currentType != SleepTimerType.OFF && currentType != SleepTimerType.END_OF_CHAPTER) {
                             val remaining = _sleepTimerRemaining.value
@@ -494,17 +504,10 @@ class PlaybackManager(
                                     _sleepTimerType.value = SleepTimerType.OFF
                                 }
                             }
-                        } else if (currentType == SleepTimerType.END_OF_CHAPTER) {
-                            val currentChapters = _chapters.value
-                            val currentIdx = _currentChapterIndex.value
-                            if (currentChapters.isNotEmpty() && currentIdx in currentChapters.indices) {
-                                val chapter = currentChapters[currentIdx]
-                                if (currentPos >= chapter.endMs - 1200L) {
-                                    activeController.pause()
-                                    _sleepTimerType.value = SleepTimerType.OFF
-                                }
-                            }
                         }
+                        // NOTE: EndOfChapter sleep timer no longer polled here.
+                        // With per-chapter MediaItems, ClippingConfiguration end triggers
+                        // STATE_ENDED which is handled in setupControllerListener().
 
                         // Periodically write state to DB (~every 2 minutes)
                         saveCounter++
@@ -542,43 +545,53 @@ class PlaybackManager(
     }
 
     fun seekToChapter(index: Int) {
-        val list = _chapters.value
-        if (index in list.indices) {
-            val chapter = list[index]
-            seekTo(chapter.startMs)
+        val chapters = _chapters.value
+        if (index in chapters.indices) {
+            val activeController = controller
+            if (activeController != null) {
+                // Seek to chapter start atomically using native MediaItem navigation.
+                activeController.seekTo(index, 0L)
+            }
+            _currentPosition.value = chapters[index].startMs
             _currentChapterIndex.value = index
+            scope.launch { saveCurrentPositionToDb() }
         }
     }
 
     fun skipToNextChapter() {
-        val list = _chapters.value
-        val currentIndex = _currentChapterIndex.value
-        if (list.isNotEmpty()) {
-            val nextIndex = currentIndex + 1
-            if (nextIndex in list.indices) {
-                seekToChapter(nextIndex)
-            } else {
-                seekTo(list.last().endMs)
-            }
+        val activeController = controller ?: return
+        val nextIndex = activeController.nextMediaItemIndex
+        val chapters = _chapters.value
+        if (nextIndex != C.INDEX_UNSET && nextIndex in chapters.indices) {
+            activeController.seekTo(nextIndex, 0L)
+            _currentChapterIndex.value = nextIndex
+            _currentPosition.value = chapters[nextIndex].startMs
+            scope.launch { saveCurrentPositionToDb() }
         }
     }
 
     fun skipToPreviousChapter() {
-        val list = _chapters.value
+        val activeController = controller ?: return
+        val chapters = _chapters.value
         val currentIndex = _currentChapterIndex.value
-        if (list.isNotEmpty() && currentIndex in list.indices) {
-            val chapter = list[currentIndex]
-            val relativePos = _currentPosition.value - chapter.startMs
-            if (relativePos > 3000L) {
-                seekTo(chapter.startMs)
+        if (currentIndex in chapters.indices) {
+            // If more than 3s into current chapter, restart it
+            val clippedPosition = activeController.currentPosition
+            if (clippedPosition > 3000L) {
+                activeController.seekTo(currentIndex, 0L)
+                _currentPosition.value = chapters[currentIndex].startMs
             } else {
                 val prevIndex = currentIndex - 1
-                if (prevIndex in list.indices) {
-                    seekToChapter(prevIndex)
+                if (prevIndex in chapters.indices) {
+                    activeController.seekTo(prevIndex, 0L)
+                    _currentChapterIndex.value = prevIndex
+                    _currentPosition.value = chapters[prevIndex].startMs
                 } else {
-                    seekTo(0)
+                    activeController.seekTo(0, 0L)
+                    _currentPosition.value = 0L
                 }
             }
+            scope.launch { saveCurrentPositionToDb() }
         }
     }
 
