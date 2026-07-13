@@ -103,7 +103,13 @@ fun MainAppContainer(
     val duration by playbackManager.duration.collectAsState()
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
-    val showBottomNav = currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders" && currentRoute != Screen.Player.route
+    // Bottom nav must only show on tab routes — default to false when route is
+    // null (first frame, navigation transitions) to prevent layout-shift flashes.
+    val showBottomNav = currentRoute != null &&
+        currentRoute != "splash" &&
+        currentRoute != "welcome" &&
+        currentRoute != "onboarding_folders" &&
+        currentRoute != Screen.Player.route
 
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
