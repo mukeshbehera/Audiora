@@ -103,11 +103,13 @@ fun MainAppContainer(
     val duration by playbackManager.duration.collectAsState()
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
-    // Bottom nav only shows for tab destinations. Route may include query parameters
-    // (e.g. "edit?bookId=42"), so compare the base route only. Default to false when
-    // route is null (first frame / navigation transitions) to prevent layout-shift flashes.
+    // Bottom nav shows on every screen EXCEPT splash, welcome, onboarding, and player.
+    // Default to false when route is null (first frame / navigation transitions) to
+    // prevent layout-shift flashes.
+    val nonNavRoutes = setOf("splash", "welcome", "onboarding_folders")
     val showBottomNav = currentRoute != null &&
-        currentRoute.substringBefore("?") in Screen.tabRouteStrings
+        currentRoute !in nonNavRoutes &&
+        !currentRoute.startsWith("player/")
 
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
@@ -142,7 +144,6 @@ fun MainAppContainer(
         // Bottom-nav tab destinations — used by transition lambdas to skip animations
         // on tab switches for a snappy feel. Push navigation (Library→Player/Details)
         // keeps the fade+scale animation for a smooth premium transition.
-        // Uses Screen.tabRouteStrings as single source of truth (shared with showBottomNav).
         NavHost(
             navController = navController,
             startDestination = "splash",
