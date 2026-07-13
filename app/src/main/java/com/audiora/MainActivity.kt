@@ -103,11 +103,14 @@ fun MainAppContainer(
     val duration by playbackManager.duration.collectAsState()
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
-    // Bottom nav shows on every screen EXCEPT splash, welcome, onboarding, and player.
-    // Default to false when route is null (first frame / navigation transitions) to
-    // prevent layout-shift flashes.
+    // Gate the bottom nav so it NEVER renders until the user has exited the
+    // onboarding flow. This prevents layout-shift flashes during navigation
+    // transitions where currentRoute may temporarily resolve to a nav-eligible
+    // route while the composable for that route hasn't rendered yet.
+    var onboardingCompleted by remember { mutableStateOf(false) }
     val nonNavRoutes = setOf("splash", "welcome", "onboarding_folders")
-    val showBottomNav = currentRoute != null &&
+    val showBottomNav = onboardingCompleted &&
+        currentRoute != null &&
         currentRoute !in nonNavRoutes &&
         !currentRoute.startsWith("player/")
 
@@ -188,6 +191,7 @@ fun MainAppContainer(
                         navController.navigate(destination) {
                             popUpTo("splash") { inclusive = true }
                         }
+                        if (!isFirstTime) onboardingCompleted = true
                     }
                 )
             }
@@ -204,6 +208,7 @@ fun MainAppContainer(
                     booksRepository = app.bookRepository,
                     settingsRepository = settingsRepository,
                     onNavigateToLibrary = {
+                        onboardingCompleted = true
                         navController.navigate(Screen.Library.route) {
                             // Clear the entire onboarding back stack before entering Library.
                             // popUpTo(0) with inclusive=true removes all previous destinations.
