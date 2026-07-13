@@ -197,7 +197,10 @@ class PlaybackManager(
         // Sync initial state
         _isPlaying.value = activeController.isPlaying
         _playbackSpeed.value = activeController.playbackParameters.speed
-        _duration.value = if (activeController.duration > 0) activeController.duration else 0L
+        // Note: _duration is intentionally NOT synced from activeController.duration here.
+        // With per-chapter MediaItems, activeController.duration returns the clipped chapter
+        // duration, not the full book duration. _duration is set from book.durationMs in
+        // ensureBookLoaded()/playBook() and must stay as the full book duration.
         
         // Track audio session ID from the underlying ExoPlayer for LoudnessEnhancer
         _audioSessionId = ExoPlayerInstance.player?.audioSessionId
@@ -226,7 +229,9 @@ class PlaybackManager(
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 _isPlaying.value = activeController.isPlaying
-                _duration.value = if (activeController.duration > 0) activeController.duration else 0L
+                // Intentionally NOT syncing _duration from activeController.duration here.
+                // With per-chapter MediaItems, duration is the clipped chapter value.
+                // _duration must remain as the full book duration (set from book.durationMs).
                 // Consolidate play state from playbackState + playWhenReady.
                 // Matches Voice's PlayStateDelegatingListener pattern.
                 playStateManager.playState = when {
@@ -564,7 +569,9 @@ class PlaybackManager(
                         // Update position StateFlow for PlayerScreen slider
                         _currentPosition.value = absolutePosition
                         _currentChapterIndex.value = currentMediaItemIndex
-                        _duration.value = if (activeController.duration > 0) activeController.duration else _duration.value
+                        // Intentionally NOT syncing _duration from activeController.duration here.
+                        // With per-chapter MediaItems, controller.duration is the clipped chapter
+                        // value. _duration must stay as the full book duration (from book.durationMs).
 
                         // Sleep Timer Check (timed only — EOC is handled via STATE_ENDED callback)
                         val currentType = _sleepTimerType.value
