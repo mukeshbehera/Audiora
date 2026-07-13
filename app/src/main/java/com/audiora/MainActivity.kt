@@ -135,22 +135,44 @@ fun MainAppContainer(
                 Modifier
             }
 
-            // NavHost hosting screens with smooth premium transitions
+        // Bottom-nav tab destinations — used by transition lambdas to skip animations
+        // on tab switches for a snappy feel. Push navigation (Library→Player/Details)
+        // keeps the fade+scale animation for a smooth premium transition.
+        val tabRoutes = listOf(
+            Screen.Library.route, Screen.Create.route,
+            "edit", Screen.Search.route, Screen.Settings.route
+        )
         NavHost(
             navController = navController,
             startDestination = "splash",
             modifier = paddingModifier,
             enterTransition = {
-                fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                if (targetState.destination.route in tabRoutes) {
+                    fadeIn(animationSpec = tween(0))
+                } else {
+                    fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                }
             },
             exitTransition = {
-                fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                if (initialState.destination.route in tabRoutes) {
+                    fadeOut(animationSpec = tween(0))
+                } else {
+                    fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                }
             },
             popEnterTransition = {
-                fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                if (targetState.destination.route in tabRoutes) {
+                    fadeIn(animationSpec = tween(0))
+                } else {
+                    fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                }
             },
             popExitTransition = {
-                fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                if (initialState.destination.route in tabRoutes) {
+                    fadeOut(animationSpec = tween(0))
+                } else {
+                    fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                }
             }
         ) {
             composable("splash") {
