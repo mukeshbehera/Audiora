@@ -149,28 +149,28 @@ fun MainAppContainer(
             startDestination = "splash",
             modifier = paddingModifier,
             enterTransition = {
-                if (targetState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
+                if (targetState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeIn(animationSpec = tween(0))
                 } else {
                     fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
                 }
             },
             exitTransition = {
-                if (initialState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
+                if (initialState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeOut(animationSpec = tween(0))
                 } else {
                     fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
                 }
             },
             popEnterTransition = {
-                if (targetState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
+                if (targetState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeIn(animationSpec = tween(0))
                 } else {
                     fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
                 }
             },
             popExitTransition = {
-                if (initialState.destination.route.substringBefore("?") in Screen.tabRouteStrings) {
+                if (initialState.destination.route?.substringBefore("?") in Screen.tabRouteStrings) {
                     fadeOut(animationSpec = tween(0))
                 } else {
                     fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
