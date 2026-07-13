@@ -68,9 +68,19 @@ fun PlayerScreen(
     // gives a stale Room value until the async DB save completes after a seek.
     val livePosition by playbackManager.currentPosition.collectAsStateWithLifecycle()
     var draggingPosition by remember { mutableStateOf<Float?>(null) }
-    val displayDuration = currentBook?.durationMs ?: 0L
-    val displayPositionMs = draggingPosition?.let { (it * displayDuration).toLong() }
-        ?: livePosition
+
+    // The slider in the Now Playing screen shows per-chapter progress, matching Voice's
+    // BookPlayViewState.playedTime / duration = positionInCurrentMark / currentMark.durationMs.
+    // Library progress bars continue to use full-book progress (Audiobook.progress).
+    val chapterList by playbackManager.chapters.collectAsStateWithLifecycle()
+    val currentChapterIdx by playbackManager.currentChapterIndex.collectAsStateWithLifecycle()
+    val currentChapter = chapterList.getOrNull(currentChapterIdx)
+    val chapterPosition = if (currentChapter != null) {
+        (livePosition - currentChapter.startMs).coerceIn(0L, currentChapter.durationMs)
+    } else {
+        livePosition
+    }
+    val chapterDuration = currentChapter?.durationMs ?: (currentBook?.durationMs ?: 0L)
 
     var showSpeedDialog by remember { mutableStateOf(false) }
 
@@ -440,7 +450,7 @@ fun PlayerScreen(
                         onClick = {
                             val activeBook = currentBook
                             if (activeBook != null) {
-                                val position = displayPositionMs
+                                val position = livePosition
                                 val formattedTime = formatTime(position)
                                 val defaultName = "Bookmark at $formattedTime"
                                 scope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -744,8 +754,11 @@ fun PlayerScreen(
                     )
                 }
 
-                // Seek Timeline Slider with smooth mechanics
-                val displayProgress = draggingPosition ?: if (displayDuration > 0) (displayPositionMs.toFloat() / displayDuration.toFloat()) else 0f
+                // Seek Timeline Slider with smooth mechanics.
+                // Uses per-chapter progress (matching Voice's playedTime/duration pattern).
+                // The slider shows position within the current chapter.
+                // On release, the absolute position is computed and passed to seekTo().
+                val displayProgress = draggingPosition ?: if (chapterDuration > 0) (chapterPosition.toFloat() / chapterDuration.toFloat()) else 0f
 
                 Column(
                     modifier = Modifier
@@ -757,8 +770,13 @@ fun PlayerScreen(
                         onValueChange = { draggingPosition = it },
                         onValueChangeFinished = {
                             draggingPosition?.let {
-                                val targetPositionMs = (it * displayDuration).toLong()
-                                playbackManager.seekTo(targetPositionMs)
+                                val chapterRelativeMs = (it * chapterDuration).toLong()
+                                val absoluteTarget = if (currentChapter != null) {
+                                    currentChapter.startMs + chapterRelativeMs
+                                } else {
+                                    chapterRelativeMs
+                                }
+                                playbackManager.seekTo(absoluteTarget)
                             }
                             draggingPosition = null
                         },
@@ -775,7 +793,7 @@ fun PlayerScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val elapsedMs = if (draggingPosition != null) (draggingPosition!! * displayDuration).toLong() else displayPositionMs
+                        val elapsedMs = if (draggingPosition != null) (draggingPosition!! * chapterDuration).toLong() else chapterPosition
                         Text(
                             text = formatStandardTime(elapsedMs),
                             fontSize = 12.sp,
@@ -783,7 +801,7 @@ fun PlayerScreen(
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
                         )
                         Text(
-                            text = formatStandardTime(displayDuration),
+                            text = formatStandardTime(chapterDuration),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
@@ -803,7 +821,7 @@ fun PlayerScreen(
                     // Quick Bookmark borders button
                     IconButton(
                         onClick = {
-                            val position = displayPositionMs
+                            val position = livePosition
                             val formattedTime = formatStandardTime(position)
                             val defaultName = "Bookmark at $formattedTime"
                             scope.launch(kotlinx.coroutines.Dispatchers.IO) {
