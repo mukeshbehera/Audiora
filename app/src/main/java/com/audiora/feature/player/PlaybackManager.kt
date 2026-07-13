@@ -309,12 +309,11 @@ class PlaybackManager(
                 else settingsRepository?.getDefaultPlaybackSpeed()?.firstOrNull() ?: 1.0f
             _playbackSpeed.value = effectiveSpeed
 
-            // Track last played timestamp (matches Voice's BookContent.lastPlayedAt)
-            if (book.lastPlayedAt == 0L) {
-                val updatedBook = book.copy(lastPlayedAt = System.currentTimeMillis())
-                _currentBook.value = updatedBook
-                bookRepository.saveAudiobook(updatedBook)
-            }
+            // Track last played timestamp on every playback start (matches Voice's
+            // VoicePlayer.updateLastPlayedAt() which is called on every play()).
+            val nowBook = book.copy(lastPlayedAt = System.currentTimeMillis())
+            _currentBook.value = nowBook
+            bookRepository.saveAudiobook(nowBook)
 
             val effectivePosition = if (previousBookId == book.id) {
                 _currentPosition.value.coerceAtLeast(book.currentPositionMs)
@@ -408,7 +407,11 @@ class PlaybackManager(
                         val itemIndex = activeController.currentMediaItemIndex
                         if (itemIndex != C.INDEX_UNSET) {
                             activeController.seekTo(itemIndex, targetClipPos)
-                            _currentPosition.value = _currentPosition.value - rewindMs
+                            val newAbsolutePos = (_currentPosition.value - rewindMs).coerceAtLeast(0L)
+                            _currentPosition.value = newAbsolutePos
+                            // Save corrected position after rewind (overrides the pre-rewind
+                            // save that fired from onIsPlayingChanged(false)).
+                            saveCurrentPositionToDb()
                         }
                     }
                 }
