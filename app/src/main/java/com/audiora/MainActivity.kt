@@ -176,11 +176,7 @@ fun MainAppContainer(
                 }
             },
             popExitTransition = {
-                // If we're entering a tab destination, the screen we're leaving must
-                // disappear instantly to prevent overlap (e.g. splash→library where
-                // splash fades out while the bottom bar is already visible underneath).
-                val enteringTab = targetState.destination.route?.substringBefore("?") in tabRouteSet
-                if (enteringTab || initialState.destination.route?.substringBefore("?") in tabRouteSet) {
+                if (initialState.destination.route?.substringBefore("?") in tabRouteSet) {
                     fadeOut(animationSpec = tween(0))
                 } else {
                     fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
