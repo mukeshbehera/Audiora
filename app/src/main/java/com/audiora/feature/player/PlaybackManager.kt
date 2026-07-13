@@ -206,6 +206,15 @@ class PlaybackManager(
         activeController.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlayingChanged: Boolean) {
                 _isPlaying.value = isPlayingChanged
+                // Mirror Voice's PlayStateDelegatingListener: update play state on
+                // onIsPlayingChanged in addition to onPlaybackStateChanged.
+                // This handles the case where prepare() reaches STATE_READY before
+                // play() is called — play() changes playWhenReady without a state
+                // transition, so onPlaybackStateChanged doesn't fire.
+                playStateManager.playState = if (isPlayingChanged)
+                    PlayStateManager.PlayState.Playing
+                else
+                    PlayStateManager.PlayState.Paused
                 if (!isPlayingChanged) {
                     saveCurrentPositionToDb()
                 }
