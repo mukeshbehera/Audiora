@@ -89,10 +89,49 @@ fun MainAppContainer(
     settingsRepository: com.audiora.domain.repository.SettingsRepository,
     pendingPlayerNavigation: MutableState<Boolean>
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as AudioraApplication
+
+    // Onboarding phase: splash, welcome, and folder picker render OUTSIDE the
+    // NavHost. There is no Box, no Scaffold, no bottom-bar overlay — nothing
+    // that could flash over the splash content.
+    var phase by remember { mutableStateOf("splash") }
+
+    when (phase) {
+        "splash" -> SplashScreen(
+            settingsRepository = settingsRepository,
+            onSplashCompleted = { firstTime ->
+                phase = if (firstTime) "welcome" else "done"
+            }
+        )
+        "welcome" -> WelcomeScreen(
+            settingsRepository = settingsRepository,
+            onNavigateToMain = { phase = "onboarding" }
+        )
+        "onboarding" -> OnboardingFoldersScreen(
+            booksRepository = app.bookRepository,
+            settingsRepository = settingsRepository,
+            onNavigateToLibrary = { phase = "done" },
+            onBack = { phase = "welcome" }
+        )
+        "done" -> {
+            // ── Main App ──────────────────────────────────────────────────
+            // NavHost + bottom bar overlay. This composable enters the tree
+            // only after onboarding is fully complete. The splash was already
+            // removed from the tree, so there is no overlap.
+            MainAppShell(settingsRepository, pendingPlayerNavigation)
+        }
+    }
+}
+
+@Composable
+private fun MainAppShell(
+    settingsRepository: com.audiora.domain.repository.SettingsRepository,
+    pendingPlayerNavigation: MutableState<Boolean>
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
     val context = LocalContext.current
     val app = context.applicationContext as AudioraApplication
 
@@ -103,12 +142,8 @@ fun MainAppContainer(
     val duration by playbackManager.duration.collectAsState()
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
-    // Bottom nav shows on every screen EXCEPT splash, welcome, onboarding, and player.
-    // Default to false when route is null (first frame / navigation transitions) to
-    // prevent layout-shift flashes.
-    val nonNavRoutes = setOf("splash", "welcome", "onboarding_folders")
     val showBottomNav = currentRoute != null &&
-        currentRoute !in nonNavRoutes &&
+        currentRoute !in setOf("splash", "welcome", "onboarding_folders") &&
         !currentRoute.startsWith("player/")
 
     // Handle notification tap — navigate to player screen
@@ -133,13 +168,9 @@ fun MainAppContainer(
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
-            // Screens with their own Scaffold handle insets independently.
-            // Only splash/welcome/onboarding need the outer padding since they lack a Scaffold.
-            val paddingModifier = if (currentRoute == "splash" || currentRoute == "welcome") {
-                Modifier.padding(top = innerPadding.calculateTopPadding())
-            } else {
-                Modifier
-            }
+            // All screens in the NavHost have their own Scaffold that handles
+            // system insets independently — no outer padding needed.
+            val paddingModifier = Modifier
 
         // Bottom-nav tab destinations — used by transition lambdas to skip animations
         // on tab switches for a snappy feel. Push navigation (Library→Player/Details)
@@ -149,7 +180,7 @@ fun MainAppContainer(
         val tabRouteSet = Screen.tabRouteStrings
         NavHost(
             navController = navController,
-            startDestination = "splash",
+            startDestination = Screen.Library.route,
             modifier = paddingModifier,
             enterTransition = {
                 if (targetState.destination.route?.substringBefore("?") in tabRouteSet) {
@@ -180,41 +211,6 @@ fun MainAppContainer(
                 }
             }
         ) {
-            composable("splash") {
-                SplashScreen(
-                    settingsRepository = settingsRepository,
-                    onSplashCompleted = { isFirstTime ->
-                        val destination = if (isFirstTime) "welcome" else Screen.Library.route
-                        navController.navigate(destination) {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    }
-                )
-            }
-            composable("welcome") {
-                WelcomeScreen(
-                    settingsRepository = settingsRepository,
-                    onNavigateToMain = {
-                        navController.navigate("onboarding_folders")
-                    }
-                )
-            }
-            composable("onboarding_folders") {
-                OnboardingFoldersScreen(
-                    booksRepository = app.bookRepository,
-                    settingsRepository = settingsRepository,
-                    onNavigateToLibrary = {
-                        navController.navigate(Screen.Library.route) {
-                            // Clear the entire onboarding back stack before entering Library.
-                            // popUpTo(0) with inclusive=true removes all previous destinations.
-                            popUpTo(0) { inclusive = true }
-                        }
-                    },
-                    onBack = {
-                        navController.navigateUp()
-                    }
-                )
-            }
             composable(Screen.Library.route) {
                 LibraryScreen(
                     onNavigateToCreate = {
