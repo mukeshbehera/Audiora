@@ -79,7 +79,7 @@ class AudioraApplication : Application() {
 
         bookRepository = BookRepositoryImpl(database.bookDao(), database.bookmarkDao(), appScope)
         settingsRepository = SettingsRepositoryImpl(applicationContext)
-        folderRepository = FolderRepositoryImpl(applicationContext, database.folderDao(), database.bookDao())
+        folderRepository = FolderRepositoryImpl(applicationContext, database.folderDao(), database.bookDao(), appScope)
         playbackManager = com.audiora.feature.player.PlaybackManager(applicationContext, bookRepository)
 
         // 3. Auto-rescan configured folders on app startup

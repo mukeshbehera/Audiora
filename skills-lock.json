@@ -13,11 +13,83 @@
       "skillPath": "skills/android-native-dev/SKILL.md",
       "computedHash": "684fcc00a9c41bc9c148a2f7df705eeb777ec1f0555d6d00d30eeb5939f3195d"
     },
+    "babysit": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/babysit/SKILL.md",
+      "computedHash": "1e0610afc6110fad8c012f44dd5aa09cdd25530198f515f49e5d94eda08a4465"
+    },
+    "claude-code-plugin-release": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/version-bump/SKILL.md",
+      "computedHash": "6748f62f9946a52a383b9d3f345a3a8aab56c8b81d9aab49f6005db7106df0aa"
+    },
+    "cloud-sync": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/cloud-sync/SKILL.md",
+      "computedHash": "2252344ca82ef7fbac2c0f044bbd1738e8f33708c2cdd9d77aad36397a4469ce"
+    },
+    "design-is": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/design-is/SKILL.md",
+      "computedHash": "f2912e5eb57ebf3dafa2c08fa92af2294309951cef124b83d35214aebc98de8d"
+    },
+    "do": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/do/SKILL.md",
+      "computedHash": "ac80a2338872768e8d9e24bcad9d7a379019afa062167a20b525c4562405a2a3"
+    },
+    "how-it-works": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/how-it-works/SKILL.md",
+      "computedHash": "121ff2926b3de14b8b1ffdb883b736004a3b25e3fcb3589ca386ecca5bff1900"
+    },
+    "knowledge-agent": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/knowledge-agent/SKILL.md",
+      "computedHash": "52a8f2c5351a0b73b3c55296c3dcd46ade6070f66f0d59ccd01832a9f77123f6"
+    },
     "kotlin-coroutines-flows": {
       "source": "affaan-m/everything-claude-code",
       "sourceType": "github",
       "skillPath": "skills/kotlin-coroutines-flows/SKILL.md",
       "computedHash": "6a7ffc10aa82c49c9f08427a534b0538d40e3254bdbabfd93b7ce47df2673cbe"
+    },
+    "learn-codebase": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/learn-codebase/SKILL.md",
+      "computedHash": "9142aab8302123f63d8db49430d1f59e2ff2bdcb885d6b3f054f22f7d92f5791"
+    },
+    "make-plan": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/make-plan/SKILL.md",
+      "computedHash": "828c96bc3eab1c8c46db001b3a6a71fe07dfb32814081678ddfe067ba0978664"
+    },
+    "mem-search": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/mem-search/SKILL.md",
+      "computedHash": "6058bee763732e6c85f77523e97ad27f476e73ee44fbfdcf105a218ef1dd52e0"
+    },
+    "oh-my-issues": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/oh-my-issues/SKILL.md",
+      "computedHash": "cee3669201ddc7eb488e3c20699ad46428ded9ff29e98c7c1fbfc696e1d29cfd"
+    },
+    "pathfinder": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/pathfinder/SKILL.md",
+      "computedHash": "96bf2edcbffd36a3119d4dea942561b02ecf355cc872d73cf21cc346092e3db2"
     },
     "performance-optimization": {
       "source": "addyosmani/agent-skills",
@@ -25,11 +97,47 @@
       "skillPath": "skills/performance-optimization/SKILL.md",
       "computedHash": "a59703bda55d80ef8189704ee3dc8c35bf8134582cf0cf0dbf6618b97c961826"
     },
+    "smart-explore": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/smart-explore/SKILL.md",
+      "computedHash": "9a1725dd93477d0b1c698f3b47734dc10491c6edeb89cb728d2f33ab4ac35fce"
+    },
+    "standup": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/standup/SKILL.md",
+      "computedHash": "d297e73c460cc806b578f7c4a97ada138035320d7d53cff4357e5d9ce9664631"
+    },
+    "timeline-report": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/timeline-report/SKILL.md",
+      "computedHash": "b2194d39219a5baa62b5f9373b1cc04b8020ddebed8496d2eb7da9a729fbc99c"
+    },
     "understand-anything-knowledge-graph": {
       "source": "aradotso/trending-skills",
       "sourceType": "github",
       "skillPath": "skills/understand-anything-knowledge-graph/SKILL.md",
       "computedHash": "f9534ff5617d2899d308c9f3ecb6d1912c7c3710c61130e0888334e039eb86c6"
+    },
+    "weekly-digests": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/weekly-digests/SKILL.md",
+      "computedHash": "792aebfb3752084374353c5f176356ff808c7298caf963a5f930a4977a04d154"
+    },
+    "what-the": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/what-the/SKILL.md",
+      "computedHash": "89d95f90e4299972cec11765a2db44dd4cb60c8c9f10b58eebfbcb1eec7aaf41"
+    },
+    "wowerpoint": {
+      "source": "thedotmack/claude-mem",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/wowerpoint/SKILL.md",
+      "computedHash": "230ee1e1754b2a36f2a4b945d74f66efca6a1d1901174bf500f72cf407cdeb3b"
     }
   }
 }
