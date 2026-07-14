@@ -905,7 +905,15 @@ fun VisualChapterTimeline(
             }
         }
         
-        // Scrollable timeline viewport
+        // Scrollable timeline viewport — deferred by one frame so form fields
+        // render immediately, giving an instant tab-switch feel. The timeline
+        // appears on the next frame (~16ms later).
+        var timelineReady by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            androidx.compose.runtime.withFrameNanos { }
+            timelineReady = true
+        }
+        if (timelineReady) {
         val scrollState = rememberScrollState()
         BoxWithConstraints(
             modifier = Modifier
@@ -1101,6 +1109,7 @@ fun VisualChapterTimeline(
                 }
             }
         }
+        } // if (timelineReady)
     }
 }
 
