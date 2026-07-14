@@ -46,6 +46,7 @@ fun SearchScreen(
     val context = LocalContext.current
     val app = context.applicationContext as AudioraApplication
     val searchViewModel: SearchViewModel = viewModel(
+        viewModelStoreOwner = context as androidx.activity.ComponentActivity,
         factory = SearchViewModel.provideFactory(app, app.bookRepository)
     )
 

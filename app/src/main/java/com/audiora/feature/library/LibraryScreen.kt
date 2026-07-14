@@ -58,6 +58,7 @@ fun LibraryScreen(
     val context = LocalContext.current
     val app = context.applicationContext as AudioraApplication
     val libraryViewModel: LibraryViewModel = viewModel(
+        viewModelStoreOwner = context as androidx.activity.ComponentActivity,
         factory = LibraryViewModel.provideFactory(app.bookRepository)
     )
     val audiobooks by libraryViewModel.audiobooks.collectAsStateWithLifecycle()

@@ -37,9 +37,12 @@ enum class SettingsDialogType {
 @Composable
 fun SettingsScreen(
     onNavigateToFolders: () -> Unit = {},
-    modifier: Modifier = Modifier,
-    viewModel: SettingsViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val viewModel: SettingsViewModel = viewModel(
+        viewModelStoreOwner = context as androidx.activity.ComponentActivity
+    )
 
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val colorSchemeName by viewModel.colorSchemeName.collectAsStateWithLifecycle()
