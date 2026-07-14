@@ -136,11 +136,10 @@ private fun MainAppShell(
     val app = context.applicationContext as AudioraApplication
 
     val playbackManager = app.playbackManager
+    // Read currentBook at shell level — it changes only on book load/unload
     val currentBook by playbackManager.currentBook.collectAsState()
-    val isPlaying by playbackManager.isPlaying.collectAsState()
-    val currentPosition by playbackManager.currentPosition.collectAsState()
-    val duration by playbackManager.duration.collectAsState()
-
+    // isPlaying, currentPosition, duration are read inside MiniPlayer to avoid
+    // re-composing the entire NavHost on every 500ms position update.
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
     val showBottomNav = currentRoute != null &&
         currentRoute !in setOf("splash", "welcome", "onboarding_folders") &&
@@ -374,11 +373,7 @@ private fun MainAppShell(
                 if (showMiniPlayer) {
                     MiniPlayer(
                         book = currentBook!!,
-                        isPlaying = isPlaying,
-                        currentPosition = currentPosition,
-                        duration = duration,
-                        onTogglePlayPause = { playbackManager.togglePlayPause() },
-                        onDismiss = { playbackManager.stopPlayback() },
+                        playbackManager = playbackManager,
                         onNavigateToPlayer = {
                             navController.navigate(Screen.Player.route.replace("{bookId}", currentBook!!.id.toString())) {
                                 launchSingleTop = true
