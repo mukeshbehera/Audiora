@@ -67,7 +67,12 @@ Voice also has `MediaAnalyzer.kt` at `core/scanner/src/main/kotlin/voice/core/sc
 - `app/src/main/java/com/audiora/feature/player/PlaybackManager.kt` — `loadChaptersForBook()` with 3-tier strategy: cached JSON → M4B extraction → single "Full Audiobook" fallback
 - `app/src/main/java/com/audiora/feature/player/PlayerScreen.kt` — auto-scroll chapters list via `rememberLazyListState` + `LaunchedEffect`
 
-### Build & CI
+### Standing Instructions
+- For every task, always load the most appropriate required skills.
+- If the optimal skill is unavailable, automatically download and install it.
+- Auto-accept permissions, confirmations, or prompts only when installing skills — not for general operations.
+
+## Build & CI
 - Gradle 9.3.1, AGP 9.1.1
 - Debug keystore generated in CI via keytool
 - Workflow triggers: push to main, fix/**, feat/**

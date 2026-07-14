@@ -12,10 +12,10 @@ import com.audiora.data.local.M4bChapterExtractor
 import com.audiora.domain.model.Chapter
 import com.audiora.domain.model.AudiobookFolder
 import com.audiora.domain.repository.FolderRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -24,14 +24,25 @@ import timber.log.Timber
 class FolderRepositoryImpl(
     private val context: Context,
     private val folderDao: FolderDao,
-    private val bookDao: BookDao
+    private val bookDao: BookDao,
+    appScope: CoroutineScope
 ) : FolderRepository {
 
-    override fun getFolders(): Flow<List<AudiobookFolder>> {
-        return folderDao.getAllFolders().map { entities ->
-            entities.map { it.toDomain() }
+    // In-memory cache mirroring BookRepositoryImpl pattern: eagerly subscribed
+    // to Room on appScope so subscribers always get the latest value without DB delay.
+    private val _folders = MutableStateFlow<List<AudiobookFolder>>(emptyList())
+
+    init {
+        appScope.launch {
+            folderDao.getAllFolders().map { entities ->
+                entities.map { it.toDomain() }
+            }.collect { list ->
+                _folders.value = list
+            }
         }
     }
+
+    override fun getFolders(): StateFlow<List<AudiobookFolder>> = _folders.asStateFlow()
 
     private val scanMutex = Mutex()
 

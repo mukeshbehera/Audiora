@@ -2,6 +2,7 @@ package com.audiora.feature.player
 
 import android.app.PendingIntent
 import android.content.Intent
+import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -30,12 +31,13 @@ import timber.log.Timber
 class PlaybackService : MediaLibraryService() {
 
     private var mediaSession: MediaLibrarySession? = null
+    private val volumeGain = VolumeGain()
 
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
 
-        val exoPlayer = ExoPlayer.Builder(this)
+        val exoPlayer = ExoPlayer.Builder(this, OnlyAudioRenderersFactory(this))
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
@@ -137,7 +139,39 @@ class PlaybackService : MediaLibraryService() {
             session: MediaSession,
             controller: MediaSession.ControllerInfo,
         ): MediaSession.ConnectionResult {
-            return super.onConnect(session, controller)
+            val baseResult = super.onConnect(session, controller)
+            // Add custom command action so PlaybackManager can send commands cross-process
+            val sessionCommands = baseResult.availableSessionCommands
+                .buildUpon()
+                .add(androidx.media3.session.SessionCommand(PlaybackCommand.CUSTOM_COMMAND_ACTION, Bundle.EMPTY))
+                .build()
+            return MediaSession.ConnectionResult.accept(sessionCommands, baseResult.availablePlayerCommands)
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: androidx.media3.session.SessionCommand,
+            args: Bundle,
+        ): ListenableFuture<androidx.media3.session.SessionResult> {
+            val command = PlaybackCommand.parse(customCommand, args)
+            when (command) {
+                is PlaybackCommand.SetSkipSilence -> {
+                    ExoPlayerInstance.player?.skipSilenceEnabled = command.enabled
+                    Timber.d("CustomCommand: skipSilence=${command.enabled}")
+                }
+                is PlaybackCommand.SetGain -> {
+                    val sessionId = ExoPlayerInstance.player?.audioSessionId
+                    if (sessionId != null && sessionId != C.AUDIO_SESSION_ID_UNSET) {
+                        volumeGain.setGain(command.gainDb, sessionId)
+                    }
+                    Timber.d("CustomCommand: gain=${command.gainDb}dB")
+                }
+                null -> {
+                    return super.onCustomCommand(session, controller, customCommand, args)
+                }
+            }
+            return PlaybackCommand.result()
         }
     }
 }

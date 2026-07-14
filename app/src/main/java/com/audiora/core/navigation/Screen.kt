@@ -59,5 +59,8 @@ sealed class Screen(
 
     companion object {
         val items = listOf(Library, Create, Edit, Search, Settings)
+        // The route strings for bottom-nav tab destinations.
+        // Used by showBottomNav, transition animations, and navigation guards.
+        val tabRouteStrings: Set<String> = items.map { it.route }.toSet()
     }
 }

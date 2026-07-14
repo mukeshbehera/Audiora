@@ -33,6 +33,8 @@ class AudioraApplication : Application() {
     lateinit var playbackManager: com.audiora.feature.player.PlaybackManager
         private set
 
+    val playStateManager = com.audiora.feature.player.PlayStateManager()
+
     // App-scoped coroutine scope for background tasks that must outlive any screen
     val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -77,7 +79,7 @@ class AudioraApplication : Application() {
 
         bookRepository = BookRepositoryImpl(database.bookDao(), database.bookmarkDao(), appScope)
         settingsRepository = SettingsRepositoryImpl(applicationContext)
-        folderRepository = FolderRepositoryImpl(applicationContext, database.folderDao(), database.bookDao())
+        folderRepository = FolderRepositoryImpl(applicationContext, database.folderDao(), database.bookDao(), appScope)
         playbackManager = com.audiora.feature.player.PlaybackManager(applicationContext, bookRepository)
 
         // 3. Auto-rescan configured folders on app startup

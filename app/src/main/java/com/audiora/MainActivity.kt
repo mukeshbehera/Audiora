@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filterNotNull
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -88,10 +89,49 @@ fun MainAppContainer(
     settingsRepository: com.audiora.domain.repository.SettingsRepository,
     pendingPlayerNavigation: MutableState<Boolean>
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as AudioraApplication
+
+    // Onboarding phase: splash, welcome, and folder picker render OUTSIDE the
+    // NavHost. There is no Box, no Scaffold, no bottom-bar overlay — nothing
+    // that could flash over the splash content.
+    var phase by remember { mutableStateOf("splash") }
+
+    when (phase) {
+        "splash" -> SplashScreen(
+            settingsRepository = settingsRepository,
+            onSplashCompleted = { firstTime ->
+                phase = if (firstTime) "welcome" else "done"
+            }
+        )
+        "welcome" -> WelcomeScreen(
+            settingsRepository = settingsRepository,
+            onNavigateToMain = { phase = "onboarding" }
+        )
+        "onboarding" -> OnboardingFoldersScreen(
+            booksRepository = app.bookRepository,
+            settingsRepository = settingsRepository,
+            onNavigateToLibrary = { phase = "done" },
+            onBack = { phase = "welcome" }
+        )
+        "done" -> {
+            // ── Main App ──────────────────────────────────────────────────
+            // NavHost + bottom bar overlay. This composable enters the tree
+            // only after onboarding is fully complete. The splash was already
+            // removed from the tree, so there is no overlap.
+            MainAppShell(settingsRepository, pendingPlayerNavigation)
+        }
+    }
+}
+
+@Composable
+private fun MainAppShell(
+    settingsRepository: com.audiora.domain.repository.SettingsRepository,
+    pendingPlayerNavigation: MutableState<Boolean>
+) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
     val context = LocalContext.current
     val app = context.applicationContext as AudioraApplication
 
@@ -102,7 +142,9 @@ fun MainAppContainer(
     val duration by playbackManager.duration.collectAsState()
 
     val showMiniPlayer = currentBook != null && currentRoute != Screen.Player.route
-    val showBottomNav = currentRoute != "splash" && currentRoute != "welcome" && currentRoute != "onboarding_folders" && currentRoute != Screen.Player.route
+    val showBottomNav = currentRoute != null &&
+        currentRoute !in setOf("splash", "welcome", "onboarding_folders") &&
+        !currentRoute.startsWith("player/")
 
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
@@ -126,66 +168,49 @@ fun MainAppContainer(
         Scaffold(
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
-            // Screens with their own Scaffold handle insets independently.
-            // Only splash/welcome/onboarding need the outer padding since they lack a Scaffold.
-            val paddingModifier = if (currentRoute == "splash" || currentRoute == "welcome") {
-                Modifier.padding(top = innerPadding.calculateTopPadding())
-            } else {
-                Modifier
-            }
+            // All screens in the NavHost have their own Scaffold that handles
+            // system insets independently — no outer padding needed.
+            val paddingModifier = Modifier
 
-            // NavHost hosting screens with smooth premium transitions
+        // Bottom-nav tab destinations — used by transition lambdas to skip animations
+        // on tab switches for a snappy feel. Push navigation (Library→Player/Details)
+        // keeps the fade+scale animation for a smooth premium transition.
+        // Evaluate eagerly during composition (not inside animation lambda) to avoid
+        // ExceptionInInitializerError from deferred class loading during animation frames.
+        val tabRouteSet = Screen.tabRouteStrings
         NavHost(
             navController = navController,
-            startDestination = "splash",
+            startDestination = Screen.Library.route,
             modifier = paddingModifier,
             enterTransition = {
-                fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                if (targetState.destination.route?.substringBefore("?") in tabRouteSet) {
+                    fadeIn(animationSpec = tween(0))
+                } else {
+                    fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                }
             },
             exitTransition = {
-                fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                if (initialState.destination.route?.substringBefore("?") in tabRouteSet) {
+                    fadeOut(animationSpec = tween(0))
+                } else {
+                    fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                }
             },
             popEnterTransition = {
-                fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                if (targetState.destination.route?.substringBefore("?") in tabRouteSet) {
+                    fadeIn(animationSpec = tween(0))
+                } else {
+                    fadeIn(animationSpec = tween(durationMillis = 220)) + scaleIn(initialScale = 0.96f, animationSpec = tween(durationMillis = 220))
+                }
             },
             popExitTransition = {
-                fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                if (initialState.destination.route?.substringBefore("?") in tabRouteSet) {
+                    fadeOut(animationSpec = tween(0))
+                } else {
+                    fadeOut(animationSpec = tween(durationMillis = 180)) + scaleOut(targetScale = 0.96f, animationSpec = tween(durationMillis = 180))
+                }
             }
         ) {
-            composable("splash") {
-                SplashScreen(
-                    settingsRepository = settingsRepository,
-                    onSplashCompleted = { isFirstTime ->
-                        val destination = if (isFirstTime) "welcome" else Screen.Library.route
-                        navController.navigate(destination) {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    }
-                )
-            }
-            composable("welcome") {
-                WelcomeScreen(
-                    settingsRepository = settingsRepository,
-                    onNavigateToMain = {
-                        navController.navigate("onboarding_folders")
-                    }
-                )
-            }
-            composable("onboarding_folders") {
-                OnboardingFoldersScreen(
-                    booksRepository = app.bookRepository,
-                    settingsRepository = settingsRepository,
-                    onNavigateToLibrary = {
-                        navController.navigate(Screen.Library.route) {
-                            popUpTo("welcome") { inclusive = true }
-                            popUpTo("onboarding_folders") { inclusive = true }
-                        }
-                    },
-                    onBack = {
-                        navController.navigateUp()
-                    }
-                )
-            }
             composable(Screen.Library.route) {
                 LibraryScreen(
                     onNavigateToCreate = {
@@ -233,18 +258,26 @@ fun MainAppContainer(
                 )
             ) { backStackEntry ->
                 val bookId = backStackEntry.arguments?.getInt("bookId") ?: return@composable
-                val currentBook by app.playbackManager.currentBook.collectAsStateWithLifecycle()
-                // Use bookId as stable key so this only fires on navigation, not on Room re-emissions
+
+                // Use reactive Room Flow so book data (including position) is always up to date.
+                // Voice's BookPlayViewModel uses the same pattern: repo.flow(bookId).filterNotNull().
+                val book by remember(bookId) {
+                    app.bookRepository.getAudiobook(bookId)
+                }.collectAsStateWithLifecycle(initialValue = null)
+
+                // Wait for Room's first emission before initializing the player.
+                // A LaunchedEffect capturing `book` at composition-time would see null
+                // (Room hasn't emitted yet) and silently skip initialization. Instead,
+                // collect the flow directly with .first() like the original code did.
                 LaunchedEffect(bookId) {
-                    val loadedBook = app.bookRepository.getAudiobook(bookId).first()
-                    if (loadedBook != null) {
-                        app.playbackManager.playBook(loadedBook)
-                    }
+                    app.bookRepository.getAudiobook(bookId)
+                        .filterNotNull()
+                        .first()
+                        .let { app.playbackManager.ensureBookLoaded(it) }
                 }
 
-                if (currentBook == null) {
-                    // Loading state — playBook() sets currentBook synchronously so this
-                    // should only be visible for <1 frame. Never shows "No Audiobook Loaded".
+                if (book == null) {
+                    // Rare — only visible on cold start before Room cache loads
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -256,6 +289,7 @@ fun MainAppContainer(
                     }
                 } else {
                     PlayerScreen(
+                        book = book,
                         onNavigateBack = {
                             navController.navigate(Screen.Library.route) {
                                 popUpTo(Screen.Library.route) { inclusive = true }
@@ -318,6 +352,11 @@ fun MainAppContainer(
                     },
                     onNavigateToEdit = { editId ->
                         navController.navigate("edit?bookId=$editId")
+                    },
+                    onNavigateToPlayer = { playBookId ->
+                        navController.navigate("player/$playBookId") {
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
