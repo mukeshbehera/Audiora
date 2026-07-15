@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.audiora.AudioraApplication
 import com.audiora.domain.model.AudiobookFolder
 import com.audiora.domain.usecase.*
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharingStarted.Companion.Eagerly
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -26,7 +26,7 @@ class FolderViewModel(application: Application) : AndroidViewModel(application) 
     val folders: StateFlow<List<AudiobookFolder>> = getFoldersUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = Eagerly,
             initialValue = emptyList()
         )
 
