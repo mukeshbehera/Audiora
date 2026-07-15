@@ -909,21 +909,20 @@ fun VisualChapterTimeline(
     val primaryColor = MaterialTheme.colorScheme.primary // Resolve once in Composable context
     var zoomScale by remember { mutableStateOf(1f) }
     
+    // Track dragging states — declared BEFORE localChapterTimes since LaunchedEffect references it
+    var draggingIndex by remember { mutableStateOf<Int?>(null) }
+
     // Smooth local state representation of the current start times.
     // Decoupled from the chapters parameter to prevent mid-drag resets from
     // ViewModel recomposition. Synced from chapters only when not dragging.
     var localChapterTimes by remember { mutableStateOf(chapters.map { it.startMs }) }
     // Sync from ViewModel when NOT dragging (e.g., after drag-end reconstruction).
-    // Using snapshotFlow to react to chapter/state changes without blocking drag.
     val currentDragIndex = draggingIndex
     LaunchedEffect(chapters, currentDragIndex) {
         if (currentDragIndex == null) {
             localChapterTimes = chapters.map { it.startMs }
         }
     }
-
-    // Track dragging states
-    var draggingIndex by remember { mutableStateOf<Int?>(null) }
     
     Column(
         modifier = modifier
@@ -1089,9 +1088,10 @@ fun VisualChapterTimeline(
                                 )
                             }
                         }
+                        } // key(idx)
                     }
                 }
-                
+
                 // 3. Draw draggable markers/handles on top
                 val maxTrackWidthDp = timelineWidthDp - 8.dp
                 localChapterTimes.forEachIndexed { idx, startMs ->
