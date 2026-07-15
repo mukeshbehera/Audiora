@@ -458,7 +458,7 @@ fun LibraryScreen(
                             description = if (searchQuery.isNotEmpty() || selectedGenre != "All") {
                                 "No matches for \"${searchQuery}\" under category \"${selectedGenre}\". Clear query and filter to see records."
                             } else {
-                                "Convert text manuscripts, audio recordings, or EPUBs into premium narrated glassmorphic voice audiobooks."
+                                "Register audiobook folders in Settings to scan for M4B audiobooks, or use the Create tab to merge multiple audio files into a single M4B."
                             },
                             icon = if (searchQuery.isNotEmpty() || selectedGenre != "All") Icons.Rounded.Search else Icons.Rounded.LibraryBooks,
                             actionText = if (searchQuery.isNotEmpty() || selectedGenre != "All") "Clear Filters" else "Open Creation Wizard",
