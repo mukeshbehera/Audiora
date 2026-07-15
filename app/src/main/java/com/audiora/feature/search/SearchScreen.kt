@@ -32,7 +32,6 @@ import com.audiora.AudioraApplication
 import com.audiora.core.design.ClickableGlassmorphicCard
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicEmptyState
-import com.audiora.core.design.GlassmorphicTextField
 import com.audiora.core.design.ScreenTitle
 import com.audiora.core.design.SectionHeader
 import com.audiora.feature.library.AudiobookCoverArt
@@ -53,7 +52,6 @@ fun SearchScreen(
     val query by searchViewModel.searchQuery.collectAsStateWithLifecycle()
     val recentSearches by searchViewModel.recentSearches.collectAsStateWithLifecycle()
     val searchResults by searchViewModel.searchResults.collectAsStateWithLifecycle()
-    
     val focusManager = LocalFocusManager.current
 
     Scaffold(
@@ -84,12 +82,13 @@ fun SearchScreen(
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Elegant search input field utilizing design system
-            GlassmorphicTextField(
+            // Search input with consistent height — uses only placeholder (no floating label)
+            // so the field never grows/shrinks on focus or text change.
+            OutlinedTextField(
                 value = query,
                 onValueChange = { searchViewModel.updateQuery(it) },
-                label = "Search",
-                placeholder = "e.g., Psychology of Money or Aria Thorne...",
+                placeholder = { Text("e.g., Psychology of Money or Aria Thorne...") },
+                singleLine = true,
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Rounded.Search,
@@ -111,16 +110,26 @@ fun SearchScreen(
                         }
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("search_text_input"),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                    focusedBorderColor = androidx.compose.ui.graphics.Color(0xFFA855F7),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = {
                         searchViewModel.onSearchAction(query)
                         focusManager.clearFocus()
                     }
-                )
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .testTag("search_text_input")
             )
 
             AnimatedContent(
