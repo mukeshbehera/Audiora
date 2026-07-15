@@ -393,7 +393,9 @@ private fun MainAppShell(
                                 val targetRoute = if (screen == Screen.Edit) "edit?bookId=-1" else screen.route
                                 val isInsideLibraryFlow = currentRoute == Screen.Details.route || currentRoute?.startsWith("details") == true || currentRoute?.startsWith("edit") == true
 
-                                if (screen == Screen.Library && isInsideLibraryFlow) {
+                                if (screen == Screen.Library) {
+                                    // Library tab always navigates back to Library, whether coming from
+                                    // details/edit flow or another tab (Create, Search, Settings).
                                     navController.popBackStack(Screen.Library.route, false)
                                 } else if (currentRoute != targetRoute && currentRoute?.substringBefore("?") != screen.route) {
                                     navController.navigate(targetRoute) {
