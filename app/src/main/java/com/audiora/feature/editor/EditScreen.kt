@@ -847,9 +847,19 @@ fun VisualChapterTimeline(
     val primaryColor = MaterialTheme.colorScheme.primary // Resolve once in Composable context
     var zoomScale by remember { mutableStateOf(1f) }
     
-    // Smooth local state representation of the current start times
-    var localChapterTimes by remember(chapters) { mutableStateOf(chapters.map { it.startMs }) }
-    
+    // Smooth local state representation of the current start times.
+    // Decoupled from the chapters parameter to prevent mid-drag resets from
+    // ViewModel recomposition. Synced from chapters only when not dragging.
+    var localChapterTimes by remember { mutableStateOf(chapters.map { it.startMs }) }
+    // Sync from ViewModel when NOT dragging (e.g., after drag-end reconstruction).
+    // Using snapshotFlow to react to chapter/state changes without blocking drag.
+    val currentDragIndex = draggingIndex
+    LaunchedEffect(chapters, currentDragIndex) {
+        if (currentDragIndex == null) {
+            localChapterTimes = chapters.map { it.startMs }
+        }
+    }
+
     // Track dragging states
     var draggingIndex by remember { mutableStateOf<Int?>(null) }
     
@@ -967,13 +977,14 @@ fun VisualChapterTimeline(
                     val maxTrackWidthDp = timelineWidthDp - 8.dp
                     
                     localChapterTimes.forEachIndexed { idx, startMs ->
+                        key(idx) {
                         val endMs = localChapterTimes.getOrNull(idx + 1) ?: totalDurationMs
                         val startFr = startMs.toDouble() / totalDurationMs
                         val endFr = endMs.toDouble() / totalDurationMs
-                        
+
                         val startX = maxTrackWidthDp * startFr.toFloat()
                         val segmentWidth = maxTrackWidthDp * (endFr - startFr).toFloat()
-                        
+
                         // Alternate alpha colors
                         val colors = listOf(
                             primaryColor.copy(alpha = 0.3f),
@@ -1025,7 +1036,7 @@ fun VisualChapterTimeline(
                                 .width(36.dp)
                                 .height(56.dp)
                                 .testTag("timeline_handle_$idx")
-                                .pointerInput(idx, timelineWidthPx) {
+                                .pointerInput(idx) {
                                     detectDragGestures(
                                         onDragStart = {
                                             draggingIndex = idx
