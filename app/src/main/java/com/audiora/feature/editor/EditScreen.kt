@@ -143,6 +143,16 @@ fun EditScreen(
                             )
                         } else {
                             IconButton(
+                                onClick = { viewModel.resetChanges() },
+                                modifier = Modifier.testTag("edit_top_bar_reset")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.RestartAlt,
+                                    contentDescription = "Reset Changes",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            IconButton(
                                 onClick = { viewModel.saveChanges() },
                                 modifier = Modifier.testTag("edit_top_bar_save")
                             ) {

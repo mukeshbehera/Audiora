@@ -49,6 +49,10 @@ class EditViewModel(
 
     val chapters = MutableStateFlow<List<com.audiora.domain.model.Chapter>>(emptyList())
 
+    /* Snapshot of chapters as they were when the current book was first loaded.
+     * Used by resetChanges() to undo all edits (name changes, timeline drags). */
+    private var originalChapters: List<com.audiora.domain.model.Chapter> = emptyList()
+
     private val _saveStatus = MutableStateFlow<SaveStatus>(SaveStatus.Idle)
     val saveStatus: StateFlow<SaveStatus> = _saveStatus.asStateFlow()
 
@@ -139,6 +143,18 @@ class EditViewModel(
                 list
             }
             chapters.value = loaded
+            originalChapters = loaded.map { it.copy() }
+        }
+    }
+
+    /**
+     * Resets all chapter edits back to the state when the book was first loaded.
+     * Restores chapter names, start times, and end times to their originals.
+     */
+    fun resetChanges() {
+        if (originalChapters.isNotEmpty()) {
+            chapters.value = originalChapters.map { it.copy() }
+            _saveStatus.value = SaveStatus.Idle
         }
     }
 
