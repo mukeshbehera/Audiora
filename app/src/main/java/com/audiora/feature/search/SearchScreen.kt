@@ -87,7 +87,7 @@ fun SearchScreen(
             OutlinedTextField(
                 value = query,
                 onValueChange = { searchViewModel.updateQuery(it) },
-                placeholder = { Text("e.g., Psychology of Money or Aria Thorne...") },
+                placeholder = { Text("e.g., To Kill a Mockingbird") },
                 singleLine = true,
                 leadingIcon = {
                     Icon(
