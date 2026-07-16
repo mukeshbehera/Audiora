@@ -1,28 +1,24 @@
-# Current Branch Status (July 2026)
+# Current Branch Status (July 14, 2026)
 
 ## Branch: `fix/functional-fix`
-**PR:** #4 — to be merged into `main`
-**Status:** All features complete, CI passes, app runs without crashes
+**Status:** Performance optimization phase complete, CI passes
 
-## What changed (vs main)
-- 23 commits ahead of main
-- 6 new files created
-- Full architecture transformation from single MediaItem to per-chapter MediaItems
-- Voice feature parity achieved
+## Recent Performance Commits (not yet merged to main)
 
-## Completed Phases
-- **Phase 0**: Stability fixes (position dual-source, STATE_BUFFERING→READY, play state consolidation)
-- **Phase 1**: Efficiency (conditional tracker, reduced DB writes, OnlyAudioRenderersFactory)
-- **Phase 2**: Per-chapter MediaItems with ClippingConfiguration
-- **Phase 3**: CustomCommands, fade-out + shake timer, per-book speed, auto-rewind on pause, lastPlayedAt tracking, controller reconnection
+1. **Activity-scoped ViewModels** (`09b34e3`) — Tab ViewModels scoped to Activity instead of NavBackStackEntry. Eliminates DataStore/Room re-reads on every tab switch. Files: LibraryScreen, SearchScreen, SettingsScreen, EditScreen.
 
-## Known Issues
-- None. All reported bugs fixed and verified.
+2. **Localized playback state to MiniPlayer** (`f22c6d7`) — Moved isPlaying, currentPosition, duration StateFlow collection from MainAppShell into MiniPlayer. Stops 500ms position updates from recomposing entire NavHost.
 
-## New Files (6)
-1. `OnlyAudioRenderersFactory.kt` — No video/text decoder allocation
-2. `PlaybackItem.kt` — Chapter→index mapping
-3. `MediaItemsBuilder.kt` — Per-chapter MediaItem construction
-4. `PlaybackCommand.kt` — Cross-process custom commands
-5. `ShakeDetector.kt` — Accelerometer-based shake gesture detection
-6. `Audiobook.kt`/`BookEntity.kt` — Added playbackSpeed, lastPlayedAt fields
+3. **EditScreen timeline deferred** (`68b3866`) — Heavy Canvas drawing (up to 80 drawLine calls) + chapter timeline deferred by one frame via withFrameNanos. Form fields render instantly, timeline appears next frame.
+
+## Files Changed (performance optimization)
+- `MainActivity.kt` — removed 3 StateFlow collections from shell level
+- `MiniPlayer.kt` — accepts PlaybackManager, collects state internally
+- `LibraryScreen.kt` — Activity-scoped ViewModel
+- `SearchScreen.kt` — Activity-scoped ViewModel
+- `SettingsScreen.kt` — Activity-scoped ViewModel, added LocalContext import
+- `EditScreen.kt` — Activity-scoped ViewModel, deferred timeline rendering
+- `FolderRepositoryImpl.kt` — in-memory cache (from earlier commit)
+
+## All Phase Features (merged to main)
+Phases 0-3, all bug fixes, and splash structural rearchitecture are in main.

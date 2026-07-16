@@ -33,11 +33,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MiniPlayer(
     book: Audiobook,
-    isPlaying: Boolean,
-    currentPosition: Long,
-    duration: Long,
-    onTogglePlayPause: () -> Unit,
-    onDismiss: () -> Unit,
+    playbackManager: PlaybackManager,
     onNavigateToPlayer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -45,6 +41,12 @@ fun MiniPlayer(
     val swipeThreshold = with(density) { 120.dp.toPx() }
     val scope = rememberCoroutineScope()
     val offsetAnimatable = remember { Animatable(0f) }
+
+    // Collect playback state locally so 500ms position updates don't recompose
+    // the entire NavHost. Only the MiniPlayer recomposes.
+    val isPlaying by playbackManager.isPlaying.collectAsState()
+    val currentPosition by playbackManager.currentPosition.collectAsState()
+    val duration by playbackManager.duration.collectAsState()
 
     val isRealCover = !book.coverPath.isNullOrEmpty()
 
@@ -64,7 +66,7 @@ fun MiniPlayer(
                         onDragEnd = {
                             scope.launch {
                                 if (abs(offsetAnimatable.value) >= swipeThreshold) {
-                                    onDismiss()
+                                    playbackManager.stopPlayback()
                                 } else {
                                     offsetAnimatable.animateTo(0f)
                                 }
@@ -140,7 +142,7 @@ fun MiniPlayer(
 
             // Play/Pause button
             IconButton(
-                onClick = onTogglePlayPause,
+                onClick = { playbackManager.togglePlayPause() },
                 modifier = Modifier.size(44.dp)
             ) {
                 Icon(

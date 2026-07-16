@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.audiora.AudioraApplication
 import com.audiora.domain.model.PlaybackSettings
 import com.audiora.domain.usecase.*
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.SharingStarted.Companion.Eagerly
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -27,21 +27,21 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     val themeMode: StateFlow<String> = getThemeModeUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = Eagerly,
             initialValue = "SYSTEM"
         )
 
     val colorSchemeName: StateFlow<String> = getColorSchemeUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = Eagerly,
             initialValue = "AUDIORA_PURPLE"
         )
 
     val playbackSettings: StateFlow<PlaybackSettings> = getPlaybackSettingsUseCase()
         .stateIn(
             scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
+            started = Eagerly,
             initialValue = PlaybackSettings(15, 3, 1.0f, 0)
         )
 

@@ -47,6 +47,7 @@ fun EditScreen(
     val app = context.applicationContext as com.audiora.AudioraApplication
     
     val viewModel: EditViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+        viewModelStoreOwner = context as androidx.activity.ComponentActivity,
         factory = EditViewModel.provideFactory(app, app.bookRepository, bookId)
     )
 
@@ -141,6 +142,16 @@ fun EditScreen(
                                     .size(24.dp)
                             )
                         } else {
+                            IconButton(
+                                onClick = { viewModel.resetChanges() },
+                                modifier = Modifier.testTag("edit_top_bar_reset")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.RestartAlt,
+                                    contentDescription = "Reset Changes",
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                            }
                             IconButton(
                                 onClick = { viewModel.saveChanges() },
                                 modifier = Modifier.testTag("edit_top_bar_save")
@@ -835,6 +846,58 @@ private fun formatMsToTime(ms: Long): String {
     }
 }
 
+/**
+ * Generates a synthetic audio waveform — a list of amplitude values (0f..1f)
+ * that visually resembles an audiobook's audio envelope. Uses a combination of
+ * sine waves, pseudo-random segments, and chapter-like pauses to create a
+ * realistic-looking waveform without reading actual audio data.
+ *
+ * Computed once per (totalDurationMs, zoomScale) — no frame-by-frame cost.
+ */
+private fun generateWaveformData(totalDurationMs: Long, zoomScale: Float): FloatArray {
+    // Target ~400 bars at 1x zoom, scales with zoom so more detail is visible
+    val barCount = (400 * zoomScale).toInt().coerceIn(100, 2000)
+    val data = FloatArray(barCount)
+
+    // Use the total duration as a seed for pseudo-random variation
+    val seed = (totalDurationMs / 1000).toInt().coerceAtLeast(1)
+
+    // Create "sections" that simulate the audio envelope across the book
+    val sectionCount = (barCount / 80).coerceAtLeast(3)
+    val sectionBounds = IntArray(sectionCount + 1)
+    for (i in 0..sectionCount) {
+        sectionBounds[i] = (barCount.toLong() * i / sectionCount).toInt()
+    }
+
+    // Per-section baseline amplitude and noise level
+    val sectionAmps = FloatArray(sectionCount) { i ->
+        0.15f + kotlin.math.sin(i * 1.7f + seed * 0.1f).let { (it + 1f) / 2f } * 0.7f
+    }
+
+    // Generate waveform with per-bar variation
+    var phase = 0f
+    for (i in 0 until barCount) {
+        val sectionIdx = (i * sectionCount / barCount).coerceAtMost(sectionCount - 1)
+        val baseAmp = sectionAmps[sectionIdx]
+
+        // Sine wave for smooth undulation
+        phase += 0.02f + baseAmp * 0.03f
+        val sine = (kotlin.math.sin(phase.toDouble()) + 1f).toFloat() / 2f
+
+        // Pseudo-random variation using simple hash
+        val hash = ((i * 2654435761L) % 1000).toInt().let { (it.toFloat() / 1000f) }
+
+        // Create occasional "silent" gaps (like pauses between sentences)
+        val gapMod = if ((i % 37) == 0) 0.08f * hash else 1f
+
+        // Combine sine envelope + random noise + gap modulation
+        val amp = baseAmp * (0.3f + 0.7f * sine) * (0.5f + 0.5f * hash) * gapMod
+        data[i] = amp.coerceIn(0.02f, 1f)
+    }
+
+    return data
+}
+
 @Composable
 fun VisualChapterTimeline(
     chapters: List<com.audiora.domain.model.Chapter>,
@@ -846,11 +909,20 @@ fun VisualChapterTimeline(
     val primaryColor = MaterialTheme.colorScheme.primary // Resolve once in Composable context
     var zoomScale by remember { mutableStateOf(1f) }
     
-    // Smooth local state representation of the current start times
-    var localChapterTimes by remember(chapters) { mutableStateOf(chapters.map { it.startMs }) }
-    
-    // Track dragging states
+    // Track dragging states — declared BEFORE localChapterTimes since LaunchedEffect references it
     var draggingIndex by remember { mutableStateOf<Int?>(null) }
+
+    // Smooth local state representation of the current start times.
+    // Decoupled from the chapters parameter to prevent mid-drag resets from
+    // ViewModel recomposition. Synced from chapters only when not dragging.
+    var localChapterTimes by remember { mutableStateOf(chapters.map { it.startMs }) }
+    // Sync from ViewModel when NOT dragging (e.g., after drag-end reconstruction).
+    val currentDragIndex = draggingIndex
+    LaunchedEffect(chapters, currentDragIndex) {
+        if (currentDragIndex == null) {
+            localChapterTimes = chapters.map { it.startMs }
+        }
+    }
     
     Column(
         modifier = modifier
@@ -904,7 +976,15 @@ fun VisualChapterTimeline(
             }
         }
         
-        // Scrollable timeline viewport
+        // Scrollable timeline viewport — deferred by one frame so form fields
+        // render immediately, giving an instant tab-switch feel. The timeline
+        // appears on the next frame (~16ms later).
+        var timelineReady by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) {
+            androidx.compose.runtime.withFrameNanos { }
+            timelineReady = true
+        }
+        if (timelineReady) {
         val scrollState = rememberScrollState()
         BoxWithConstraints(
             modifier = Modifier
@@ -923,25 +1003,33 @@ fun VisualChapterTimeline(
                     .width(timelineWidthDp)
                     .horizontalScroll(scrollState)
             ) {
-                // 1. Draw ruler markings/ticks behind track
+                // 1. Draw synthetic audio waveform behind track
+                val waveformBars = remember(totalDurationMs, zoomScale) {
+                    generateWaveformData(totalDurationMs, zoomScale)
+                }
                 Canvas(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(26.dp)
+                        .height(36.dp)
                         .align(Alignment.BottomCenter)
                 ) {
                     val totalWidth = size.width
-                    val tickCount = (10 * zoomScale).toInt().coerceIn(10, 80)
-                    val step = totalWidth / tickCount
-                    for (stepIdx in 0..tickCount) {
-                        val x = stepIdx * step
-                        val isMajor = stepIdx % 5 == 0
-                        val tickHeight = if (isMajor) 15f else 8f
-                        drawLine(
-                            color = if (isMajor) primaryColor.copy(alpha = 0.5f) else Color.Gray.copy(alpha = 0.3f),
-                            start = Offset(x, size.height - tickHeight),
-                            end = Offset(x, size.height),
-                            strokeWidth = if (isMajor) 3f else 1.5f
+                    val barWidth = totalWidth / waveformBars.size.coerceAtLeast(1)
+                    val centerY = size.height / 2f
+                    val halfHeight = size.height / 2f
+
+                    for (i in waveformBars.indices) {
+                        val amplitude = waveformBars[i]
+                        val barHeight = amplitude * halfHeight * 0.9f
+                        val x = i * barWidth
+                        val alpha = (0.3f + amplitude * 0.5f).coerceIn(0f, 1f)
+                        drawRect(
+                            color = primaryColor.copy(alpha = alpha),
+                            topLeft = Offset(x, centerY - barHeight),
+                            size = androidx.compose.ui.geometry.Size(
+                                width = barWidth.coerceAtLeast(1f),
+                                height = barHeight * 2f
+                            )
                         )
                     }
                 }
@@ -958,13 +1046,14 @@ fun VisualChapterTimeline(
                     val maxTrackWidthDp = timelineWidthDp - 8.dp
                     
                     localChapterTimes.forEachIndexed { idx, startMs ->
+                        key(idx) {
                         val endMs = localChapterTimes.getOrNull(idx + 1) ?: totalDurationMs
                         val startFr = startMs.toDouble() / totalDurationMs
                         val endFr = endMs.toDouble() / totalDurationMs
-                        
+
                         val startX = maxTrackWidthDp * startFr.toFloat()
                         val segmentWidth = maxTrackWidthDp * (endFr - startFr).toFloat()
-                        
+
                         // Alternate alpha colors
                         val colors = listOf(
                             primaryColor.copy(alpha = 0.3f),
@@ -999,9 +1088,10 @@ fun VisualChapterTimeline(
                                 )
                             }
                         }
+                        } // key(idx)
                     }
                 }
-                
+
                 // 3. Draw draggable markers/handles on top
                 val maxTrackWidthDp = timelineWidthDp - 8.dp
                 localChapterTimes.forEachIndexed { idx, startMs ->
@@ -1016,7 +1106,7 @@ fun VisualChapterTimeline(
                                 .width(36.dp)
                                 .height(56.dp)
                                 .testTag("timeline_handle_$idx")
-                                .pointerInput(idx, timelineWidthPx) {
+                                .pointerInput(idx) {
                                     detectDragGestures(
                                         onDragStart = {
                                             draggingIndex = idx
@@ -1100,6 +1190,7 @@ fun VisualChapterTimeline(
                 }
             }
         }
+        } // if (timelineReady)
     }
 }
 
