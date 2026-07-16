@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -302,6 +303,11 @@ class EditViewModel(
                 }
 
                 _saveStatus.value = SaveStatus.Success
+                // Refresh selectedBook from DB so cover preview and fields update
+                val freshBook = bookRepository.getAudiobook(book.id).firstOrNull()
+                if (freshBook != null) {
+                    _selectedBook.value = freshBook
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to save changes")
                 _saveStatus.value = SaveStatus.Error(e.localizedMessage ?: "Unknown error while saving changes.")
