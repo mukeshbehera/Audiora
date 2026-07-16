@@ -586,7 +586,7 @@ fun EditScreen(
                                     modifier = Modifier.fillMaxWidth().testTag("chapter_card_$index")
                                 ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                        modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Box(
