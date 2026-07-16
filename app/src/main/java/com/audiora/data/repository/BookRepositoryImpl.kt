@@ -102,7 +102,7 @@ class BookRepositoryImpl(
                     tag.setField(org.jaudiotagger.tag.FieldKey.RECORD_LABEL, publisher)
                     tag.setField(org.jaudiotagger.tag.FieldKey.GENRE, genre)
                     tag.setField(org.jaudiotagger.tag.FieldKey.LANGUAGE, language)
-                    tag.setField(org.jaudiotagger.tag.FieldKey.COMMENT, description)
+                    // Note: COMMENT field is reserved for chapters JSON in updateBookChapters
                     tag.setField(org.jaudiotagger.tag.FieldKey.COPYRIGHT, copyright)
                     tag.setField(org.jaudiotagger.tag.FieldKey.YEAR, year)
                     org.jaudiotagger.audio.AudioFileIO.write(audioFile)
@@ -124,7 +124,7 @@ class BookRepositoryImpl(
                         tag.setField(org.jaudiotagger.tag.FieldKey.RECORD_LABEL, publisher)
                         tag.setField(org.jaudiotagger.tag.FieldKey.GENRE, genre)
                         tag.setField(org.jaudiotagger.tag.FieldKey.LANGUAGE, language)
-                        tag.setField(org.jaudiotagger.tag.FieldKey.COMMENT, description)
+                        // Note: COMMENT field is reserved for chapters JSON in updateBookChapters
                         tag.setField(org.jaudiotagger.tag.FieldKey.COPYRIGHT, copyright)
                         tag.setField(org.jaudiotagger.tag.FieldKey.YEAR, year)
                         org.jaudiotagger.audio.AudioFileIO.write(audioFile)
