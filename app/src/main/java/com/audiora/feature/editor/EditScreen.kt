@@ -62,6 +62,7 @@ fun EditScreen(
     val allBooks by viewModel.allBooks.collectAsStateWithLifecycle()
     val selectedBook by viewModel.selectedBook.collectAsStateWithLifecycle()
     val saveStatus by viewModel.saveStatus.collectAsStateWithLifecycle()
+    val pendingCoverAction by viewModel.pendingCoverAction.collectAsStateWithLifecycle()
 
     val titleInput by viewModel.titleInput.collectAsStateWithLifecycle()
     val authorInput by viewModel.authorInput.collectAsStateWithLifecycle()
@@ -316,14 +317,17 @@ fun EditScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            val currentCoverPath = selectedBook?.coverPath ?: "default"
-                            val isRealCustomCover = currentCoverPath.startsWith("/") || currentCoverPath.startsWith("content://")
+                            // Use pending cover preview if set; otherwise show current cover
+                            val hasPendingRemove = pendingCoverAction == "__REMOVE__"
+                            val pendingReplaceUri = pendingCoverAction?.takeIf { it != "__REMOVE__" }
+                            val displayCoverPath = if (hasPendingRemove) "" else (pendingReplaceUri ?: selectedBook?.coverPath ?: "default")
+                            val isRealCustomCover = if (hasPendingRemove) false else (displayCoverPath.startsWith("/") || displayCoverPath.startsWith("content://"))
 
                             com.audiora.feature.library.AudiobookCoverArt(
                                 title = selectedBook?.title ?: "",
                                 author = selectedBook?.author ?: "",
                                 genre = selectedBook?.genre ?: "Default",
-                                coverColorSeed = currentCoverPath,
+                                coverColorSeed = displayCoverPath,
                                 modifier = Modifier
                                     .width(140.dp)
                                     .testTag("edit_cover_art_preview")
