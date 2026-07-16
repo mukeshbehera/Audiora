@@ -2,6 +2,8 @@ package com.audiora.feature.editor
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -264,44 +266,47 @@ class EditViewModel(
 
     fun saveChanges() {
         val book = _selectedBook.value ?: return
+        _saveStatus.value = SaveStatus.Saving
         viewModelScope.launch {
-            _saveStatus.value = SaveStatus.Saving
             try {
-                // 1. Save metadata fields
-                bookRepository.updateBookMetadata(
-                    context = getApplication(),
-                    bookId = book.id,
-                    title = titleInput.value.trim(),
-                    author = authorInput.value.trim(),
-                    narrator = narratorInput.value.trim(),
-                    publisher = publisherInput.value.trim(),
-                    genre = genreInput.value.trim(),
-                    language = languageInput.value.trim(),
-                    description = descriptionInput.value.trim(),
-                    copyright = copyrightInput.value.trim(),
-                    year = yearInput.value.trim()
-                )
-
-                // 2. Save chapters
-                bookRepository.updateBookChapters(
-                    context = getApplication(),
-                    bookId = book.id,
-                    chapters = chapters.value
-                )
-
-                // 3. Apply pending cover change if any
-                val pendingCover = _pendingCoverAction.value
-                if (pendingCover != null) {
-                    val coverUri = if (pendingCover == "__REMOVE__") null
-                        else android.net.Uri.parse(pendingCover)
-                    bookRepository.updateBookCover(
+                // Run all I/O on IO dispatcher so the main thread is not blocked
+                withContext(Dispatchers.IO) {
+                    // 1. Save metadata fields
+                    bookRepository.updateBookMetadata(
                         context = getApplication(),
                         bookId = book.id,
-                        imageUri = coverUri
+                        title = titleInput.value.trim(),
+                        author = authorInput.value.trim(),
+                        narrator = narratorInput.value.trim(),
+                        publisher = publisherInput.value.trim(),
+                        genre = genreInput.value.trim(),
+                        language = languageInput.value.trim(),
+                        description = descriptionInput.value.trim(),
+                        copyright = copyrightInput.value.trim(),
+                        year = yearInput.value.trim()
                     )
-                    _pendingCoverAction.value = null
-                }
 
+                    // 2. Save chapters
+                    bookRepository.updateBookChapters(
+                        context = getApplication(),
+                        bookId = book.id,
+                        chapters = chapters.value
+                    )
+
+                    // 3. Apply pending cover change if any
+                    val pendingCover = _pendingCoverAction.value
+                    if (pendingCover != null) {
+                        val coverUri = if (pendingCover == "__REMOVE__") null
+                            else android.net.Uri.parse(pendingCover)
+                        bookRepository.updateBookCover(
+                            context = getApplication(),
+                            bookId = book.id,
+                            imageUri = coverUri
+                        )
+                    }
+                }
+                // All I/O complete — update state on Main thread in one batch
+                _pendingCoverAction.value = null
                 _saveStatus.value = SaveStatus.Success
                 // Refresh selectedBook from DB so cover preview and fields update
                 val freshBook = bookRepository.getAudiobook(book.id).firstOrNull()
