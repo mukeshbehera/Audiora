@@ -47,7 +47,7 @@ fun EditScreen(
     val app = context.applicationContext as com.audiora.AudioraApplication
     
     val viewModel: EditViewModel = androidx.lifecycle.viewmodel.compose.viewModel(
-        viewModelStoreOwner = context as androidx.activity.ComponentActivity,
+        key = "edit_$bookId",
         factory = EditViewModel.provideFactory(app, app.bookRepository, bookId)
     )
 
