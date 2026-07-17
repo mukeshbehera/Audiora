@@ -286,11 +286,13 @@ class EditViewModel(
                         year = yearInput.value.trim()
                     )
 
-                    // 2. Save chapters
+                    // 2. Save chapters — pass filePath so updateBookChapters doesn't
+                    // need to re-read Room (which may be stale after metadata write).
                     bookRepository.updateBookChapters(
                         context = getApplication(),
                         bookId = book.id,
-                        chapters = chapters.value
+                        chapters = chapters.value,
+                        filePath = book.filePath
                     )
 
                     // 3. Apply pending cover change if any

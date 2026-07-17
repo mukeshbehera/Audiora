@@ -310,12 +310,25 @@ class BookRepositoryImpl(
     override suspend fun updateBookChapters(
         context: android.content.Context,
         bookId: Int,
-        chapters: List<com.audiora.domain.model.Chapter>
+        chapters: List<com.audiora.domain.model.Chapter>,
+        filePath: String? = null,
     ) {
-        val existingEntity = bookDao.getAudiobookById(bookId).first() ?: throw IllegalArgumentException("Book with ID $bookId not found")
-        val filePathStr = existingEntity.filePath
+        val filePathStr = if (filePath != null) filePath else {
+            bookDao.getAudiobookById(bookId).first()?.filePath
+                ?: throw IllegalArgumentException("Book with ID $bookId not found")
+        }
         val serialized = com.audiora.domain.model.Chapter.serializeList(chapters)
-        
+
+        // Always update Room DB first so data is never lost
+        bookDao.getAudiobookById(bookId).first()?.let { existingEntity ->
+            val updatedEntity = existingEntity.copy(
+                chaptersJson = serialized,
+                lastModified = System.currentTimeMillis()
+            )
+            bookDao.updateAudiobook(updatedEntity)
+        }
+
+        // Then attempt to write to the M4B file — if this fails, Room still has the data
         if (filePathStr.isNotEmpty()) {
             val isContentUri = filePathStr.startsWith("content://")
             var tempFile: java.io.File? = null
@@ -331,11 +344,11 @@ class BookRepositoryImpl(
                     }
                     val audioFile = org.jaudiotagger.audio.AudioFileIO.read(tempFile)
                     val tag = audioFile.tag ?: audioFile.createDefaultTag().also { audioFile.tag = it }
-                    
+
                     // We save the chapters in the standard COMMENT field of the M4B
                     tag.setField(org.jaudiotagger.tag.FieldKey.COMMENT, "ChaptersJSON:$serialized")
                     org.jaudiotagger.audio.AudioFileIO.write(audioFile)
-                    
+
                     context.contentResolver.openOutputStream(uri, "rwt")?.use { output ->
                         tempFile.inputStream().use { input ->
                             input.copyTo(output)
@@ -352,17 +365,12 @@ class BookRepositoryImpl(
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error writing chapters metadata to M4B: $filePathStr")
+                throw e
             } finally {
                 try {
                     tempFile?.delete()
                 } catch (ignored: Exception) {}
             }
         }
-
-        val updatedEntity = existingEntity.copy(
-            chaptersJson = serialized,
-            lastModified = System.currentTimeMillis()
-        )
-        bookDao.updateAudiobook(updatedEntity)
     }
 }
