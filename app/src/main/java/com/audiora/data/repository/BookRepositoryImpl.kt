@@ -311,7 +311,7 @@ class BookRepositoryImpl(
         context: android.content.Context,
         bookId: Int,
         chapters: List<com.audiora.domain.model.Chapter>,
-        filePath: String? = null,
+        filePath: String?,
     ) {
         val filePathStr = if (filePath != null) filePath else {
             bookDao.getAudiobookById(bookId).first()?.filePath
