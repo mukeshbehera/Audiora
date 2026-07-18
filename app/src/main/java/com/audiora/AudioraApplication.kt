@@ -3,6 +3,12 @@ package com.audiora
 import android.app.Application
 import androidx.room.Room
 import com.audiora.data.local.AppDatabase
+import com.audiora.data.processing.FFmpegService
+import com.audiora.data.processing.FfmpegBinaryManager
+import com.audiora.data.processing.TempFileManager
+import com.audiora.data.processing.executor.ProcessExecutor
+import com.audiora.data.processing.parser.FFprobeJsonParser
+import com.audiora.data.processing.parser.ProgressParser
 import com.audiora.data.repository.BookRepositoryImpl
 import com.audiora.data.repository.FolderRepositoryImpl
 import com.audiora.data.repository.SettingsRepositoryImpl
@@ -37,6 +43,13 @@ class AudioraApplication : Application() {
 
     // App-scoped coroutine scope for background tasks that must outlive any screen
     val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+    // ─── FFmpeg processing singletons ───
+    lateinit var ffmpegService: FFmpegService
+        private set
+
+    lateinit var ffmpegBinaryManager: FfmpegBinaryManager
+        private set
 
     private fun createNotificationChannel() {
         val channel = android.app.NotificationChannel(
@@ -77,7 +90,26 @@ class AudioraApplication : Application() {
         ).fallbackToDestructiveMigration() // Simple, robust migrations for V1 prototyping
          .build()
 
-        bookRepository = BookRepositoryImpl(database.bookDao(), database.bookmarkDao(), appScope)
+        // Initialize FFmpeg processing layer
+        ffmpegBinaryManager = FfmpegBinaryManager(applicationContext)
+        val processExecutor = ProcessExecutor()
+        val tempFileManager = TempFileManager(applicationContext)
+        val ffprobeJsonParser = FFprobeJsonParser()
+        val progressParser = ProgressParser()
+        ffmpegService = FFmpegService(
+            binaryManager = ffmpegBinaryManager,
+            processExecutor = processExecutor,
+            tempFileManager = tempFileManager,
+            ffprobeJsonParser = ffprobeJsonParser,
+            progressParser = progressParser,
+        )
+
+        bookRepository = BookRepositoryImpl(
+            bookDao = database.bookDao(),
+            bookmarkDao = database.bookmarkDao(),
+            appScope = appScope,
+            ffmpegService = ffmpegService,
+        )
         settingsRepository = SettingsRepositoryImpl(applicationContext)
         folderRepository = FolderRepositoryImpl(applicationContext, database.folderDao(), database.bookDao(), appScope)
         playbackManager = com.audiora.feature.player.PlaybackManager(applicationContext, bookRepository)
