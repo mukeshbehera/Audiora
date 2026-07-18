@@ -100,16 +100,19 @@ for ABI in "${TARGET_ABIS[@]}"; do
       SYS_ARCH="aarch64"
       CLANG_TRIPLE="aarch64-linux-android${API_LEVEL}"
       CROSS_PREFIX="${TOOLCHAIN}/bin/aarch64-linux-android-"
+      EXTRA_OPTS=""
       ;;
     armeabi-v7a)
       SYS_ARCH="arm"
       CLANG_TRIPLE="armv7a-linux-androideabi${API_LEVEL}"
       CROSS_PREFIX="${TOOLCHAIN}/bin/arm-linux-androideabi-"
+      EXTRA_OPTS=""
       ;;
     x86_64)
       SYS_ARCH="x86_64"
       CLANG_TRIPLE="x86_64-linux-android${API_LEVEL}"
       CROSS_PREFIX="${TOOLCHAIN}/bin/x86_64-linux-android-"
+      EXTRA_OPTS="--disable-x86asm"
       ;;
     *)
       echo "Unknown ABI: $ABI"
@@ -193,7 +196,8 @@ for ABI in "${TARGET_ABIS[@]}"; do
     --disable-muxer=segment,hls,dash \
     --disable-encoder=libx264,libx265,libvpx \
     --disable-decoder=h264,hevc,mpeg4,mpeg2video,vp8,vp9 \
-    --disable-bsf=aac_adtstoasc
+    --disable-bsf=aac_adtstoasc \
+    $EXTRA_OPTS
 
   echo "Building..."
   make -j"$(nproc)" || { echo "ERROR: Build failed"; exit 1; }
