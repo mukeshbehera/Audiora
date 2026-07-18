@@ -4,8 +4,15 @@ import com.audiora.data.local.BookDao
 import com.audiora.data.local.BookEntity
 import com.audiora.data.local.BookmarkDao
 import com.audiora.data.local.BookmarkEntity
+import com.audiora.data.processing.FFmpegService
+import com.audiora.data.processing.dto.FFmpegResult
+import com.audiora.data.processing.dto.FFprobeFormat
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.model.Bookmark
+import com.audiora.domain.model.Chapter
+import com.audiora.domain.model.ConversionOptions
+import com.audiora.domain.model.ExportOptions
+import com.audiora.domain.repository.BookProcessingResult
 import com.audiora.domain.repository.BookRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +27,8 @@ import timber.log.Timber
 class BookRepositoryImpl(
     private val bookDao: BookDao,
     private val bookmarkDao: BookmarkDao,
-    private val appScope: CoroutineScope
+    private val appScope: CoroutineScope,
+    private val ffmpegService: FFmpegService,
 ) : BookRepository {
 
     // In-memory cache mirroring Voice's BookContentRepoImpl pattern: eagerly subscribed
@@ -106,7 +114,7 @@ class BookRepositoryImpl(
                     tag.setField(org.jaudiotagger.tag.FieldKey.COPYRIGHT, copyright)
                     tag.setField(org.jaudiotagger.tag.FieldKey.YEAR, year)
                     org.jaudiotagger.audio.AudioFileIO.write(audioFile)
-                    
+
                     context.contentResolver.openOutputStream(uri, "rwt")?.use { output ->
                         tempFile.inputStream().use { input ->
                             input.copyTo(output)
@@ -138,7 +146,7 @@ class BookRepositoryImpl(
                 } catch (ignored: Exception) {}
             }
         }
-        
+
         val updatedEntity = existingEntity.copy(
             title = title,
             author = author,
@@ -161,14 +169,14 @@ class BookRepositoryImpl(
     ) {
         val existingEntity = bookDao.getAudiobookById(bookId).first() ?: throw IllegalArgumentException("Book with ID $bookId not found")
         val filePathStr = existingEntity.filePath
-        
+
         // 1. Delete old local cover file if valid
         existingEntity.coverPath?.let { oldPath ->
-            if (oldPath.startsWith("/") && 
-                !oldPath.contains("nebula") && 
-                !oldPath.contains("horizon") && 
-                !oldPath.contains("eternity") && 
-                !oldPath.contains("neon") && 
+            if (oldPath.startsWith("/") &&
+                !oldPath.contains("nebula") &&
+                !oldPath.contains("horizon") &&
+                !oldPath.contains("eternity") &&
+                !oldPath.contains("neon") &&
                 !oldPath.contains("infinite")
             ) {
                 try {
@@ -209,7 +217,7 @@ class BookRepositoryImpl(
                             artwork.mimeType = mimeType
                             tag.setField(artwork)
                             org.jaudiotagger.audio.AudioFileIO.write(audioFile)
-                            
+
                             context.contentResolver.openOutputStream(uri, "rwt")?.use { output ->
                                 tempFile.inputStream().use { input ->
                                     input.copyTo(output)
@@ -310,14 +318,14 @@ class BookRepositoryImpl(
     override suspend fun updateBookChapters(
         context: android.content.Context,
         bookId: Int,
-        chapters: List<com.audiora.domain.model.Chapter>,
+        chapters: List<Chapter>,
         filePath: String?,
     ) {
         val filePathStr = if (filePath != null) filePath else {
             bookDao.getAudiobookById(bookId).first()?.filePath
                 ?: throw IllegalArgumentException("Book with ID $bookId not found")
         }
-        val serialized = com.audiora.domain.model.Chapter.serializeList(chapters)
+        val serialized = Chapter.serializeList(chapters)
 
         // Always update Room DB first so data is never lost
         bookDao.getAudiobookById(bookId).first()?.let { existingEntity ->
@@ -372,5 +380,111 @@ class BookRepositoryImpl(
                 } catch (ignored: Exception) {}
             }
         }
+    }
+
+    // ─── FFprobe-based reading ───
+
+    override suspend fun readChaptersFromFile(filePath: String): List<Chapter> {
+        return ffmpegService.readChapters(filePath)
+    }
+
+    // ─── FFmpeg-based writing ───
+
+    override suspend fun createM4B(
+        context: android.content.Context,
+        inputFiles: List<String>,
+        outputPath: String,
+        options: ConversionOptions,
+        metadata: Map<String, String>,
+        coverData: ByteArray?,
+        chapters: List<Chapter>?,
+        onProgress: ((Float) -> Unit)?,
+    ): BookProcessingResult {
+        return try {
+            val result = ffmpegService.createM4B(
+                inputFiles = inputFiles,
+                outputPath = outputPath,
+                options = options,
+                metadata = metadata,
+                coverData = coverData,
+                chapters = chapters,
+                onProgress = onProgress,
+            )
+            if (result.isSuccess) {
+                BookProcessingResult.Success(outputPath)
+            } else {
+                val error = result as FFmpegResult.Error
+                BookProcessingResult.Error("Processing failed: ${error.message}")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "createM4B failed")
+            BookProcessingResult.Error("Unexpected error: ${e.localizedMessage ?: "Unknown error"}")
+        }
+    }
+
+    override suspend fun exportAudiobook(
+        context: android.content.Context,
+        bookId: Int,
+        outputPath: String,
+        options: ExportOptions,
+        onProgress: ((Float) -> Unit)?,
+    ): BookProcessingResult {
+        return try {
+            val book = bookDao.getAudiobookById(bookId).first()
+                ?: return BookProcessingResult.Error("Book with ID $bookId not found")
+            val result = ffmpegService.exportAudiobook(
+                inputPath = book.filePath,
+                outputPath = outputPath,
+                options = options,
+                onProgress = onProgress,
+            )
+            if (result.isSuccess) {
+                BookProcessingResult.Success(outputPath)
+            } else {
+                val error = result as FFmpegResult.Error
+                BookProcessingResult.Error("Export failed: ${error.message}")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "exportAudiobook failed")
+            BookProcessingResult.Error("Unexpected error: ${e.localizedMessage ?: "Unknown error"}")
+        }
+    }
+
+    override suspend fun replaceChaptersInFile(
+        context: android.content.Context,
+        bookId: Int,
+        chapters: List<Chapter>,
+        onProgress: ((Float) -> Unit)?,
+    ): BookProcessingResult {
+        return try {
+            val book = bookDao.getAudiobookById(bookId).first()
+                ?: return BookProcessingResult.Error("Book with ID $bookId not found")
+            val result = ffmpegService.replaceChaptersInFile(
+                filePath = book.filePath,
+                chapters = chapters,
+                onProgress = onProgress,
+            )
+            if (result.isSuccess) {
+                // Also update Room cache
+                val serialized = Chapter.serializeList(chapters)
+                bookDao.getAudiobookById(bookId).first()?.let { entity ->
+                    bookDao.updateAudiobook(entity.copy(
+                        chaptersJson = serialized,
+                        lastModified = System.currentTimeMillis()
+                    ))
+                }
+                BookProcessingResult.Success(book.filePath)
+            } else {
+                val error = result as FFmpegResult.Error
+                BookProcessingResult.Error("Chapter replacement failed: ${error.message}")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "replaceChaptersInFile failed")
+            BookProcessingResult.Error("Unexpected error: ${e.localizedMessage ?: "Unknown error"}")
+        }
+    }
+
+    override suspend fun getAudiobookInfo(filePath: String): FFprobeFormat? {
+        return ffmpegService.readFormat(filePath)
     }
 }
