@@ -121,15 +121,20 @@ jobs:
           retention-days: 7
 
       - name: Build ${{ matrix.flavor }} release APK (if signing keys available)
-        if: secrets.STORE_PASSWORD != ''
+        if: env.KEYSTORE_PATH != ''
         env:
-          KEYSTORE_PATH: ${{ secrets.KEYSTORE_PATH }}
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assemble${{ matrix.flavor }}Release
+          KEYSTORE_PATH: ${{ secrets.KEYSTORE_PATH || '' }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || '' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || '' }}
+        run: |
+          if [ -n "$KEYSTORE_PATH" ] && [ -n "$STORE_PASSWORD" ]; then
+            ./gradlew assemble${{ matrix.flavor }}Release
+          else
+            echo "Skipping release build — signing keys not configured"
+          fi
 
       - name: Upload ${{ matrix.flavor }} release APK
-        if: secrets.STORE_PASSWORD != ''
+        if: env.KEYSTORE_PATH != ''
         uses: actions/upload-artifact@v4
         with:
           name: audiora-${{ matrix.flavor }}-release
