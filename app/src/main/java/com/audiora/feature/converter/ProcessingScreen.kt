@@ -58,6 +58,12 @@ fun ProcessingScreen(
     var progress by remember { mutableStateOf(0f) }
     var currentStatus by remember { mutableStateOf("Converting to M4B...") }
     var mergeJob by remember { mutableStateOf<Job?>(null) }
+
+    // 🔬 TEMPORARY DIAGNOSTIC — shows FFmpeg binary status for validation
+    var diagFfmpegStatus by remember { mutableStateOf("Checking...") }
+    var diagFfmpegVersion by remember { mutableStateOf<String?>(null) }
+    var diagBackend by remember { mutableStateOf("pending") }
+    var showDiag by remember { mutableStateOf(false) }
     
     // Determine stages based on progress
     val mergeCompleted = progress >= 0.45f
@@ -77,6 +83,23 @@ fun ProcessingScreen(
                 val app = context.applicationContext as AudioraApplication
                 val storageImportManager = com.audiora.data.local.StorageImportManager(context)
                 val selectedFiles = storageImportManager.getImportedFiles()
+
+                // 🔬 TEMPORARY DIAGNOSTIC — check FFmpeg binary status
+                showDiag = true
+                if (app.ffmpegBinaryManager.isInitialized) {
+                    diagFfmpegStatus = "✅ FFmpeg was previously initialized"
+                    diagFfmpegVersion = app.ffmpegBinaryManager.version ?: app.ffmpegBinaryManager.installedVersion
+                } else {
+                    val assetExists = try {
+                        context.assets.open("ffmpeg/ffmpeg").close(); true
+                    } catch (_: Exception) { false }
+                    if (assetExists) {
+                        diagFfmpegStatus = "⚠️ FFmpeg found in assets — will init on first use"
+                    } else {
+                        diagFfmpegStatus = "❌ No FFmpeg in assets — using M4BTranscoder"
+                    }
+                    diagFfmpegVersion = null
+                }
 
                 if (selectedFiles.isEmpty()) {
                     delay(500)
@@ -178,6 +201,7 @@ fun ProcessingScreen(
 
                         if (result.isSuccess) {
                             Timber.i("FFmpeg M4B creation succeeded with metadata and chapters")
+                            diagBackend = "FFmpeg ✅"
                             true
                         } else {
                             Timber.w("FFmpeg M4B creation failed, falling back")
@@ -193,6 +217,7 @@ fun ProcessingScreen(
                 }
 
                 if (!ffmpegUsed) {
+                    diagBackend = "M4BTranscoder ⚠️"
                     // Fallback: M4BTranscoder (metadata/chapters added with JAudiotagger after)
                     withContext(Dispatchers.IO) {
                         val transcodeOk = M4BTranscoder.transcode(context, inputUris, outputMergedFile, object : M4BTranscoder.ProgressListener {
@@ -335,7 +360,44 @@ fun ProcessingScreen(
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             
-            // 1. Dynamic Circular Gauge block (Matches Attached Graphic)
+            // 1. 🔬 TEMPORARY DIAGNOSTIC — FFmpeg binary status
+            if (showDiag) {
+                val diagBg = when {
+                    diagFfmpegStatus.startsWith("✅") -> Color(0xFF1B5E20)
+                    diagFfmpegStatus.startsWith("⚠️") -> Color(0xFFE65100)
+                    else -> Color(0xFFB71C1C)
+                }
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = diagBg.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp).fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(text = "🔬", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "FFmpeg: $diagFfmpegStatus",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            if (diagFfmpegVersion != null) {
+                                Text(
+                                    text = "Version: $diagFfmpegVersion | Backend: $diagBackend",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Dynamic Circular Gauge block (Matches Attached Graphic)
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
