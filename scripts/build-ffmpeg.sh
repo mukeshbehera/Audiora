@@ -189,7 +189,6 @@ for ABI in "${TARGET_ABIS[@]}"; do
     --disable-indevs \
     --disable-outdevs \
     --disable-devices \
-    --disable-programs \
     --disable-demuxer=hls,dash,mpegts \
     --disable-muxer=segment,hls,dash \
     --disable-encoder=libx264,libx265,libvpx \
