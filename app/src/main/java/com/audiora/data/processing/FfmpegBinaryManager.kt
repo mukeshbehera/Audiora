@@ -3,7 +3,12 @@ package com.audiora.data.processing
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
+import com.audiora.data.processing.exception.BinaryInitException
+import com.audiora.data.processing.exception.BinaryVerificationException
+import com.audiora.data.processing.exception.UnsupportedAbiException
 import com.audiora.data.processing.executor.ProcessExecutor
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
@@ -19,7 +24,7 @@ import java.io.IOException
  * - Set executable permissions
  * - Verify binary integrity (size check + --version)
  * - Auto-recover from corruption (delete → re-extract → retry once)
- * - Thread-safe initialization (double-checked locking)
+ * - Thread-safe initialization via Mutex (safe with coroutines)
  *
  * Asset layout (per-flavor APK — only one ABI per APK):
  *   assets/ffmpeg/
@@ -40,7 +45,7 @@ class FfmpegBinaryManager(
 
     @Volatile
     private var initialized = false
-    private val lock = Any()
+    private val initMutex = Mutex()
     @Volatile
     private var cachedVersion: String? = null
     @Volatile
@@ -61,15 +66,16 @@ class FfmpegBinaryManager(
 
     /**
      * Ensures binaries are extracted and ready.
-     * Thread-safe — only runs initialization once.
+     * Thread-safe via Mutex — safe with coroutine suspension.
      */
     suspend fun ensureInitialized(): BinaryPaths {
         if (initialized) {
             return cachedPaths ?: throw BinaryInitException("Binary paths lost after initialization")
         }
-        return synchronized(lock) {
+        return initMutex.withLock {
+            // Double-check after acquiring lock
             if (initialized) {
-                return@synchronized cachedPaths
+                return@withLock cachedPaths
                     ?: throw BinaryInitException("Binary paths lost after initialization")
             }
             val paths = initialize()
@@ -83,7 +89,7 @@ class FfmpegBinaryManager(
      * Force re-initialization — deletes existing binaries and re-extracts.
      */
     suspend fun reinitialize(): BinaryPaths {
-        synchronized(lock) {
+        initMutex.withLock {
             initialized = false
             cachedPaths = null
             cachedVersion = null
@@ -115,8 +121,8 @@ class FfmpegBinaryManager(
             ffmpegFile.delete()
             ffprobeFile.delete()
 
-            extractBinary(abi, "ffmpeg", ffmpegFile)
-            extractBinary(abi, "ffprobe", ffprobeFile)
+            extractBinary("ffmpeg", ffmpegFile)
+            extractBinary("ffprobe", ffprobeFile)
         }
 
         // Set executable permissions
@@ -136,8 +142,8 @@ class FfmpegBinaryManager(
             // Re-extract and retry once
             ffmpegFile.delete()
             ffprobeFile.delete()
-            extractBinary(abi, "ffmpeg", ffmpegFile)
-            extractBinary(abi, "ffprobe", ffprobeFile)
+            extractBinary("ffmpeg", ffmpegFile)
+            extractBinary("ffprobe", ffprobeFile)
             if (!ffmpegFile.setExecutable(true) || !ffprobeFile.setExecutable(true)) {
                 throw BinaryInitException("Failed to set permissions during recovery")
             }
@@ -233,7 +239,7 @@ class FfmpegBinaryManager(
      * Asset path (per-flavor APK): assets/ffmpeg/{name}
      * e.g. assets/ffmpeg/ffmpeg, assets/ffmpeg/ffprobe
      */
-    private fun extractBinary(abi: String, name: String, targetFile: File) {
+    private fun extractBinary(name: String, targetFile: File) {
         val assetPath = "$ASSETS_BASE/$name"
         try {
             context.assets.open(assetPath).use { input ->
