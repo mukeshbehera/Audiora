@@ -29,25 +29,25 @@ android {
   // This mirrors the approach used by android-media-converter and keeps
   // APK sizes small by not bundling binaries for all architectures.
 
-  flavorDimensions = listOf("cpuArch")
+  flavorDimensions("cpuArch")
   productFlavors {
-    arm64v8a {
+    create("arm64v8a") {
       dimension = "cpuArch"
       versionCode = 1
       versionNameSuffix = "-arm64-v8a"
-      ndk { abiFilters += listOf("arm64-v8a") }
+      ndk { abiFilters.add("arm64-v8a") }
     }
-    armeabiv7a {
+    create("armeabiv7a") {
       dimension = "cpuArch"
       versionCode = 1
       versionNameSuffix = "-armeabi-v7a"
-      ndk { abiFilters += listOf("armeabi-v7a") }
+      ndk { abiFilters.add("armeabi-v7a") }
     }
-    x8664 {
+    create("x8664") {
       dimension = "cpuArch"
       versionCode = 1
       versionNameSuffix = "-x86_64"
-      ndk { abiFilters += listOf("x86_64") }
+      ndk { abiFilters.add("x86_64") }
     }
   }
 
