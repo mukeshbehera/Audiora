@@ -86,9 +86,9 @@ fun ProcessingScreen(
 
                 // 🔬 TEMPORARY DIAGNOSTIC — check FFmpeg binary status
                 showDiag = true
-                if (app.ffmpegBinaryManager.isInitialized) {
+                if (app.ffmpegBinaryManager.isInitialized()) {
                     diagFfmpegStatus = "✅ FFmpeg was previously initialized"
-                    diagFfmpegVersion = app.ffmpegBinaryManager.version ?: app.ffmpegBinaryManager.installedVersion
+                    diagFfmpegVersion = app.ffmpegBinaryManager.getVersion()
                 } else {
                     val assetExists = try {
                         context.assets.open("ffmpeg/ffmpeg").close(); true
