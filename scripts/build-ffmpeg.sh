@@ -218,6 +218,8 @@ for ABI in "${TARGET_ABIS[@]}"; do
   chmod +x "$OUTPUT_DIR/ffmpeg" "$OUTPUT_DIR/ffprobe"
   stat -c%s "$OUTPUT_DIR/ffmpeg" > "$OUTPUT_DIR/ffmpeg_size.txt" 2>/dev/null || \
     stat -f%z "$OUTPUT_DIR/ffmpeg" > "$OUTPUT_DIR/ffmpeg_size.txt" 2>/dev/null
+  stat -c%s "$OUTPUT_DIR/ffprobe" > "$OUTPUT_DIR/ffprobe_size.txt" 2>/dev/null || \
+    stat -f%z "$OUTPUT_DIR/ffprobe" > "$OUTPUT_DIR/ffprobe_size.txt" 2>/dev/null
   echo "$FFMPEG_VERSION" > "$OUTPUT_DIR/version.txt"
 
   echo "Binaries placed in $OUTPUT_DIR"

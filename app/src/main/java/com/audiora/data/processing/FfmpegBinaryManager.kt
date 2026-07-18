@@ -96,7 +96,7 @@ class FfmpegBinaryManager(
         val needsExtract = installedVersion != bundledVersion ||
             !ffmpegFile.exists() ||
             !ffprobeFile.exists() ||
-            !verifySize(ffmpegFile)
+            !verifySize(ffmpegFile, "ffmpeg")
 
         if (needsExtract) {
             ffmpegFile.delete()
@@ -115,7 +115,7 @@ class FfmpegBinaryManager(
         }
 
         // Verify size integrity — if corrupted, re-extract once
-        if (!verifySize(ffmpegFile) || !verifySize(ffprobeFile)) {
+        if (!verifySize(ffmpegFile, "ffmpeg") || !verifySize(ffprobeFile, "ffprobe")) {
             Timber.tag("FFMPEG").w("Size mismatch, re-extracting...")
             ffmpegFile.delete()
             ffprobeFile.delete()
@@ -124,7 +124,7 @@ class FfmpegBinaryManager(
             if (!ffmpegFile.setExecutable(true) || !ffprobeFile.setExecutable(true)) {
                 throw BinaryInitException("Failed to set permissions during recovery")
             }
-            if (!verifySize(ffmpegFile) || !verifySize(ffprobeFile)) {
+            if (!verifySize(ffmpegFile, "ffmpeg") || !verifySize(ffprobeFile, "ffprobe")) {
                 throw BinaryInitException("Binary size mismatch after re-extraction — possible APK corruption")
             }
         }
@@ -171,11 +171,11 @@ class FfmpegBinaryManager(
     }
 
     /**
-     * Read the expected binary size from assets/ffmpeg/ffmpeg_size.txt.
+     * Read the expected binary size from assets/ffmpeg/{binaryName}_size.txt.
      */
-    private fun readExpectedSize(): Long? {
+    private fun readExpectedSize(binaryName: String): Long? {
         return try {
-            context.assets.open("$ASSETS_BASE/ffmpeg_size.txt")
+            context.assets.open("$ASSETS_BASE/${binaryName}_size.txt")
                 .bufferedReader()
                 .readText()
                 .trim()
@@ -186,11 +186,11 @@ class FfmpegBinaryManager(
     }
 
     /**
-     * Verify file size matches expected size from ffmpeg_size.txt.
+     * Verify file size matches expected size from {binaryName}_size.txt.
      */
-    private fun verifySize(binaryFile: File): Boolean {
+    private fun verifySize(binaryFile: File, binaryName: String): Boolean {
         if (!binaryFile.exists()) return false
-        val expectedSize = readExpectedSize() ?: return false // must have size file
+        val expectedSize = readExpectedSize(binaryName) ?: return false
         val actualSize = binaryFile.length()
         return actualSize == expectedSize
     }
