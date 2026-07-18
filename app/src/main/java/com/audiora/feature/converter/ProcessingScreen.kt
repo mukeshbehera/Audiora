@@ -109,7 +109,19 @@ fun ProcessingScreen(
                 }
 
                 val cacheDir = context.cacheDir
-                val outputMergedFile = File(cacheDir, "audiora_assembled_${System.currentTimeMillis()}.m4b")
+                val sharedFileName = "audiora_assembled_${System.currentTimeMillis()}.m4b"
+                val outputMergedFile = if (android.os.Build.VERSION.SDK_INT >= 29) {
+                    // On modern Android, save directly to cacheDir, then copy to Downloads at end
+                    File(cacheDir, sharedFileName)
+                } else {
+                    val audioraDir = java.io.File(
+                        android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS
+                        ), "Audiora"
+                    )
+                    if (!audioraDir.exists()) audioraDir.mkdirs()
+                    File(audioraDir, sharedFileName)
+                }
                 val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
 
                 // ── Pre-calculate file durations and chapters (needed for both FFmpeg and fallback) ──
@@ -298,6 +310,32 @@ fun ProcessingScreen(
                 )
                 app.bookRepository.saveAudiobook(newBook)
                 storageImportManager.updateImportedFiles(emptyList())
+
+                // Copy the final M4B to public Downloads/Audiora/ on modern Android
+                if (android.os.Build.VERSION.SDK_INT >= 29) {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            val downloadsUri = android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                            val contentValues = android.content.ContentValues().apply {
+                                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, sharedFileName)
+                                put(android.provider.MediaStore.Downloads.MIME_TYPE, "audio/mp4")
+                                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                                put(android.provider.MediaStore.Downloads.RELATIVE_PATH, "Download/Audiora")
+                            }
+                            val outputUri = context.contentResolver.insert(downloadsUri, contentValues)
+                            if (outputUri != null) {
+                                context.contentResolver.openOutputStream(outputUri)?.use { output ->
+                                    outputMergedFile.inputStream().use { input -> input.copyTo(output) }
+                                }
+                                val updateValues = android.content.ContentValues().apply {
+                                    put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                                }
+                                context.contentResolver.update(outputUri, updateValues, null, null)
+                                Timber.d("M4B saved to Downloads/Audiora/$sharedFileName")
+                            }
+                        }
+                    } catch (_: Exception) { }
+                }
 
                 progress = 1.0f
                 delay(500)

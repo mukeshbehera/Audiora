@@ -12,6 +12,7 @@ import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.TimeUnit
 
 /**
  * Manages FFmpeg and FFprobe native binary lifecycle.
@@ -256,10 +257,14 @@ class FfmpegBinaryManager(
     /**
      * Verify a binary works by running --version and checking the exit code.
      * Uses ProcessExecutor — never creates ProcessBuilder directly.
+     * Uses a short timeout (10s) to avoid hanging if the binary cannot execute.
      */
     private suspend fun verifyBinary(binaryPath: String, name: String) {
         val result = processExecutor.execute(
             command = listOf(binaryPath, "-version"),
+            config = com.audiora.data.processing.executor.ProcessExecutor.ExecutionConfig(
+                timeoutMs = TimeUnit.SECONDS.toMillis(10),
+            ),
         )
         if (result.isError) {
             val errMsg = (result as? com.audiora.data.processing.dto.FFmpegResult.Error)?.message ?: "unknown error"
