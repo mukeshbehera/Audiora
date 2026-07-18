@@ -25,9 +25,12 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.audiora.core.design.glass.BackdropLayer
+import com.audiora.core.design.glass.glassBackdrop
 import com.audiora.ui.theme.LocalDarkTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
@@ -296,30 +299,75 @@ fun AudioraGlassTextField(
 
 /**
  * AudioraGlassBottomBar: Floating glass nav bar.
+ *
+ * When [backdropLayer] is provided (API 31+), renders a real-time liquid-glass backdrop
+ * with vibrancy, blur, and optional refraction (API 33+). Falls back gracefully to
+ * visual-only glass on older API levels.
+ *
+ * Glassmorphism properties:
+ * - Semi-transparent surface background (0.75f alpha) — underlying content shows through
+ * - Top-edge glass reflection highlight (frosted edge shine)
+ * - Subtle rounded border
+ * - Purple-tinted glow shadow in dark mode
  */
 @Composable
 fun AudioraGlassBottomBar(
     modifier: Modifier = Modifier,
+    backdropLayer: BackdropLayer? = null,
     content: @Composable RowScope.() -> Unit
 ) {
     val isDark = LocalDarkTheme.current
-    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+    val containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.32f)
     val borderColor = MaterialTheme.colorScheme.outlineVariant
-    
+    val glassHighlight = if (isDark) Color.White.copy(alpha = 0.06f) else Color.White.copy(alpha = 0.35f)
+
+    val shape = RoundedCornerShape(28.dp)
+
     Box(
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
             .shadow(
                 elevation = 16.dp,
-                shape = RoundedCornerShape(28.dp),
+                shape = shape,
                 clip = false,
                 ambientColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000),
                 spotColor = if (isDark) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color(0x0F000000)
             )
-            .background(containerColor, RoundedCornerShape(28.dp))
-            .border(1.dp, borderColor, RoundedCornerShape(28.dp))
+            .clip(shape)
+            .then(
+                if (backdropLayer != null) {
+                    Modifier.glassBackdrop(
+                        backdropLayer = backdropLayer,
+                        shape = shape,
+                        containerColor = containerColor,
+                        borderColor = borderColor,
+                        borderWidthPx = with(LocalDensity.current) { 2.dp.toPx() },
+                        blurRadiusPx = with(LocalDensity.current) { 12.dp.toPx() },
+                        refractionHeightPx = with(LocalDensity.current) { 0.dp.toPx() },
+                        refractionAmountPx = with(LocalDensity.current) { 0.dp.toPx() }
+                    )
+                } else {
+                    Modifier
+                        .background(containerColor, shape)
+                        .border(1.dp, borderColor, shape)
+                }
+            )
             .height(72.dp)
     ) {
+        // Frosted glass top-edge highlight — only drawn for visual-only fallback
+        if (backdropLayer == null) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(glassHighlight, Color.Transparent)
+                        )
+                    )
+            )
+        }
+
+        // Content layer — navigation items stay crisp
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,

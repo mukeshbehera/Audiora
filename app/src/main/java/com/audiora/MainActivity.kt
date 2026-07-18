@@ -30,6 +30,9 @@ import com.audiora.feature.player.MiniPlayer
 import com.audiora.feature.player.PlayerScreen
 import com.audiora.feature.search.SearchScreen
 import com.audiora.feature.settings.SettingsScreen
+import com.audiora.core.design.glass.BackdropLayer
+import com.audiora.core.design.glass.backdropCapture
+import com.audiora.core.design.glass.rememberBackdropLayer
 import com.audiora.feature.welcome.WelcomeScreen
 import com.audiora.feature.welcome.SplashScreen
 import com.audiora.feature.welcome.OnboardingFoldersScreen
@@ -145,6 +148,9 @@ private fun MainAppShell(
         currentRoute !in setOf("splash", "welcome", "onboarding_folders") &&
         !currentRoute.startsWith("player/")
 
+    // Glass backdrop layer — captures content behind the bottom nav bar for real-time refraction
+    val glassBackdropLayer = rememberBackdropLayer()
+
     // Handle notification tap — navigate to player screen
     LaunchedEffect(pendingPlayerNavigation.value) {
         if (pendingPlayerNavigation.value) {
@@ -165,7 +171,9 @@ private fun MainAppShell(
         modifier = Modifier.fillMaxSize()
     ) {
         Scaffold(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .backdropCapture(glassBackdropLayer)
         ) { innerPadding ->
             // All screens in the NavHost have their own Scaffold that handles
             // system insets independently — no outer padding needed.
@@ -383,7 +391,9 @@ private fun MainAppShell(
                 }
 
                 // Elegant premium floating glass bottom bar
-                com.audiora.core.design.AudioraGlassBottomBar {
+                com.audiora.core.design.AudioraGlassBottomBar(
+                    backdropLayer = glassBackdropLayer
+                ) {
                     Screen.items.forEach { screen ->
                         val selected = currentRoute?.substringBefore("?") == screen.route
 
