@@ -63,7 +63,7 @@ jobs:
           if-no-files-found: error
 
   assemble-apks:
-    name: Assemble ${{ matrix.flavor }} APK
+    name: Assemble APK (${{ matrix.flavor }})
     needs: build-ffmpeg
     strategy:
       fail-fast: false
@@ -106,6 +106,12 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
+
+      - name: Generate Debug Keystore
+        run: |
+          keytool -genkey -v -keystore debug.keystore -alias androiddebugkey \
+            -storepass android -keypass android -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Android Debug, O=Android, C=US"
 
       - name: Make Gradle executable
         run: chmod +x gradlew
