@@ -1,3 +1,0 @@
-#!/bin/sh
-echo "FFmpeg binary not built yet. Run: bash scripts/build-ffmpeg.sh"
-exit 1
