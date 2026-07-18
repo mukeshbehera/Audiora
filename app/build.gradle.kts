@@ -17,6 +17,7 @@ android {
     versionName = project.findProperty("versionName")?.toString() ?: "1.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    buildConfigField("String", "FFMPEG_VERSION", "\"${project.findProperty("ffmpegVersion") ?: "0.0"}\"")
   }
 
   signingConfigs {
