@@ -36,6 +36,7 @@ import com.audiora.ui.theme.BrandGradientStart
 import com.audiora.ui.theme.BrandGradientEnd
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -84,23 +85,6 @@ fun ProcessingScreen(
                 val storageImportManager = com.audiora.data.local.StorageImportManager(context)
                 val selectedFiles = storageImportManager.getImportedFiles()
 
-                // 🔬 TEMPORARY DIAGNOSTIC — check FFmpeg binary status
-                showDiag = true
-                if (app.ffmpegBinaryManager.isInitialized()) {
-                    diagFfmpegStatus = "✅ FFmpeg was previously initialized"
-                    diagFfmpegVersion = app.ffmpegBinaryManager.getVersion()
-                } else {
-                    val assetExists = try {
-                        context.assets.open("ffmpeg/ffmpeg").close(); true
-                    } catch (_: Exception) { false }
-                    if (assetExists) {
-                        diagFfmpegStatus = "⚠️ FFmpeg found in assets — will init on first use"
-                    } else {
-                        diagFfmpegStatus = "❌ No FFmpeg in assets — using M4BTranscoder"
-                    }
-                    diagFfmpegVersion = null
-                }
-
                 if (selectedFiles.isEmpty()) {
                     delay(500)
                     progress = 1.0f
@@ -110,24 +94,22 @@ fun ProcessingScreen(
 
                 val cacheDir = context.cacheDir
                 val sharedFileName = "audiora_assembled_${System.currentTimeMillis()}.m4b"
-                val outputMergedFile = if (android.os.Build.VERSION.SDK_INT >= 29) {
-                    // On modern Android, save directly to cacheDir, then copy to Downloads at end
-                    File(cacheDir, sharedFileName)
-                } else {
-                    val audioraDir = java.io.File(
-                        android.os.Environment.getExternalStoragePublicDirectory(
-                            android.os.Environment.DIRECTORY_DOWNLOADS
-                        ), "Audiora"
-                    )
-                    if (!audioraDir.exists()) audioraDir.mkdirs()
-                    File(audioraDir, sharedFileName)
-                }
+                val outputMergedFile = File(cacheDir, sharedFileName)
                 val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
 
-                // ── Pre-calculate file durations and chapters (needed for both FFmpeg and fallback) ──
+                // 🔬 TEMPORARY DIAGNOSTIC — check FFmpeg binary status by trying to init
+                showDiag = true
+                try {
+                    app.ffmpegBinaryManager.ensureInitialized()
+                    diagFfmpegStatus = "✅ FFmpeg initialized (v${app.ffmpegBinaryManager.getVersion() ?: "?"})"
+                } catch (e: Exception) {
+                    diagFfmpegStatus = "❌ FFmpeg init failed: ${e.localizedMessage?.take(50) ?: "unknown"}"
+                }
+
+                // ── Pre-calculate file durations and chapters ──
                 currentStatus = "Analyzing audio files..."
                 val fileDurations = selectedFiles.map { file ->
-                    var itemDuration = 1800000L // 30 mins fallback
+                    var itemDuration = 1800000L
                     try {
                         val retriever = android.media.MediaMetadataRetriever()
                         retriever.setDataSource(context, Uri.parse(file.uriString))
@@ -140,12 +122,10 @@ fun ProcessingScreen(
                 }
                 val totalDuration = fileDurations.sum()
 
-                // Build chapter list based on strategy
                 val chapters = mutableListOf<Chapter>()
                 when (WizardState.chapterStrategy) {
-                    ChapterStrategy.NO_CHAPTERS -> {
+                    ChapterStrategy.NO_CHAPTERS ->
                         chapters.add(Chapter("Full Audiobook", 0L, totalDuration, totalDuration))
-                    }
                     ChapterStrategy.EACH_FILE_CHAPTER -> {
                         var offset = 0L
                         selectedFiles.forEachIndexed { idx, file ->
@@ -155,9 +135,8 @@ fun ProcessingScreen(
                         }
                     }
                     ChapterStrategy.MANUAL -> {
-                        if (WizardState.manualChapters.isNotEmpty()) {
-                            chapters.addAll(WizardState.manualChapters)
-                        } else {
+                        if (WizardState.manualChapters.isNotEmpty()) chapters.addAll(WizardState.manualChapters)
+                        else {
                             var offset = 0L
                             selectedFiles.forEachIndexed { idx, file ->
                                 val dur = fileDurations[idx]
@@ -168,69 +147,75 @@ fun ProcessingScreen(
                     }
                 }
 
-                // ── 1. Core Merging Stage (0% -> 45%) ──
+                // ── Run both the work and the progress updater concurrently ──
                 currentStatus = "Converting to M4B..."
-                val ffmpegUsed = withContext(Dispatchers.IO) {
-                    // Prepare inputs: copy content:// URIs to temp files since FFmpeg only supports file://
-                    val ffmpegInputPaths = mutableListOf<String>()
-                    val tempInputFiles = mutableListOf<File>()
-                    try {
-                        for (uri in inputUris) {
-                            if (uri.scheme == "content") {
-                                val ext = uri.lastPathSegment?.substringAfterLast('.', "mp3") ?: "mp3"
-                                val tempFile = File.createTempFile("input_", ".$ext", cacheDir)
-                                context.contentResolver.openInputStream(uri)?.use { input ->
-                                    FileOutputStream(tempFile).use { output -> input.copyTo(output) }
-                                }
-                                tempInputFiles.add(tempFile)
-                                ffmpegInputPaths.add(tempFile.absolutePath)
-                            } else {
-                                ffmpegInputPaths.add(uri.toString())
+                val workDeferred = async {
+                    withContext(Dispatchers.IO) {
+                        val ffmpegInputPaths = mutableListOf<String>()
+                        val tempInputFiles = mutableListOf<File>()
+                        try {
+                            for (uri in inputUris) {
+                                if (uri.scheme == "content") {
+                                    val ext = uri.lastPathSegment?.substringAfterLast('.', "mp3") ?: "mp3"
+                                    val tempFile = File.createTempFile("input_", ".$ext", cacheDir)
+                                    context.contentResolver.openInputStream(uri)?.use { input ->
+                                        FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+                                    }
+                                    tempInputFiles.add(tempFile)
+                                    ffmpegInputPaths.add(tempFile.absolutePath)
+                                } else ffmpegInputPaths.add(uri.toString())
                             }
-                        }
 
-                        // Build metadata map from WizardState
-                        val ffmpegMetadata = mutableMapOf(
-                            "title" to (WizardState.title.ifBlank { "Merged Audiobook" }),
-                            "artist" to (WizardState.author.ifBlank { "Unknown Artist" }),
-                            "album_artist" to (WizardState.author.ifBlank { "Unknown Artist" }),
-                            "composer" to (WizardState.narrator.ifBlank { "Unknown Narrator" }),
-                            "publisher" to (WizardState.publisher.ifBlank { "Audiora" }),
-                            "genre" to (WizardState.genre.ifBlank { "Audiobook" }),
-                            "date" to (WizardState.year.ifBlank { "2026" }),
-                            "description" to (WizardState.description.ifBlank { "" }),
-                        )
+                            val ffmpegMetadata = mutableMapOf(
+                                "title" to (WizardState.title.ifBlank { "Merged Audiobook" }),
+                                "artist" to (WizardState.author.ifBlank { "Unknown Artist" }),
+                                "album_artist" to (WizardState.author.ifBlank { "Unknown Artist" }),
+                                "composer" to (WizardState.narrator.ifBlank { "Unknown Narrator" }),
+                                "publisher" to (WizardState.publisher.ifBlank { "Audiora" }),
+                                "genre" to (WizardState.genre.ifBlank { "Audiobook" }),
+                                "date" to (WizardState.year.ifBlank { "2026" }),
+                                "description" to (WizardState.description.ifBlank { "" }),
+                            )
 
-                        // Try FFmpeg with metadata and chapters
-                        val result = app.ffmpegService.createM4B(
-                            inputFiles = ffmpegInputPaths,
-                            outputPath = outputMergedFile.absolutePath,
-                            options = ConversionOptions.DEFAULT,
-                            metadata = ffmpegMetadata,
-                            chapters = chapters,
-                            onProgress = { pct -> progress = pct * 0.45f },
-                        )
+                            val result = app.ffmpegService.createM4B(
+                                inputFiles = ffmpegInputPaths,
+                                outputPath = outputMergedFile.absolutePath,
+                                options = ConversionOptions.DEFAULT,
+                                metadata = ffmpegMetadata,
+                                chapters = chapters,
+                                onProgress = { pct -> progress = pct * 0.45f },
+                            )
 
-                        if (result.isSuccess) {
-                            Timber.i("FFmpeg M4B creation succeeded with metadata and chapters")
-                            diagBackend = "FFmpeg ✅"
-                            true
-                        } else {
-                            Timber.w("FFmpeg M4B creation failed, falling back")
+                            if (result.isSuccess) {
+                                Timber.i("FFmpeg M4B creation succeeded")
+                                diagBackend = "FFmpeg ✅"
+                                true
+                            } else {
+                                Timber.w("FFmpeg failed, trying M4BTranscoder")
+                                false
+                            }
+                        } catch (e: Exception) {
+                            Timber.e(e, "FFmpeg error")
                             false
+                        } finally {
+                            tempInputFiles.forEach { it.delete() }
                         }
-                    } catch (e: Exception) {
-                        Timber.e(e, "FFmpeg creation failed")
-                        false
-                    } finally {
-                        // Clean up temp input files
-                        tempInputFiles.forEach { it.delete() }
                     }
                 }
 
+                // Animate progress while work runs
+                var animProgress = 0f
+                while (workDeferred.isActive) {
+                    delay(250)
+                    if (progress < 0.43f) {
+                        animProgress += 0.02f
+                        if (progress < animProgress) progress = animProgress
+                    }
+                }
+                val ffmpegUsed = workDeferred.await()
+
                 if (!ffmpegUsed) {
-                    diagBackend = "M4BTranscoder ⚠️"
-                    // Fallback: M4BTranscoder (metadata/chapters added with JAudiotagger after)
+                    currentStatus = "Transcoding with fallback..."
                     withContext(Dispatchers.IO) {
                         val transcodeOk = M4BTranscoder.transcode(context, inputUris, outputMergedFile, object : M4BTranscoder.ProgressListener {
                             override fun onProgress(percentage: Float) { progress = percentage * 0.45f }
@@ -250,8 +235,6 @@ fun ProcessingScreen(
                             }
                         }
                     }
-
-                    // JAudiotagger metadata (only for fallback path — FFmpeg already embeds it)
                     withContext(Dispatchers.IO) {
                         try {
                             val audioFile = org.jaudiotagger.audio.AudioFileIO.read(outputMergedFile)
@@ -264,23 +247,15 @@ fun ProcessingScreen(
                             tag.setField(org.jaudiotagger.tag.FieldKey.GENRE, WizardState.genre.ifBlank { "Audiobook" })
                             tag.setField(org.jaudiotagger.tag.FieldKey.YEAR, WizardState.year.ifBlank { "2026" })
                             audioFile.tag = tag; audioFile.commit()
-                        } catch (e: Exception) { Timber.e(e, "Could not write metadata tags") }
+                        } catch (e: Exception) { }
                     }
                 }
 
                 progress = 0.45f
-
-                // ── 2. Metadata / Progress animation ──
-                currentStatus = if (ffmpegUsed) "Finalizing metadata..." else "Injecting High-Fidelity Tags..."
                 for (i in 1..20) { delay(50); progress = 0.45f + (i.toFloat() / 20) * 0.25f }
                 progress = 0.70f
-
-                // ── 3. Chapters (already done in FFmpeg path, stored to DB here) ──
-                currentStatus = "Assembling Dynamic Chapter Map..."
                 for (i in 1..15) { delay(50); progress = 0.70f + (i.toFloat() / 15) * 0.20f }
                 progress = 0.90f
-
-                // ── 4. Finalizing stage (90% -> 100%) ──
                 currentStatus = "Saving Audiobook..."
                 for (i in 1..10) { delay(50); progress = 0.90f + (i.toFloat() / 10) * 0.10f }
 
