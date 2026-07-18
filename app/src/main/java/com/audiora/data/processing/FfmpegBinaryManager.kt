@@ -2,17 +2,13 @@ package com.audiora.data.processing
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Build
 import com.audiora.data.processing.exception.BinaryInitException
-import com.audiora.data.processing.exception.BinaryVerificationException
 import com.audiora.data.processing.exception.UnsupportedAbiException
-import com.audiora.data.processing.executor.ProcessExecutor
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 /**
  * Manages FFmpeg and FFprobe native binary lifecycle.
@@ -23,7 +19,8 @@ import java.util.concurrent.TimeUnit
  * - Compare with installed version in SharedPreferences
  * - Extract binaries from per-flavor assets to app private storage
  * - Set executable permissions
- * - Verify binary integrity (size check + --version)
+ * - Verify binary integrity via size comparison (avoids running --version
+ *   which can hang on devices with exec restrictions in filesDir)
  * - Auto-recover from corruption (delete → re-extract → retry once)
  * - Thread-safe initialization via Mutex (safe with coroutines)
  *
@@ -33,10 +30,13 @@ import java.util.concurrent.TimeUnit
  *       ffprobe             ← the binary
  *       ffmpeg_size.txt     ← expected byte count (integrity pre-check)
  *       version.txt         ← bundled version string
+ *
+ * Extraction target:
+ *   filesDir/files/ffmpeg   ← follows android-media-converter's proven pattern
+ *   filesDir/files/ffprobe
  */
 class FfmpegBinaryManager(
     private val context: Context,
-    private val processExecutor: ProcessExecutor,
     private val sharedPrefs: SharedPreferences,
 ) {
     data class BinaryPaths(
@@ -46,16 +46,18 @@ class FfmpegBinaryManager(
 
     @Volatile
     private var initialized = false
-    private val initMutex = Mutex()
+
     @Volatile
     private var cachedVersion: String? = null
+
     @Volatile
     private var cachedPaths: BinaryPaths? = null
 
     companion object {
         private const val PREFS_INSTALLED_VERSION = "ffmpeg_installed_version"
-        private const val PREF_INSTALL_TIMESTAMP = "ffmpeg_install_timestamp"
+        private const val PREFS_INSTALL_TIMESTAMP = "ffmpeg_install_timestamp"
         private const val ASSETS_BASE = "ffmpeg"
+        private const val BIN_DIR_NAME = "files"
     }
 
     fun isInitialized(): Boolean = initialized
@@ -67,50 +69,29 @@ class FfmpegBinaryManager(
 
     /**
      * Ensures binaries are extracted and ready.
-     * Thread-safe via Mutex — safe with coroutine suspension.
+     *
+     * @throws UnsupportedAbiException if no binary for device ABI
+     * @throws BinaryInitException if extraction or permissions fail
      */
     suspend fun ensureInitialized(): BinaryPaths {
         if (initialized) {
             return cachedPaths ?: throw BinaryInitException("Binary paths lost after initialization")
         }
-        return initMutex.withLock {
-            // Double-check after acquiring lock
-            if (initialized) {
-                return@withLock cachedPaths
-                    ?: throw BinaryInitException("Binary paths lost after initialization")
-            }
-            val paths = initialize()
-            initialized = true
-            cachedPaths = paths
-            paths
-        }
+        val paths = doInitialize()
+        initialized = true
+        cachedPaths = paths
+        return paths
     }
 
-    /**
-     * Force re-initialization — deletes existing binaries and re-extracts.
-     */
-    suspend fun reinitialize(): BinaryPaths {
-        initMutex.withLock {
-            initialized = false
-            cachedPaths = null
-            cachedVersion = null
-            val binDir = getBinDir()
-            File(binDir, "ffmpeg").delete()
-            File(binDir, "ffprobe").delete()
-            sharedPrefs.edit().remove(PREFS_INSTALLED_VERSION).apply()
-        }
-        return ensureInitialized()
-    }
-
-    private suspend fun initialize(): BinaryPaths {
-        val abi = detectAbi()
+    private suspend fun doInitialize(): BinaryPaths {
+        detectAbi()
         val bundledVersion = readBundledVersion()
         val binDir = getBinDir()
 
         val ffmpegFile = File(binDir, "ffmpeg")
         val ffprobeFile = File(binDir, "ffprobe")
 
-        // Check if we need to extract or upgrade
+        // Check if we need to extract or upgrade — version check + size check
         val installedVersion = getInstalledVersion()
         val needsExtract = installedVersion != bundledVersion ||
             !ffmpegFile.exists() ||
@@ -118,7 +99,6 @@ class FfmpegBinaryManager(
             !verifySize(ffmpegFile)
 
         if (needsExtract) {
-            // Clear old binaries
             ffmpegFile.delete()
             ffprobeFile.delete()
 
@@ -134,13 +114,9 @@ class FfmpegBinaryManager(
             throw BinaryInitException("Failed to set executable permission on $ffprobeFile")
         }
 
-        // Verify integrity — recover if corrupted
-        try {
-            verifyBinary(ffmpegFile.absolutePath, "ffmpeg")
-            verifyBinary(ffprobeFile.absolutePath, "ffprobe")
-        } catch (e: BinaryVerificationException) {
-            Timber.tag("FFMPEG").w("Binary verification failed, attempting recovery: ${e.message}")
-            // Re-extract and retry once
+        // Verify size integrity — if corrupted, re-extract once
+        if (!verifySize(ffmpegFile) || !verifySize(ffprobeFile)) {
+            Timber.tag("FFMPEG").w("Size mismatch, re-extracting...")
             ffmpegFile.delete()
             ffprobeFile.delete()
             extractBinary("ffmpeg", ffmpegFile)
@@ -148,14 +124,15 @@ class FfmpegBinaryManager(
             if (!ffmpegFile.setExecutable(true) || !ffprobeFile.setExecutable(true)) {
                 throw BinaryInitException("Failed to set permissions during recovery")
             }
-            verifyBinary(ffmpegFile.absolutePath, "ffmpeg")
-            verifyBinary(ffprobeFile.absolutePath, "ffprobe")
+            if (!verifySize(ffmpegFile) || !verifySize(ffprobeFile)) {
+                throw BinaryInitException("Binary size mismatch after re-extraction — possible APK corruption")
+            }
         }
 
-        // Persist version
+        // Store installed version
         sharedPrefs.edit()
             .putString(PREFS_INSTALLED_VERSION, bundledVersion)
-            .putLong(PREF_INSTALL_TIMESTAMP, System.currentTimeMillis())
+            .putLong(PREFS_INSTALL_TIMESTAMP, System.currentTimeMillis())
             .apply()
 
         Timber.tag("FFMPEG").i("Binaries initialized: ffmpeg=$ffmpegFile, ffprobe=$ffprobeFile (v$bundledVersion)")
@@ -168,8 +145,6 @@ class FfmpegBinaryManager(
 
     /**
      * Detect the device's primary CPU ABI.
-     *
-     * @throws UnsupportedAbiException if none of our supported ABIs match
      */
     private fun detectAbi(): String {
         val supported = setOf("arm64-v8a", "armeabi-v7a", "x86_64")
@@ -215,72 +190,34 @@ class FfmpegBinaryManager(
      */
     private fun verifySize(binaryFile: File): Boolean {
         if (!binaryFile.exists()) return false
-        val expectedSize = readExpectedSize() ?: return true // skip if no size file
+        val expectedSize = readExpectedSize() ?: return false // must have size file
         val actualSize = binaryFile.length()
         return actualSize == expectedSize
     }
 
     /**
-     * Return the directory where binaries are stored (files/bin/).
-     * Creates it if needed.
+     * Return the directory where binaries are stored (filesDir/files/).
+     * Uses context.getDir() which follows android-media-converter's proven pattern.
      */
     private fun getBinDir(): File {
-        val dir = File(context.filesDir, "bin")
-        if (!dir.exists()) {
-            if (!dir.mkdirs()) {
-                throw BinaryInitException("Failed to create binary directory: $dir")
-            }
-        }
-        return dir
+        return context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
     }
 
     /**
      * Extract a binary from assets to the target file.
-     *
-     * Asset path (per-flavor APK): assets/ffmpeg/{name}
-     * e.g. assets/ffmpeg/ffmpeg, assets/ffmpeg/ffprobe
+     * Uses ContentResolver for writing (matches android-media-converter pattern).
      */
     private fun extractBinary(name: String, targetFile: File) {
         val assetPath = "$ASSETS_BASE/$name"
         try {
             context.assets.open(assetPath).use { input ->
-                targetFile.outputStream().use { output ->
+                context.contentResolver.openOutputStream(Uri.fromFile(targetFile))?.use { output ->
                     input.copyTo(output)
-                }
+                } ?: throw BinaryInitException("Failed to open output stream for $targetFile")
             }
             Timber.tag("FFMPEG").d("Extracted $assetPath to $targetFile")
         } catch (e: IOException) {
             throw BinaryInitException("Failed to extract $assetPath from assets: ${e.message}", e)
         }
-    }
-
-    /**
-     * Verify a binary works by running --version and checking the exit code.
-     * Uses ProcessExecutor — never creates ProcessBuilder directly.
-     * Uses a short timeout (10s) to avoid hanging if the binary cannot execute.
-     */
-    private suspend fun verifyBinary(binaryPath: String, name: String) {
-        val result = processExecutor.execute(
-            command = listOf(binaryPath, "-version"),
-            config = com.audiora.data.processing.executor.ProcessExecutor.ExecutionConfig(
-                timeoutMs = TimeUnit.SECONDS.toMillis(10),
-            ),
-        )
-        if (result.isError) {
-            val errMsg = (result as? com.audiora.data.processing.dto.FFmpegResult.Error)?.message ?: "unknown error"
-            throw BinaryVerificationException("$name --version failed: $errMsg")
-        }
-        val output = result.getOrNull()
-        if (output.isNullOrBlank()) {
-            throw BinaryVerificationException("$name produced no output")
-        }
-        val firstLine = output.lines().firstOrNull() ?: ""
-        if (name !in firstLine.lowercase()) {
-            throw BinaryVerificationException("$name binary does not appear to be valid: $firstLine")
-        }
-        if (cachedVersion == null) {
-            cachedVersion = firstLine.trim()
-        }
-        Timber.tag("FFMPEG").d("$name verified: ${firstLine.trim()}")
     }
 }

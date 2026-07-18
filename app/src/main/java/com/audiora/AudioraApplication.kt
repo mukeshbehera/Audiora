@@ -95,7 +95,6 @@ class AudioraApplication : Application() {
         val processExecutor = ProcessExecutor()
         ffmpegBinaryManager = FfmpegBinaryManager(
             context = applicationContext,
-            processExecutor = processExecutor,
             sharedPrefs = prefs,
         )
         val tempFileManager = TempFileManager(applicationContext)
