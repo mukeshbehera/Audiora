@@ -152,7 +152,7 @@ for ABI in "${TARGET_ABIS[@]}"; do
     --enable-static \
     --disable-shared \
     \
-    --disable-all \
+    --disable-programs \
     --enable-ffmpeg \
     --enable-ffprobe \
     \
