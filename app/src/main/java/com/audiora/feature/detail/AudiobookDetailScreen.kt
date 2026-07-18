@@ -302,7 +302,19 @@ fun AudiobookDetailScreen(
 
                         // Chapters Section (showing chapter count and the read-only index table)
                         val chapters = remember(book) {
-                            generateMockChapters(book)
+                            val json = book.chaptersJson
+                            if (!json.isNullOrEmpty()) {
+                                val real = com.audiora.domain.model.Chapter.deserializeList(json)
+                                real.map { ch ->
+                                    MockChapter(
+                                        title = ch.title,
+                                        durationStr = formatDuration(ch.durationMs),
+                                        timeRange = "${formatToTime(ch.startMs)} - ${formatToTime(ch.endMs)}"
+                                    )
+                                }
+                            } else {
+                                generateMockChapters(book)
+                            }
                         }
 
                         Column(

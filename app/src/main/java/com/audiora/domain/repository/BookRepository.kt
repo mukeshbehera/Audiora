@@ -31,7 +31,8 @@ interface BookRepository {
     suspend fun updateBookChapters(
         context: android.content.Context,
         bookId: Int,
-        chapters: List<com.audiora.domain.model.Chapter>
+        chapters: List<com.audiora.domain.model.Chapter>,
+        filePath: String? = null,
     )
 
     // Bookmark operations

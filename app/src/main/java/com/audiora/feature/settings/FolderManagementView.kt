@@ -145,7 +145,7 @@ fun FolderManagementView(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Register directory locations (Internal, SD Card, etc.) to scan recursively for audiobooks. Supported types: m4a, m4b, mp3, aac.",
+                        text = "Register folders via the storage picker to scan for M4B audiobooks. Nested subfolders are included automatically.",
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         textAlign = TextAlign.Center,

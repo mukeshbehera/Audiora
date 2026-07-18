@@ -2,6 +2,8 @@ package com.audiora.feature.editor
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -52,6 +55,11 @@ class EditViewModel(
     /* Snapshot of chapters as they were when the current book was first loaded.
      * Used by resetChanges() to undo all edits (name changes, timeline drags). */
     private var originalChapters: List<com.audiora.domain.model.Chapter> = emptyList()
+
+    // Pending cover change. null = no change, "__REMOVE__" = remove cover,
+    // any other string = replace with this URI. Applied on saveChanges().
+    private var _pendingCoverAction = MutableStateFlow<String?>(null)
+    val pendingCoverAction: StateFlow<String?> = _pendingCoverAction.asStateFlow()
 
     private val _saveStatus = MutableStateFlow<SaveStatus>(SaveStatus.Idle)
     val saveStatus: StateFlow<SaveStatus> = _saveStatus.asStateFlow()
@@ -156,6 +164,7 @@ class EditViewModel(
             chapters.value = originalChapters.map { it.copy() }
             _saveStatus.value = SaveStatus.Idle
         }
+        _pendingCoverAction.value = null
     }
 
     fun addChapter(title: String, startMs: Long) {
@@ -257,32 +266,55 @@ class EditViewModel(
 
     fun saveChanges() {
         val book = _selectedBook.value ?: return
+        _saveStatus.value = SaveStatus.Saving
         viewModelScope.launch {
-            _saveStatus.value = SaveStatus.Saving
             try {
-                // 1. Save metadata fields
-                bookRepository.updateBookMetadata(
-                    context = getApplication(),
-                    bookId = book.id,
-                    title = titleInput.value.trim(),
-                    author = authorInput.value.trim(),
-                    narrator = narratorInput.value.trim(),
-                    publisher = publisherInput.value.trim(),
-                    genre = genreInput.value.trim(),
-                    language = languageInput.value.trim(),
-                    description = descriptionInput.value.trim(),
-                    copyright = copyrightInput.value.trim(),
-                    year = yearInput.value.trim()
-                )
+                // Run all I/O on IO dispatcher so the main thread is not blocked
+                withContext(Dispatchers.IO) {
+                    // 1. Save metadata fields
+                    bookRepository.updateBookMetadata(
+                        context = getApplication(),
+                        bookId = book.id,
+                        title = titleInput.value.trim(),
+                        author = authorInput.value.trim(),
+                        narrator = narratorInput.value.trim(),
+                        publisher = publisherInput.value.trim(),
+                        genre = genreInput.value.trim(),
+                        language = languageInput.value.trim(),
+                        description = descriptionInput.value.trim(),
+                        copyright = copyrightInput.value.trim(),
+                        year = yearInput.value.trim()
+                    )
 
-                // 2. Save chapters
-                bookRepository.updateBookChapters(
-                    context = getApplication(),
-                    bookId = book.id,
-                    chapters = chapters.value
-                )
+                    // 2. Save chapters — pass filePath so updateBookChapters doesn't
+                    // need to re-read Room (which may be stale after metadata write).
+                    bookRepository.updateBookChapters(
+                        context = getApplication(),
+                        bookId = book.id,
+                        chapters = chapters.value,
+                        filePath = book.filePath
+                    )
 
+                    // 3. Apply pending cover change if any
+                    val pendingCover = _pendingCoverAction.value
+                    if (pendingCover != null) {
+                        val coverUri = if (pendingCover == "__REMOVE__") null
+                            else android.net.Uri.parse(pendingCover)
+                        bookRepository.updateBookCover(
+                            context = getApplication(),
+                            bookId = book.id,
+                            imageUri = coverUri
+                        )
+                    }
+                }
+                // All I/O complete — update state on Main thread in one batch
+                _pendingCoverAction.value = null
                 _saveStatus.value = SaveStatus.Success
+                // Refresh selectedBook from DB so cover preview and fields update
+                val freshBook = bookRepository.getAudiobook(book.id).firstOrNull()
+                if (freshBook != null) {
+                    _selectedBook.value = freshBook
+                }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to save changes")
                 _saveStatus.value = SaveStatus.Error(e.localizedMessage ?: "Unknown error while saving changes.")
@@ -316,22 +348,14 @@ class EditViewModel(
         }
     }
 
+    /**
+     * Queues a cover change to be applied when saveChanges() is called.
+     * Does NOT write to the file or DB immediately — user can preview the change
+     * and save everything together with the Save button.
+     */
     fun updateCoverArt(imageUri: android.net.Uri?) {
-        val book = _selectedBook.value ?: return
-        viewModelScope.launch {
-            _saveStatus.value = SaveStatus.Saving
-            try {
-                bookRepository.updateBookCover(
-                    context = getApplication(),
-                    bookId = book.id,
-                    imageUri = imageUri
-                )
-                _saveStatus.value = SaveStatus.Success
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to update cover art")
-                _saveStatus.value = SaveStatus.Error(e.localizedMessage ?: "Unknown error occurred while writing cover art.")
-            }
-        }
+        _pendingCoverAction.value = imageUri?.toString() ?: "__REMOVE__"
+        _saveStatus.value = SaveStatus.Idle
     }
 
     fun resetStatus() {
