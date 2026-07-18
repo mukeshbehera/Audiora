@@ -20,6 +20,37 @@ android {
     buildConfigField("String", "FFMPEG_VERSION", "\"${project.findProperty("ffmpegVersion") ?: "0.0"}\"")
   }
 
+  // ─── Per-ABI product flavors ────────────────────────────────────────
+  //
+  // Each flavor produces a separate APK targeting a specific CPU architecture.
+  // The FFmpeg binaries for that architecture are bundled in the flavor's
+  // own src/<flavor>/assets/ directory — only one ABI's binaries per APK.
+  //
+  // This mirrors the approach used by android-media-converter and keeps
+  // APK sizes small by not bundling binaries for all architectures.
+
+  flavorDimensions = listOf("cpuArch")
+  productFlavors {
+    arm64v8a {
+      dimension = "cpuArch"
+      versionCode = 1
+      versionNameSuffix = "-arm64-v8a"
+      ndk { abiFilters += listOf("arm64-v8a") }
+    }
+    armeabiv7a {
+      dimension = "cpuArch"
+      versionCode = 1
+      versionNameSuffix = "-armeabi-v7a"
+      ndk { abiFilters += listOf("armeabi-v7a") }
+    }
+    x8664 {
+      dimension = "cpuArch"
+      versionCode = 1
+      versionNameSuffix = "-x86_64"
+      ndk { abiFilters += listOf("x86_64") }
+    }
+  }
+
   signingConfigs {
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"

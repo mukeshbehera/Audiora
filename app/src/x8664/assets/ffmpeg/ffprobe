@@ -1,0 +1,3 @@
+#!/bin/sh
+echo "FFprobe binary not built yet. Run: bash scripts/build-ffmpeg.sh"
+exit 1

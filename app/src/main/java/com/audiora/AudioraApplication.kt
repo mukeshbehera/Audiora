@@ -91,8 +91,13 @@ class AudioraApplication : Application() {
          .build()
 
         // Initialize FFmpeg processing layer
-        ffmpegBinaryManager = FfmpegBinaryManager(applicationContext)
+        val prefs = getSharedPreferences("ffmpeg_prefs", MODE_PRIVATE)
         val processExecutor = ProcessExecutor()
+        ffmpegBinaryManager = FfmpegBinaryManager(
+            context = applicationContext,
+            processExecutor = processExecutor,
+            sharedPrefs = prefs,
+        )
         val tempFileManager = TempFileManager(applicationContext)
         val ffprobeJsonParser = FFprobeJsonParser()
         val progressParser = ProgressParser()

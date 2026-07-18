@@ -105,6 +105,7 @@ class ProcessExecutor {
                 } finally {
                     if (process.isAlive) {
                         process.destroyForcibly()
+                        process.waitFor(1, TimeUnit.SECONDS)
                     }
                 }
             }
