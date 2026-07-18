@@ -191,10 +191,13 @@ fun ProcessingScreen(
                                 diagBackend = "FFmpeg ✅"
                                 true
                             } else {
-                                Timber.w("FFmpeg failed, trying M4BTranscoder")
+                                val errMsg = (result as? com.audiora.data.processing.dto.FFmpegResult.Error)?.message ?: "unknown"
+                                diagFfmpegStatus = "❌ FFmpeg error: $errMsg"
+                                Timber.w("FFmpeg failed: $errMsg")
                                 false
                             }
                         } catch (e: Exception) {
+                            diagFfmpegStatus = "❌ FFmpeg error: ${e.localizedMessage?.take(50) ?: "unknown"}"
                             Timber.e(e, "FFmpeg error")
                             false
                         } finally {

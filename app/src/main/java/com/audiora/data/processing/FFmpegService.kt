@@ -52,7 +52,7 @@ class FFmpegService(
     suspend fun readChapters(filePath: String): List<Chapter> = withContext(Dispatchers.IO) {
         try {
             val command = getFfprobeBuilder().readChapters(filePath)
-            val result = processExecutor.execute(command, ProcessExecutor.ExecutionConfig(useShell = true))
+            val result = processExecutor.execute(command)
             val json = result.getOrNull() ?: return@withContext emptyList()
             val parseResult = ffprobeJsonParser.parseChapters(json)
             val ffprobeChapters = parseResult.getOrNull() ?: return@withContext emptyList()
@@ -66,7 +66,7 @@ class FFmpegService(
     suspend fun readFormat(filePath: String): FFprobeFormat? = withContext(Dispatchers.IO) {
         try {
             val command = getFfprobeBuilder().readFormat(filePath)
-            val result = processExecutor.execute(command, ProcessExecutor.ExecutionConfig(useShell = true))
+            val result = processExecutor.execute(command)
             val json = result.getOrNull() ?: return@withContext null
             ffprobeJsonParser.parseFormat(json).getOrNull()
         } catch (e: Exception) {
@@ -78,7 +78,7 @@ class FFmpegService(
     suspend fun readStreams(filePath: String): List<FFprobeStream> = withContext(Dispatchers.IO) {
         try {
             val command = getFfprobeBuilder().readStreams(filePath)
-            val result = processExecutor.execute(command, ProcessExecutor.ExecutionConfig(useShell = true))
+            val result = processExecutor.execute(command)
             val json = result.getOrNull() ?: return@withContext emptyList()
             ffprobeJsonParser.parseStreams(json).getOrNull() ?: emptyList()
         } catch (e: Exception) {
@@ -90,7 +90,7 @@ class FFmpegService(
     suspend fun readAllInfo(filePath: String): FFprobeJsonParser.AllInfo? = withContext(Dispatchers.IO) {
         try {
             val command = getFfprobeBuilder().readAll(filePath)
-            val result = processExecutor.execute(command, ProcessExecutor.ExecutionConfig(useShell = true))
+            val result = processExecutor.execute(command)
             val json = result.getOrNull() ?: return@withContext null
             ffprobeJsonParser.parseAll(json).getOrNull()
         } catch (e: Exception) {
@@ -134,7 +134,6 @@ class FFmpegService(
 
             processExecutor.execute(
                 command = command,
-                config = ProcessExecutor.ExecutionConfig(useShell = true),
                 progressCallback = { line ->
                     if (onProgress != null) {
                         val event = progressParser.parse(line, 0L)
@@ -169,7 +168,6 @@ class FFmpegService(
 
             val result = processExecutor.execute(
                 command = command,
-                config = ProcessExecutor.ExecutionConfig(useShell = true),
                 progressCallback = { line ->
                     if (onProgress != null) {
                         val event = progressParser.parse(line, 0L)
@@ -212,7 +210,6 @@ class FFmpegService(
             )
             processExecutor.execute(
                 command = command,
-                config = ProcessExecutor.ExecutionConfig(useShell = true),
                 progressCallback = { line ->
                     if (onProgress != null) {
                         val event = progressParser.parse(line, 0L)
@@ -240,7 +237,6 @@ class FFmpegService(
             )
             processExecutor.execute(
                 command = command,
-                config = ProcessExecutor.ExecutionConfig(useShell = true),
                 progressCallback = { line ->
                     if (onProgress != null) {
                         val event = progressParser.parse(line, 0L)
@@ -270,7 +266,7 @@ class FFmpegService(
                 inputPath = filePath,
                 outputPath = outputFile.absolutePath,
             )
-            val removeResult = processExecutor.execute(removeCommand, ProcessExecutor.ExecutionConfig(useShell = true))
+            val removeResult = processExecutor.execute(removeCommand)
             if (removeResult.isError) return@withContext removeResult
 
             // Now add new chapters to the un-chaptered copy
@@ -282,7 +278,6 @@ class FFmpegService(
             )
             val addResult = processExecutor.execute(
                 command = addCommand,
-                config = ProcessExecutor.ExecutionConfig(useShell = true),
                 progressCallback = { line ->
                     if (onProgress != null) {
                         val event = progressParser.parse(line, 0L)

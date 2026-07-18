@@ -15,31 +15,30 @@ import java.util.concurrent.TimeUnit
  * Single point for native process execution via ProcessBuilder.
  *
  * Responsibilities:
- * - Start processes via direct execution or sh -c wrapper
+ * - Start processes via direct ProcessBuilder (List<String> — no shell wrapping)
  * - Capture stdout and stderr
  * - Support cancellation via coroutine cancellation
  * - Support timeout
  * - Support progress callbacks (for FFmpeg stderr lines)
  * - Return structured FFmpegResult
  *
- * On Android, executing binaries directly from filesDir can fail due to
- * noexec mount flags. The useShell option wraps commands in sh -c to
- * match the approach used by android-media-converter and other apps.
+ * Uses direct ProcessBuilder(List<String>) execution — NOT sh -c wrapping.
+ * Direct execution passes each argument as a separate execve() parameter,
+ * avoiding shell interpretation issues with spaces or special characters.
+ * Research confirms this works on Android without noexec restrictions.
  */
 class ProcessExecutor {
 
     data class ExecutionConfig(
         val timeoutMs: Long = TimeUnit.MINUTES.toMillis(5),
         val captureOutput: Boolean = true,
-        /** When true, wraps command in sh -c for Android compatibility */
-        val useShell: Boolean = false,
     )
 
     /**
      * Execute a command and capture its output.
      *
-     * @param command List of command and arguments (never shell-escaped when useShell=false)
-     * @param config Execution configuration (timeout, output capture, shell wrapper)
+     * @param command List of command and arguments — each element becomes one execve() arg
+     * @param config Execution configuration (timeout, output capture)
      * @param progressCallback Optional callback receiving each stderr line (for FFmpeg progress)
      * @return FFmpegResult with captured output and exit code
      */
@@ -53,32 +52,17 @@ class ProcessExecutor {
 
         try {
             withTimeout(config.timeoutMs) {
-                // Build process — wrap in sh -c when useShell=true (Android compatibility)
-                val process = if (config.useShell) {
-                    val fullCommand = command.joinToString(" ") { arg ->
-                        if (arg.contains(" ") || arg.contains("'") || arg.contains('"')) {
-                            "'${arg.replace("'", "'\\''")}'"
-                        } else arg
-                    }
-                    Timber.tag("FFMPEG").d("[%s] Shell command: %s", correlationId, fullCommand)
-                    ProcessBuilder("sh", "-c", fullCommand)
-                        .redirectErrorStream(false)
-                        .start()
-                } else {
-                    ProcessBuilder(command)
-                        .redirectErrorStream(false)
-                        .start()
-                }
+                val process = ProcessBuilder(command)
+                    .redirectErrorStream(false)
+                    .start()
 
                 try {
-                    // Read stdout on a background thread
                     val stdoutFuture = java.util.concurrent.CompletableFuture.supplyAsync {
                         if (config.captureOutput) {
                             process.inputStream.bufferedReader().readText()
                         } else ""
                     }
 
-                    // Read stderr line-by-line, forwarding to callback if provided
                     val stderrLines = mutableListOf<String>()
                     val stderrReader = BufferedReader(InputStreamReader(process.errorStream))
                     var line: String?
@@ -98,7 +82,6 @@ class ProcessExecutor {
                         ""
                     }
 
-                    // Check for cancellation
                     if (!isActive) {
                         process.destroyForcibly()
                         Timber.tag("FFMPEG").d("[%s] Cancelled", correlationId)
