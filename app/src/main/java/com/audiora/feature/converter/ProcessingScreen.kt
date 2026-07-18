@@ -84,20 +84,43 @@ fun ProcessingScreen(
                     return@launch
                 }
 
-                // 1. Core Merging Stage (0% -> 45%) with Real AAC Transcoding
+                // 1. Core Merging Stage (0% -> 45%) using FFmpeg as primary, M4BTranscoder as fallback
                 val cacheDir = context.cacheDir
                 val outputMergedFile = File(cacheDir, "audiora_assembled_${System.currentTimeMillis()}.m4b")
-                
+
                 val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
-                
+                val inputPaths = inputUris.map { it.toString() }
+
                 withContext(Dispatchers.IO) {
-                    val transcodeSuccess = M4BTranscoder.transcode(context, inputUris, outputMergedFile, object : M4BTranscoder.ProgressListener {
-                        override fun onProgress(percentage: Float) {
-                            progress = percentage * 0.45f
-                        }
-                    })
+                    // Try FFmpeg first
+                    val ffmpegResult = try {
+                        app.ffmpegService.createM4B(
+                            inputFiles = inputPaths,
+                            outputPath = outputMergedFile.absolutePath,
+                            options = com.audiora.domain.model.ConversionOptions.DEFAULT,
+                            onProgress = { pct ->
+                                progress = pct * 0.45f
+                            },
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "FFmpeg creation failed")
+                        null
+                    }
+
+                    val transcodeSuccess = if (ffmpegResult != null && ffmpegResult.isSuccess) {
+                        true
+                    } else {
+                        // Fallback to M4BTranscoder
+                        Timber.w("Falling back to M4BTranscoder")
+                        M4BTranscoder.transcode(context, inputUris, outputMergedFile, object : M4BTranscoder.ProgressListener {
+                            override fun onProgress(percentage: Float) {
+                                progress = percentage * 0.45f
+                            }
+                        })
+                    }
+
                     if (!transcodeSuccess) {
-                        Timber.e("M4B Transcoding failed. Falling back to copy merge.")
+                        Timber.e("All transcoding methods failed. Falling back to copy merge.")
                         outputMergedFile.createNewFile()
                         val buffer = ByteArray(1024 * 64)
                         FileOutputStream(outputMergedFile).use { outStream ->
