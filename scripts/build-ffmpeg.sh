@@ -151,14 +151,14 @@ for ABI in "${TARGET_ABIS[@]}"; do
     --enable-pic \
     --enable-static \
     --disable-shared \
+    --disable-symver \
     \
-    --disable-programs \
     --enable-ffmpeg \
     --enable-ffprobe \
     \
     --enable-encoder=aac \
     --enable-decoder=aac,mp3,mp3float \
-    --enable-muxer=mp4 \
+    --enable-muxer=mp4,mov \
     --enable-demuxer=aac,mp3,mov \
     \
     --enable-protocol=file \
@@ -194,14 +194,13 @@ for ABI in "${TARGET_ABIS[@]}"; do
     --disable-muxer=segment,hls,dash \
     --disable-encoder=libx264,libx265,libvpx \
     --disable-decoder=h264,hevc,mpeg4,mpeg2video,vp8,vp9 \
-    --disable-bsf=aac_adtstoasc \
-    2>&1 | tail -3
+    --disable-bsf=aac_adtstoasc
 
   echo "Building..."
-  make -j"$(nproc)" 2>&1 | tail -3
+  make -j"$(nproc)" || { echo "ERROR: Build failed"; exit 1; }
 
   echo "Installing..."
-  make install 2>&1 | tail -3
+  make install || { echo "ERROR: Install failed"; exit 1; }
 
   FFMPEG_BIN="$BUILD_ABI_DIR/build/bin/ffmpeg"
   FFPROBE_BIN="$BUILD_ABI_DIR/build/bin/ffprobe"
