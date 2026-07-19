@@ -212,6 +212,31 @@ for ABI in "${TARGET_ABIS[@]}"; do
   "$STRIP" "$FFMPEG_BIN" 2>/dev/null || true
   "$STRIP" "$FFPROBE_BIN" 2>/dev/null || true
 
+  # ── Compile JNI wrapper ──
+  JNI_SOURCE="$PROJECT_DIR/app/src/main/jni/ffmpeg_jni.c"
+  if [ -f "$JNI_SOURCE" ]; then
+    echo "Compiling JNI wrapper..."
+    JNILIB_DIR="$PROJECT_DIR/app/src/main/jniLibs/$ABI"
+    mkdir -p "$JNILIB_DIR"
+    JNI_OUTPUT="$JNILIB_DIR/libffmpeg_jni.so"
+    "${TOOLCHAIN}/bin/${CLANG_TRIPLE}-clang" \
+      -I"${TOOLCHAIN}/sysroot/usr/include" \
+      -D__ANDROID_API__=$API_LEVEL \
+      -fPIC -shared \
+      -o "$JNI_OUTPUT" \
+      "$JNI_SOURCE" \
+      -llog
+    if [ -f "$JNI_OUTPUT" ]; then
+      "$STRIP" "$JNI_OUTPUT" 2>/dev/null || true
+      echo "JNI wrapper compiled: $JNI_OUTPUT"
+    else
+      echo "ERROR: JNI compilation failed"
+      exit 1
+    fi
+  else
+    echo "JNI source not found at $JNI_SOURCE, skipping"
+  fi
+
   mkdir -p "$OUTPUT_DIR"
   cp "$FFMPEG_BIN" "$OUTPUT_DIR/ffmpeg"
   cp "$FFPROBE_BIN" "$OUTPUT_DIR/ffprobe"
