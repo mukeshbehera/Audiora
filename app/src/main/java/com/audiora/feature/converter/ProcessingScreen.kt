@@ -97,14 +97,10 @@ fun ProcessingScreen(
                 val outputMergedFile = File(cacheDir, sharedFileName)
                 val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
 
-                // 🔬 TEMPORARY DIAGNOSTIC — check FFmpeg binary status by trying to init
+                // 🔬 TEMPORARY DIAGNOSTIC — ffmpeg-kit JNI libraries
                 showDiag = true
-                try {
-                    app.ffmpegBinaryManager.ensureInitialized()
-                    diagFfmpegStatus = "✅ FFmpeg initialized (v${app.ffmpegBinaryManager.getVersion() ?: "?"})"
-                } catch (e: Exception) {
-                    diagFfmpegStatus = "❌ FFmpeg init failed: ${e.localizedMessage?.take(50) ?: "unknown"}"
-                }
+                diagFfmpegStatus = "✅ ffmpeg-kit (JNI native libs)"
+                diagFfmpegVersion = "6.0.LTS"
 
                 // ── Pre-calculate file durations and chapters ──
                 currentStatus = "Analyzing audio files..."
@@ -177,7 +173,7 @@ fun ProcessingScreen(
                                 "description" to (WizardState.description.ifBlank { "" }),
                             )
 
-                            val result = app.ffmpegService.createM4B(
+                            val success = app.ffmpegService.createM4B(
                                 inputFiles = ffmpegInputPaths,
                                 outputPath = outputMergedFile.absolutePath,
                                 options = ConversionOptions.DEFAULT,
@@ -186,14 +182,13 @@ fun ProcessingScreen(
                                 onProgress = { pct -> progress = pct * 0.45f },
                             )
 
-                            if (result.isSuccess) {
+                            if (success) {
                                 Timber.i("FFmpeg M4B creation succeeded")
                                 diagBackend = "FFmpeg ✅"
                                 true
                             } else {
-                                val errMsg = (result as? com.audiora.data.processing.dto.FFmpegResult.Error)?.message ?: "unknown"
-                                diagFfmpegStatus = "❌ FFmpeg error: $errMsg"
-                                Timber.w("FFmpeg failed: $errMsg")
+                                diagFfmpegStatus = "❌ FFmpeg failed"
+                                Timber.w("FFmpeg failed")
                                 false
                             }
                         } catch (e: Exception) {

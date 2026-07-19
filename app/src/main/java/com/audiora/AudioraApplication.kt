@@ -4,9 +4,7 @@ import android.app.Application
 import androidx.room.Room
 import com.audiora.data.local.AppDatabase
 import com.audiora.data.processing.FFmpegService
-import com.audiora.data.processing.FfmpegBinaryManager
 import com.audiora.data.processing.TempFileManager
-import com.audiora.data.processing.executor.ProcessExecutor
 import com.audiora.data.processing.parser.FFprobeJsonParser
 import com.audiora.data.processing.parser.ProgressParser
 import com.audiora.data.repository.BookRepositoryImpl
@@ -23,7 +21,7 @@ import timber.log.Timber
 
 class AudioraApplication : Application() {
 
-    // Central Dependency Injection Singletons (Using manual Constructor Injection for absolute robustness)
+    // Central Dependency Injection Singletons
     lateinit var database: AppDatabase
         private set
 
@@ -41,14 +39,11 @@ class AudioraApplication : Application() {
 
     val playStateManager = com.audiora.feature.player.PlayStateManager()
 
-    // App-scoped coroutine scope for background tasks that must outlive any screen
+    // App-scoped coroutine scope for background tasks
     val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // ─── FFmpeg processing singletons ───
+    // FFmpeg processing via ffmpeg-kit (JNI native libraries)
     lateinit var ffmpegService: FFmpegService
-        private set
-
-    lateinit var ffmpegBinaryManager: FfmpegBinaryManager
         private set
 
     private fun createNotificationChannel() {
@@ -68,41 +63,29 @@ class AudioraApplication : Application() {
         super.onCreate()
         createNotificationChannel()
 
-        // 1. Initialize Timber Logging
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         } else {
-            // In release, we could plant a crash reporting tree
             Timber.plant(object : Timber.Tree() {
-                override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-                    // No-op for release or standard console print
-                }
+                override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {}
             })
         }
 
         Timber.d("Audiora App initialized successfully.")
 
-        // 2. Initialize Database and Repositories
         database = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,
             "audiora_database"
-        ).fallbackToDestructiveMigration() // Simple, robust migrations for V1 prototyping
+        ).fallbackToDestructiveMigration()
          .build()
 
-        // Initialize FFmpeg processing layer
-        val prefs = getSharedPreferences("ffmpeg_prefs", MODE_PRIVATE)
-        val processExecutor = ProcessExecutor()
-        ffmpegBinaryManager = FfmpegBinaryManager(
-            context = applicationContext,
-            sharedPrefs = prefs,
-        )
+        // Initialize FFmpeg processing using ffmpeg-kit (JNI native .so libraries)
+        // No binary extraction or exec permission needed — ffmpeg-kit loads via System.loadLibrary()
         val tempFileManager = TempFileManager(applicationContext)
         val ffprobeJsonParser = FFprobeJsonParser()
         val progressParser = ProgressParser()
         ffmpegService = FFmpegService(
-            binaryManager = ffmpegBinaryManager,
-            processExecutor = processExecutor,
             tempFileManager = tempFileManager,
             ffprobeJsonParser = ffprobeJsonParser,
             progressParser = progressParser,
@@ -118,7 +101,6 @@ class AudioraApplication : Application() {
         folderRepository = FolderRepositoryImpl(applicationContext, database.folderDao(), database.bookDao(), appScope)
         playbackManager = com.audiora.feature.player.PlaybackManager(applicationContext, bookRepository)
 
-        // 3. Auto-rescan configured folders on app startup
         appScope.launch {
             try {
                 folderRepository.rescanAllFolders()
