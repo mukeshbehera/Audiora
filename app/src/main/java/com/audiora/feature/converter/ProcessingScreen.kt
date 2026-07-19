@@ -191,11 +191,20 @@ fun ProcessingScreen(
                                 diagBackend = "FFmpeg ✅"
                                 true
                             } else {
-                                Timber.w("FFmpeg failed, trying M4BTranscoder")
+                                val errMsg = (result as? com.audiora.data.processing.dto.FFmpegResult.Error)?.message ?: "unknown"
+                                diagFfmpegStatus = "❌ $errMsg"
+                                Timber.w("FFmpeg failed: $errMsg")
+                                withContext(Dispatchers.Main) {
+                                    android.widget.Toast.makeText(context, "FFmpeg: $errMsg", android.widget.Toast.LENGTH_LONG).show()
+                                }
                                 false
                             }
                         } catch (e: Exception) {
+                            diagFfmpegStatus = "❌ FFmpeg error: ${e.localizedMessage?.take(50) ?: "unknown"}"
                             Timber.e(e, "FFmpeg error")
+                            withContext(Dispatchers.Main) {
+                                android.widget.Toast.makeText(context, "FFmpeg Err: ${e.localizedMessage?.take(100) ?: "unknown"}", android.widget.Toast.LENGTH_LONG).show()
+                            }
                             false
                         } finally {
                             tempInputFiles.forEach { it.delete() }
