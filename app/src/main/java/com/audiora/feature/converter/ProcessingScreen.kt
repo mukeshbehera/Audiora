@@ -97,10 +97,14 @@ fun ProcessingScreen(
                 val outputMergedFile = File(cacheDir, sharedFileName)
                 val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
 
-                // 🔬 TEMPORARY DIAGNOSTIC — ffmpeg-kit JNI libraries
+                // 🔬 TEMPORARY DIAGNOSTIC — check FFmpeg binary status by trying to init
                 showDiag = true
-                diagFfmpegStatus = "✅ ffmpeg-kit (JNI native libs)"
-                diagFfmpegVersion = "6.0.LTS"
+                try {
+                    app.ffmpegBinaryManager.ensureInitialized()
+                    diagFfmpegStatus = "✅ FFmpeg initialized (v${app.ffmpegBinaryManager.getVersion() ?: "?"})"
+                } catch (e: Exception) {
+                    diagFfmpegStatus = "❌ FFmpeg init failed: ${e.localizedMessage?.take(50) ?: "unknown"}"
+                }
 
                 // ── Pre-calculate file durations and chapters ──
                 currentStatus = "Analyzing audio files..."
@@ -173,7 +177,7 @@ fun ProcessingScreen(
                                 "description" to (WizardState.description.ifBlank { "" }),
                             )
 
-                            val success = app.ffmpegService.createM4B(
+                            val result = app.ffmpegService.createM4B(
                                 inputFiles = ffmpegInputPaths,
                                 outputPath = outputMergedFile.absolutePath,
                                 options = ConversionOptions.DEFAULT,
@@ -182,17 +186,15 @@ fun ProcessingScreen(
                                 onProgress = { pct -> progress = pct * 0.45f },
                             )
 
-                            if (success) {
+                            if (result.isSuccess) {
                                 Timber.i("FFmpeg M4B creation succeeded")
                                 diagBackend = "FFmpeg ✅"
                                 true
                             } else {
-                                diagFfmpegStatus = "❌ FFmpeg failed"
-                                Timber.w("FFmpeg failed")
+                                Timber.w("FFmpeg failed, trying M4BTranscoder")
                                 false
                             }
                         } catch (e: Exception) {
-                            diagFfmpegStatus = "❌ FFmpeg error: ${e.localizedMessage?.take(50) ?: "unknown"}"
                             Timber.e(e, "FFmpeg error")
                             false
                         } finally {

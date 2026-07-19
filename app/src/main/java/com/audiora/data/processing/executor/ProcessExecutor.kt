@@ -1,5 +1,6 @@
 package com.audiora.data.processing.executor
 
+import android.os.Build
 import com.audiora.data.processing.dto.FFmpegResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.isActive
@@ -14,45 +15,48 @@ import java.util.concurrent.TimeUnit
 /**
  * Single point for native process execution via ProcessBuilder.
  *
- * Responsibilities:
- * - Start processes via direct ProcessBuilder (List<String> — no shell wrapping)
- * - Capture stdout and stderr
- * - Support cancellation via coroutine cancellation
- * - Support timeout
- * - Support progress callbacks (for FFmpeg stderr lines)
- * - Return structured FFmpegResult
- *
- * Uses direct ProcessBuilder(List<String>) execution — NOT sh -c wrapping.
- * Direct execution passes each argument as a separate execve() parameter,
- * avoiding shell interpretation issues with spaces or special characters.
- * Research confirms this works on Android without noexec restrictions.
+ * Supports two execution modes:
+ * 1. Direct execution — passes command to execve() directly
+ * 2. Linker execution — prefixes command with /system/bin/linker[64]
+ *    to bypass noexec mount restrictions on Android 10+ devices.
+ *    The linker loads the ELF binary via mmap/read instead of execve(),
+ *    which avoids noexec restrictions.
  */
 class ProcessExecutor {
 
     data class ExecutionConfig(
         val timeoutMs: Long = TimeUnit.MINUTES.toMillis(5),
         val captureOutput: Boolean = true,
+        /** When true, uses /system/bin/linker[64] to execute binary,
+         * bypassing noexec mount restrictions on modern Android */
+        val useLinker: Boolean = false,
     )
 
-    /**
-     * Execute a command and capture its output.
-     *
-     * @param command List of command and arguments — each element becomes one execve() arg
-     * @param config Execution configuration (timeout, output capture)
-     * @param progressCallback Optional callback receiving each stderr line (for FFmpeg progress)
-     * @return FFmpegResult with captured output and exit code
-     */
+    private fun is64Bit(): Boolean {
+        for (abi in Build.SUPPORTED_ABIS) {
+            if (abi.contains("64")) return true
+        }
+        return false
+    }
+
+    private fun buildCommand(command: List<String>, useLinker: Boolean): List<String> {
+        if (!useLinker || command.isEmpty()) return command
+        val linker = if (is64Bit()) "/system/bin/linker64" else "/system/bin/linker"
+        return listOf(linker) + command
+    }
+
     suspend fun execute(
         command: List<String>,
         config: ExecutionConfig = ExecutionConfig(),
         progressCallback: ((String) -> Unit)? = null,
     ): FFmpegResult = withContext(Dispatchers.IO) {
         val correlationId = UUID.randomUUID().toString().take(8)
-        Timber.tag("FFMPEG").d("[%s] Executing: %s", correlationId, command.joinToString(" "))
+        val finalCommand = buildCommand(command, config.useLinker)
+        Timber.tag("FFMPEG").d("[%s] Executing: %s", correlationId, finalCommand.joinToString(" "))
 
         try {
             withTimeout(config.timeoutMs) {
-                val process = ProcessBuilder(command)
+                val process = ProcessBuilder(finalCommand)
                     .redirectErrorStream(false)
                     .start()
 

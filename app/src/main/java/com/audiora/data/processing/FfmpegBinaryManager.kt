@@ -57,6 +57,7 @@ class FfmpegBinaryManager(
         private const val PREFS_INSTALLED_VERSION = "ffmpeg_installed_version"
         private const val PREFS_INSTALL_TIMESTAMP = "ffmpeg_install_timestamp"
         private const val ASSETS_BASE = "ffmpeg"
+        private const val BIN_DIR_NAME = "files"
     }
 
     fun isInitialized(): Boolean = initialized
@@ -195,15 +196,11 @@ class FfmpegBinaryManager(
     }
 
     /**
-     * Return the directory where binaries are stored (codeCacheDir/ffmpeg/).
-     * Uses context.codeCacheDir which is designed for executable content
-     * and avoids noexec mount restrictions on some devices.
-     * Falls back to getDir() if codeCacheDir is not available.
+     * Return the directory where binaries are stored (filesDir/files/).
+     * Uses context.getDir() which follows android-media-converter's proven pattern.
      */
     private fun getBinDir(): File {
-        val dir = File(context.codeCacheDir, "ffmpeg")
-        if (!dir.exists()) dir.mkdirs()
-        return dir
+        return context.getDir(BIN_DIR_NAME, Context.MODE_PRIVATE)
     }
 
     /**
