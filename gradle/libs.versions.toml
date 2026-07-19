@@ -41,7 +41,6 @@ hilt = "2.54"
 timber = "5.0.1"
 media3 = "1.10.1"
 jaudiotagger = "3.0.1"
-ffmpegKit = "6.0.LTS"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -99,7 +98,6 @@ androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplaye
 androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 jaudiotagger = { group = "net.jthink", name = "jaudiotagger", version.ref = "jaudiotagger" }
-ffmpeg-kit-min-gpl = { group = "com.arthenica", name = "ffmpeg-kit-min-gpl", version.ref = "ffmpegKit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
