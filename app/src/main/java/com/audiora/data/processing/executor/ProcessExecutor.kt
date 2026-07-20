@@ -49,10 +49,17 @@ class ProcessExecutor {
                 try {
                     exitCode = FFmpegNative.execute(binaryPath, args)
                 } catch (e: UnsatisfiedLinkError) {
-                    // JNI library not available — fall back to ProcessBuilder
                     Timber.tag("FFMPEG").w("[%s] JNI not available, using ProcessBuilder", correlationId)
                     exitCode = executeViaProcessBuilder(command)
                 } catch (e: NoClassDefFoundError) {
+                    exitCode = executeViaProcessBuilder(command)
+                }
+
+                // If JNI returned >= 127, it means our JNI wrapper's _exit(127+errno)
+                // was triggered (binary execution failed). Fall back to ProcessBuilder.
+                if (exitCode >= 127) {
+                    val errno = exitCode - 127
+                    Timber.tag("FFMPEG").w("[%s] JNI failed (errno=%d), trying ProcessBuilder", correlationId, errno)
                     exitCode = executeViaProcessBuilder(command)
                 }
 
