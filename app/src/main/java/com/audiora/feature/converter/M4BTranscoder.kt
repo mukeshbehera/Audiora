@@ -104,10 +104,10 @@ object M4BTranscoder {
                         if (ReturnCode.isSuccess(rc)) {
                             Timber.d("FFmpeg transcoding completed successfully")
                             listener.onProgress(1f)
-                            continuation.resume(true)
+                            continuation.resume(true, onCancellation = null)
                         } else if (ReturnCode.isCancel(rc)) {
                             Timber.d("FFmpeg transcoding was cancelled")
-                            continuation.resume(false)
+                            continuation.resume(false, onCancellation = null)
                         } else {
                             val error = session.failStackTrace ?: "Unknown FFmpeg error"
                             Timber.e("FFmpeg transcoding failed with code ${rc.value}: $error")

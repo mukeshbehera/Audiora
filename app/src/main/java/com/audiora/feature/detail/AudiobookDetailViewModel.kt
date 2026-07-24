@@ -96,10 +96,10 @@ class AudiobookDetailViewModel(
                             val rc = session.returnCode
                             if (com.arthenica.ffmpegkit.ReturnCode.isSuccess(rc)) {
                                 Timber.d("FFmpeg export completed successfully")
-                                cont.resume(true)
+                                cont.resume(true, onCancellation = null)
                             } else {
                                 Timber.e("FFmpeg export failed with code ${rc.value}")
-                                cont.resume(false)
+                                cont.resume(false, onCancellation = null)
                             }
                         },
                         com.arthenica.ffmpegkit.LogCallback { log ->
