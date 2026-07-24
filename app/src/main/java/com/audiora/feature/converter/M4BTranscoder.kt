@@ -1,19 +1,24 @@
 package com.audiora.feature.converter
 
 import android.content.Context
-import android.media.MediaCodec
-import android.media.MediaCodecInfo
-import android.media.MediaExtractor
-import android.media.MediaFormat
-import android.media.MediaMuxer
+import android.media.MediaMetadataRetriever
 import android.net.Uri
-import java.io.File
-import java.nio.ByteBuffer
+import com.arthenica.ffmpegkit.FFmpegKit
+import com.arthenica.ffmpegkit.Log
+import com.arthenica.ffmpegkit.LogCallback
+import com.arthenica.ffmpegkit.ReturnCode
+import com.arthenica.ffmpegkit.Statistics
+import com.arthenica.ffmpegkit.StatisticsCallback
+import com.audiora.domain.model.Chapter
+import kotlinx.coroutines.suspendCancellableCoroutine
 import timber.log.Timber
+import java.io.File
+import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 object M4BTranscoder {
 
-    private const val TIMEOUT_US = 5000L
     private const val TARGET_SAMPLE_RATE = 44100
     private const val TARGET_CHANNELS = 2
     private const val TARGET_BITRATE = 128000
@@ -23,266 +28,283 @@ object M4BTranscoder {
     }
 
     /**
-     * Transcodes multiple input audio files into a single, high-fidelity M4B file (AAC audio code).
-     * Decodes source files to PCM, feeds them to an AAC encoder, and muxes them into an MPEG-4 container.
+     * Transcodes multiple input audio files into a single M4B file using FFmpeg.
+     * Handles SAF content:// URIs, concatenation, AAC encoding, metadata embedding,
+     * and chapter embedding in a single pass.
      */
-    fun transcode(
+    suspend fun transcode(
         context: Context,
         inputUris: List<Uri>,
         outputFile: File,
+        title: String,
+        author: String,
+        narrator: String,
+        publisher: String,
+        genre: String,
+        year: String,
+        description: String,
+        chapters: List<Chapter>,
+        coverSeed: String? = null,
         listener: ProgressListener
     ): Boolean {
         if (inputUris.isEmpty()) return false
 
-        var muxer: MediaMuxer? = null
-        var encoder: MediaCodec? = null
-        var trackIndex = -1
-        var muxerStarted = false
+        // Temp files to track for cleanup
+        val tempFiles = mutableListOf<File>()
+        var concatFileList: File? = null
+        var metadataFile: File? = null
+        var coverJpeg: File? = null
 
-        // Presentation timestamp offset to stitch tracks together smoothly
-        var ptsOffsetUs = 0L
-
-        try {
-            // Configure Output Format for the AAC Encoder
-            val encoderFormat = MediaFormat.createAudioFormat(
-                MediaFormat.MIMETYPE_AUDIO_AAC,
-                TARGET_SAMPLE_RATE,
-                TARGET_CHANNELS
-            ).apply {
-                setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
-                setInteger(MediaFormat.KEY_BIT_RATE, TARGET_BITRATE)
-                setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 1024 * 256)
-            }
-
-            encoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_AUDIO_AAC)
-            encoder.configure(encoderFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
-            encoder.start()
-
-            // Output Muxer targeting MPEG_4 container format (playable as M4B)
-            muxer = MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-
-            val totalUris = inputUris.size
-            val info = MediaCodec.BufferInfo()
-
-            for (index in inputUris.indices) {
-                val uri = inputUris[index]
-                Timber.d("Transcoding track $index: $uri")
-
-                val extractor = MediaExtractor()
-                try {
-                    extractor.setDataSource(context, uri, null)
-                } catch (e: Exception) {
-                    Timber.e(e, "Failed to set data source for track $index")
-                    extractor.release()
-                    continue
-                }
-
-                // Find audio track
-                var audioTrackIdx = -1
-                for (i in 0 until extractor.trackCount) {
-                    val format = extractor.getTrackFormat(i)
-                    val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
-                    if (mime.startsWith("audio/")) {
-                        audioTrackIdx = i
-                        break
-                    }
-                }
-
-                if (audioTrackIdx == -1) {
-                    Timber.e("No audio track found in $uri")
-                    extractor.release()
-                    continue
-                }
-
-                extractor.selectTrack(audioTrackIdx)
-                val inputFormat = extractor.getTrackFormat(audioTrackIdx)
-                
-                // Configure source decoder
-                val mime = inputFormat.getString(MediaFormat.KEY_MIME) ?: ""
-                val decoder = MediaCodec.createDecoderByType(mime)
-                decoder.configure(inputFormat, null, null, 0)
-                decoder.start()
-
-                var isExtractorEOS = false
-                var isDecoderEOS = false
-                var isEncoderEOS = false
-
-                val decoderInfo = MediaCodec.BufferInfo()
-                var lastDecodedPtsUs = 0L
-
-                while (!isDecoderEOS || !isEncoderEOS) {
-                    
-                    // 1. Feed Extractor search into Decoder
-                    if (!isExtractorEOS) {
-                        val inputBufIdx = decoder.dequeueInputBuffer(TIMEOUT_US)
-                        if (inputBufIdx >= 0) {
-                            val byteBuffer = decoder.getInputBuffer(inputBufIdx)
-                            if (byteBuffer != null) {
-                                byteBuffer.clear()
-                                val sampleSize = extractor.readSampleData(byteBuffer, 0)
-                                if (sampleSize < 0) {
-                                    decoder.queueInputBuffer(
-                                        inputBufIdx,
-                                        0,
-                                        0,
-                                        0L,
-                                        MediaCodec.BUFFER_FLAG_END_OF_STREAM
-                                    )
-                                    isExtractorEOS = true
-                                } else {
-                                    decoder.queueInputBuffer(
-                                        inputBufIdx,
-                                        0,
-                                        sampleSize,
-                                        extractor.sampleTime,
-                                        0
-                                    )
-                                    extractor.advance()
-                                }
-                            }
-                        }
-                    }
-
-                    // 2. Dequeue from Decoder and Feed into Encoder
-                    if (!isDecoderEOS) {
-                        val decoderOutBufIdx = decoder.dequeueOutputBuffer(decoderInfo, TIMEOUT_US)
-                        if (decoderOutBufIdx >= 0) {
-                            val pcmBuffer = decoder.getOutputBuffer(decoderOutBufIdx)
-                            
-                            // Re-route PCM data to Encoder
-                            if (pcmBuffer != null && decoderInfo.size > 0) {
-                                val encoderInBufIdx = encoder.dequeueInputBuffer(TIMEOUT_US)
-                                if (encoderInBufIdx >= 0) {
-                                    val encInputBuffer = encoder.getInputBuffer(encoderInBufIdx)
-                                    if (encInputBuffer != null) {
-                                        encInputBuffer.clear()
-                                        
-                                        // Limit chunk size
-                                        val sizeToCopy = Math.min(decoderInfo.size, encInputBuffer.remaining())
-                                        pcmBuffer.position(decoderInfo.offset)
-                                        val tempBytes = ByteArray(sizeToCopy)
-                                        pcmBuffer.get(tempBytes, 0, sizeToCopy)
-                                        encInputBuffer.put(tempBytes)
-
-                                        // Retain and slide presentation timestamps cleanly across stitched files
-                                        lastDecodedPtsUs = decoderInfo.presentationTimeUs
-                                        val mappedPtsUs = ptsOffsetUs + lastDecodedPtsUs
-
-                                        encoder.queueInputBuffer(
-                                            encoderInBufIdx,
-                                            0,
-                                            sizeToCopy,
-                                            mappedPtsUs,
-                                            0
-                                        )
-                                    }
-                                }
-                            }
-
-                            decoder.releaseOutputBuffer(decoderOutBufIdx, false)
-
-                            if ((decoderInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                                isDecoderEOS = true
-                            }
-                        } else if (decoderOutBufIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                            // Format changed (usually sample rates/channel count)
-                        }
-                    }
-
-                    // 3. Dequeue from Encoder and Mux to output container file
-                    val encoderOutBufIdx = encoder.dequeueOutputBuffer(info, TIMEOUT_US)
-                    if (encoderOutBufIdx >= 0) {
-                        val encodedBuffer = encoder.getOutputBuffer(encoderOutBufIdx)
-
-                        if (encodedBuffer != null) {
-                            if ((info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                                info.size = 0
-                            }
-
-                            if (info.size > 0 && muxerStarted) {
-                                encodedBuffer.position(info.offset)
-                                encodedBuffer.limit(info.offset + info.size)
-                                muxer.writeSampleData(trackIndex, encodedBuffer, info)
-                            }
-                        }
-
-                        encoder.releaseOutputBuffer(encoderOutBufIdx, false)
-
-                        if ((info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                            isEncoderEOS = true
-                        }
-                    } else if (encoderOutBufIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                        if (!muxerStarted) {
-                            val newFormat = encoder.outputFormat
-                            trackIndex = muxer.addTrack(newFormat)
-                            muxer.start()
-                            muxerStarted = true
-                        }
-                    }
-                }
-
-                // Clean intermediate decoder
-                decoder.stop()
-                decoder.release()
-                extractor.release()
-
-                // Cumulative PTS shift with safe gap padding
-                ptsOffsetUs += lastDecodedPtsUs + 100000L // 100ms smooth gap segment boundary
-                
-                // Track progress
-                val fraction = (index + 1).toFloat() / totalUris
-                listener.onProgress(fraction)
-            }
-
-            // Signal and flush encoder final stream
-            val finalInBufIdx = encoder.dequeueInputBuffer(TIMEOUT_US)
-            if (finalInBufIdx >= 0) {
-                encoder.queueInputBuffer(
-                    finalInBufIdx,
-                    0,
-                    0,
-                    ptsOffsetUs,
-                    MediaCodec.BUFFER_FLAG_END_OF_STREAM
+        return try {
+            // 1. Copy SAF URIs to temp files (FFmpeg C code cannot read content:// URIs)
+            val inputFiles = inputUris.mapIndexed { index, uri ->
+                val ext = getExtension(context, uri)
+                val tempFile = File(
+                    context.cacheDir,
+                    "ffmpeg_input_${index}_${System.nanoTime()}.$ext"
                 )
+                copySafToTemp(context, uri, tempFile)
+                tempFiles.add(tempFile)
+                tempFile
             }
 
-            // Flush remaining buffers inside muxer
-            var finishedMuxing = false
-            while (!finishedMuxing) {
-                val outIdx = encoder.dequeueOutputBuffer(info, TIMEOUT_US)
-                if (outIdx >= 0) {
-                    val encodedBuffer = encoder.getOutputBuffer(outIdx)
-                    if (encodedBuffer != null) {
-                        if (info.size > 0 && muxerStarted) {
-                            encodedBuffer.position(info.offset)
-                            encodedBuffer.limit(info.offset + info.size)
-                            muxer.writeSampleData(trackIndex, encodedBuffer, info)
+            // 2. Calculate total estimated duration for progress reporting
+            val totalDurationMs = calculateTotalDuration(context, inputUris)
+            val effectiveDurationMs = if (totalDurationMs > 0) totalDurationMs else 1L
+
+            // 3. Generate concat demuxer file list
+            concatFileList = File(context.cacheDir, "ffmpeg_concat_${System.nanoTime()}.txt")
+            concatFileList.writeText(inputFiles.joinToString("\n") { "file '${it.absolutePath}'" })
+
+            // 4. Generate FFMETADATA file with chapters and tags
+            metadataFile = File(context.cacheDir, "ffmpeg_metadata_${System.nanoTime()}.txt")
+            metadataFile.writeText(buildMetadataString(
+                title, author, publisher, genre, year, description, chapters
+            ))
+
+            // 5. (Optional) Generate cover art JPEG
+            if (!coverSeed.isNullOrBlank()) {
+                coverJpeg = File(context.cacheDir, "ffmpeg_cover_${System.nanoTime()}.jpg")
+                generateCoverJpeg(coverSeed, coverJpeg)
+            }
+
+            // 6. Build the FFmpeg command
+            val cmd = buildCommand(
+                concatFileList!!, metadataFile, coverJpeg, outputFile
+            )
+
+            Timber.d("FFmpeg command: $cmd")
+
+            // 7. Execute FFmpeg with progress reporting
+            suspendCancellableCoroutine<Boolean> { continuation ->
+                val session = FFmpegKit.executeAsync(
+                    cmd,
+                    { session ->
+                        val rc = session.returnCode
+                        if (ReturnCode.isSuccess(rc)) {
+                            Timber.d("FFmpeg transcoding completed successfully")
+                            listener.onProgress(1f)
+                            continuation.resume(true)
+                        } else if (ReturnCode.isCancel(rc)) {
+                            Timber.d("FFmpeg transcoding was cancelled")
+                            continuation.resume(false)
+                        } else {
+                            val error = session.failStackTrace ?: "Unknown FFmpeg error"
+                            Timber.e("FFmpeg transcoding failed with code ${rc.value}: $error")
+                            continuation.resumeWithException(IOException("FFmpeg failed: $error"))
                         }
+                    },
+                    LogCallback { log: Log ->
+                        Timber.d("FFmpeg: ${log.message?.trimEnd()}")
+                    },
+                    StatisticsCallback { statistics: Statistics ->
+                        val timeMs = statistics.time
+                        val fraction = (timeMs.toFloat() / effectiveDurationMs).coerceIn(0f, 1f)
+                        listener.onProgress(fraction)
                     }
-                    encoder.releaseOutputBuffer(outIdx, false)
-                    if ((info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
-                        finishedMuxing = true
-                    }
-                } else if (outIdx == MediaCodec.INFO_TRY_AGAIN_LATER || outIdx < 0) {
-                    finishedMuxing = true
+                )
+
+                continuation.invokeOnCancellation {
+                    Timber.d("Cancelling FFmpeg session ${session.sessionId}")
+                    session.cancel()
                 }
             }
-
-            return true
 
         } catch (e: Exception) {
-            Timber.e(e, "Crucial error transcoding audio file stream to M4B")
-            return false
+            if (e is IOException && e.message?.contains("FFmpeg failed", true) == true) {
+                Timber.e(e, "FFmpeg transcoding error")
+            } else {
+                Timber.e(e, "Error during transcoding preparation")
+            }
+            false
         } finally {
+            // 8. Cleanup all temp files
+            cleanupFiles(listOfNotNull(concatFileList, metadataFile, coverJpeg) + tempFiles)
+        }
+    }
+
+    // ---- Private helpers ----
+
+    private fun buildCommand(
+        concatFile: File,
+        metadataFile: File,
+        coverFile: File?,
+        output: File
+    ): String {
+        val sb = StringBuilder()
+        sb.append("-f concat -safe 0 -i \"${concatFile.absolutePath}\" ")
+        sb.append("-i \"${metadataFile.absolutePath}\" ")
+        if (coverFile != null && coverFile.exists()) {
+            sb.append("-i \"${coverFile.absolutePath}\" ")
+            sb.append("-map 0:a -map 2:v ")
+            sb.append("-disposition:v attached_pic -c:v mjpeg ")
+        } else {
+            sb.append("-map 0:a ")
+        }
+        sb.append("-c:a aac -b:a $TARGET_BITRATE ")
+        sb.append("-ar $TARGET_SAMPLE_RATE -ac $TARGET_CHANNELS ")
+        sb.append("-map_metadata 1 ")
+        sb.append("-movflags +faststart ")
+        sb.append("-y \"${output.absolutePath}\"")
+        return sb.toString()
+    }
+
+    private fun buildMetadataString(
+        title: String,
+        author: String,
+        publisher: String,
+        genre: String,
+        year: String,
+        description: String,
+        chapters: List<Chapter>
+    ): String {
+        val sb = StringBuilder()
+        sb.appendLine(";FFMETADATA1")
+
+        if (title.isNotBlank()) sb.appendLine("title=$title")
+        if (author.isNotBlank()) sb.appendLine("artist=$author")
+        if (publisher.isNotBlank()) sb.appendLine("publisher=$publisher")
+        if (genre.isNotBlank()) sb.appendLine("genre=$genre")
+        if (year.isNotBlank()) sb.appendLine("date=$year")
+        if (description.isNotBlank()) sb.appendLine("comment=$description")
+
+        // Append chapters
+        for (ch in chapters) {
+            sb.appendLine()
+            sb.appendLine("[CHAPTER]")
+            sb.appendLine("TIMEBASE=1/1000")
+            sb.appendLine("START=${ch.startMs}")
+            sb.appendLine("END=${ch.endMs}")
+            sb.appendLine("title=${ch.title}")
+        }
+
+        return sb.toString()
+    }
+
+    private fun calculateTotalDuration(context: Context, uris: List<Uri>): Long {
+        var total = 0L
+        for (uri in uris) {
+            val retriever = MediaMetadataRetriever()
             try {
-                encoder?.stop()
-                encoder?.release()
-                if (muxerStarted) {
-                    muxer?.stop()
-                }
-                muxer?.release()
+                retriever.setDataSource(context, uri)
+                val durationStr = retriever.extractMetadata(
+                    MediaMetadataRetriever.METADATA_KEY_DURATION
+                )
+                total += durationStr?.toLongOrNull() ?: 0L
             } catch (e: Exception) {
-                Timber.e(e, "Error releasing encoders")
+                Timber.w("Could not read duration for $uri")
+            } finally {
+                try { retriever.release() } catch (_: Exception) {}
+            }
+        }
+        return total
+    }
+
+    private fun copySafToTemp(context: Context, uri: Uri, tempFile: File) {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            tempFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        } ?: throw IOException("Cannot open input stream for $uri")
+    }
+
+    private fun getExtension(context: Context, uri: Uri): String {
+        val mime = context.contentResolver.getType(uri) ?: ""
+        val name = uri.pathSegments?.lastOrNull() ?: ""
+        return when {
+            name.contains('.') -> name.substringAfterLast('.')
+            mime.contains("mpeg") -> "mp3"
+            mime.contains("mp4") || mime.contains("m4a") || mime.contains("m4b") -> "m4a"
+            mime.contains("aac") -> "aac"
+            mime.contains("wav") -> "wav"
+            mime.contains("ogg") || mime.contains("opus") || mime.contains("vorbis") -> "ogg"
+            mime.contains("flac") -> "flac"
+            mime.contains("wma") -> "wma"
+            else -> "mp3"
+        }
+    }
+
+    private fun generateCoverJpeg(seed: String, outputFile: File) {
+        val colors = coverGradientColors(seed) ?: return
+        try {
+            val width = 400
+            val height = 400
+            val bitmap = android.graphics.Bitmap.createBitmap(
+                width, height, android.graphics.Bitmap.Config.ARGB_8888
+            )
+            val canvas = android.graphics.Canvas(bitmap)
+            val paint = android.graphics.Paint().apply {
+                isAntiAlias = true
+            }
+
+            // Extract ARGB components from Long-packed colors
+            val r1 = (colors.first shr 16 and 0xFF).toInt()
+            val g1 = (colors.first shr 8 and 0xFF).toInt()
+            val b1 = (colors.first and 0xFF).toInt()
+            val r2 = (colors.second shr 16 and 0xFF).toInt()
+            val g2 = (colors.second shr 8 and 0xFF).toInt()
+            val b2 = (colors.second and 0xFF).toInt()
+
+            // Draw a simple two-color vertical gradient
+            for (y in 0 until height) {
+                val fraction = y.toFloat() / height
+                val r = (r1 * (1 - fraction) + r2 * fraction).toInt()
+                val g = (g1 * (1 - fraction) + g2 * fraction).toInt()
+                val b = (b1 * (1 - fraction) + b2 * fraction).toInt()
+                paint.color = android.graphics.Color.rgb(r, g, b)
+                canvas.drawLine(0f, y.toFloat(), width.toFloat(), y.toFloat(), paint)
+            }
+
+            outputFile.outputStream().use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            bitmap.recycle()
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to generate cover JPEG for seed: $seed")
+        }
+    }
+
+    private data class GradientPair(val first: Long, val second: Long)
+
+    private fun coverGradientColors(seed: String): GradientPair? {
+        // Colors are stored as ARGB Longs to avoid Int overflow on hex literals
+        return when (seed.lowercase()) {
+            "nebula" -> GradientPair(0xFF8E2DE2L, 0xFF4A00E0L)
+            "horizon" -> GradientPair(0xFF00C6FFL, 0xFF0072FFL)
+            "eternity" -> GradientPair(0xFFF12711L, 0xFFF5AF19L)
+            "neon" -> GradientPair(0xFFF80759L, 0xFFBC4E9CL)
+            "infinite" -> GradientPair(0xFF0F2027L, 0xFF203A43L)
+            "cosmic" -> GradientPair(0xFF11998EL, 0xFF38EF7DL)
+            else -> null
+        }
+    }
+
+    private fun cleanupFiles(files: List<File>) {
+        for (f in files) {
+            try {
+                if (f.exists()) f.delete()
+            } catch (e: Exception) {
+                Timber.w("Failed to delete temp file: ${f.absolutePath}")
             }
         }
     }

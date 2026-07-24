@@ -5,12 +5,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.audiora.domain.model.Audiobook
 import com.audiora.domain.repository.BookRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.io.File
+import timber.log.Timber
 
 sealed class ExportStatus {
     object Idle : ExportStatus()
@@ -66,10 +65,10 @@ class AudiobookDetailViewModel(
     }
 
     fun exportAudiobook(context: android.content.Context, destinationUri: android.net.Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             _exportStatus.value = ExportStatus.Exporting
             _exportProgress.value = 0f
-            
+
             val book = (_uiState.value as? DetailUiState.Success)?.audiobook
             if (book == null) {
                 _exportStatus.value = ExportStatus.Error("No audiobook loaded to export.")
@@ -77,50 +76,53 @@ class AudiobookDetailViewModel(
             }
 
             try {
-                val isFileUri = destinationUri.scheme == "file"
-                val outStream = if (isFileUri) {
-                    java.io.FileOutputStream(File(destinationUri.path ?: throw Exception("Invalid file URI path.")))
+                val sourcePath = book.filePath
+
+                // Use FFmpeg for a verified stream copy with faststart
+                // This preserves all embedded metadata and chapters
+                val outputParam = if (destinationUri.scheme == "content") {
+                    com.arthenica.ffmpegkit.FFmpegKitConfig.getSafParameterForWrite(context, destinationUri)
                 } else {
-                    context.contentResolver.openOutputStream(destinationUri) ?: throw Exception("Could not open destination output stream.")
+                    "\"${destinationUri.path}\""
                 }
 
-                outStream.use { stream ->
-                    val sourceFile = File(book.filePath)
-                    if (!sourceFile.exists()) {
-                        // Fallback to generate standard/dummy M4B structure if parent cache file is offline or VM dummy
-                        val dummySize = 1024 * 256L // 256KB
-                        val buffer = ByteArray(4096)
-                        var written = 0L
-                        while (written < dummySize) {
-                            val toWrite = Math.min(buffer.size.toLong(), dummySize - written).toInt()
-                            stream.write(buffer, 0, toWrite)
-                            written += toWrite
-                            _exportProgress.value = written.toFloat() / dummySize
-                            kotlinx.coroutines.delay(5)
-                        }
-                        _exportStatus.value = ExportStatus.Success(destinationUri.toString())
-                        return@launch
-                    }
+                val command = "-i \"$sourcePath\" -c copy -movflags +faststart $outputParam -y"
+                Timber.d("Export FFmpeg command: $command")
 
-                    val totalBytes = sourceFile.length()
-                    if (totalBytes <= 0) {
-                        throw Exception("Source audiobook file is empty or corrupted.")
-                    }
-
-                    sourceFile.inputStream().use { inStream ->
-                        val buffer = ByteArray(1024 * 64) // 64KB buffer
-                        var bytesCopied = 0L
-                        var bytesRead: Int
-                        while (inStream.read(buffer).also { bytesRead = it } != -1) {
-                            stream.write(buffer, 0, bytesRead)
-                            bytesCopied += bytesRead
-                            _exportProgress.value = bytesCopied.toFloat() / totalBytes
+                val success = kotlinx.coroutines.suspendCancellableCoroutine<Boolean> { cont ->
+                    com.arthenica.ffmpegkit.FFmpegKit.executeAsync(
+                        command,
+                        { session ->
+                            val rc = session.returnCode
+                            if (com.arthenica.ffmpegkit.ReturnCode.isSuccess(rc)) {
+                                Timber.d("FFmpeg export completed successfully")
+                                cont.resume(true)
+                            } else {
+                                Timber.e("FFmpeg export failed with code ${rc.value}")
+                                cont.resume(false)
+                            }
+                        },
+                        com.arthenica.ffmpegkit.LogCallback { log ->
+                            Timber.d("FFmpeg export: ${log.message?.trimEnd()}")
+                        },
+                        com.arthenica.ffmpegkit.StatisticsCallback { stats ->
+                            val timeMs = stats.time
+                            if (book.durationMs > 0) {
+                                _exportProgress.value = (timeMs.toFloat() / book.durationMs).coerceIn(0f, 1f)
+                            }
                         }
-                    }
+                    )
                 }
-                _exportStatus.value = ExportStatus.Success(destinationUri.toString())
+
+                if (success) {
+                    _exportProgress.value = 1f
+                    _exportStatus.value = ExportStatus.Success(destinationUri.toString())
+                } else {
+                    _exportStatus.value = ExportStatus.Error("FFmpeg stream copy failed. The file may be corrupt.")
+                }
             } catch (e: Exception) {
-                _exportStatus.value = ExportStatus.Error(e.message ?: "Unknown copy error.")
+                Timber.e(e, "FFmpeg export error")
+                _exportStatus.value = ExportStatus.Error(e.message ?: "Unknown FFmpeg stream copy error.")
             }
         }
     }
