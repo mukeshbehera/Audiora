@@ -351,7 +351,7 @@ object M4BTranscoder {
                 metadataFile.writeText(metadataStr)
 
                 val outputFile = File(context.cacheDir, "ffmpeg_embed_out_${System.nanoTime()}.m4b")
-                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map_metadata 1 -c copy -y \"${outputFile.absolutePath}\""
+                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map_metadata 1 -map_chapters 1 -c copy -y \"${outputFile.absolutePath}\""
 
                 val session = FFmpegKit.executeAsync(
                     command,
