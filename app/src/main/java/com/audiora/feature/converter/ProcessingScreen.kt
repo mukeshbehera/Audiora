@@ -22,11 +22,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Context
+import android.net.Uri
 import com.audiora.AudioraApplication
 import com.audiora.ui.theme.LocalDarkTheme
 import com.audiora.ui.theme.BrandGradientStart
 import com.audiora.ui.theme.BrandGradientEnd
 import kotlinx.coroutines.delay
+import java.io.File
+import java.io.FileOutputStream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +44,7 @@ fun ProcessingScreen(
     
     // Observe TranscodeState from the foreground service
     val app = context.applicationContext as AudioraApplication
-    val transcodeState by app.transcodeState.collectAsState()
+    val transcodeState: TranscodeState by app.transcodeState.collectAsState()
     
     // Derive progress and status from TranscodeState
     val progress = when (val state = transcodeState) {
