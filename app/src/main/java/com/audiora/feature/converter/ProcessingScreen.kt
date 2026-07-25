@@ -175,7 +175,7 @@ fun ProcessingScreen(
                         }
                     )
                     if (!transcodeSuccess) {
-                        Timber.e("M4B FFmpeg transcoding failed")
+                        throw java.io.IOException("FFmpeg transcoding failed — aborting audiobook creation")
                     }
                 }
                 

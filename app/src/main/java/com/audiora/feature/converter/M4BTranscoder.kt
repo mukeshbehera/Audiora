@@ -153,7 +153,7 @@ object M4BTranscoder {
     ): String {
         val sb = StringBuilder()
         sb.append("-f concat -safe 0 -i \"${concatFile.absolutePath}\" ")
-        sb.append("-i \"${metadataFile.absolutePath}\" ")
+        sb.append("-f ffmetadata -i \"${metadataFile.absolutePath}\" ")
         if (coverFile != null && coverFile.exists()) {
             sb.append("-i \"${coverFile.absolutePath}\" ")
             sb.append("-map 0:a -map 2:v ")

@@ -716,6 +716,8 @@ fun CreateScreen(
                                 onClick = {
                                     chapterStrategy = ChapterStrategy.NO_CHAPTERS
                                     WizardState.chapterStrategy = ChapterStrategy.NO_CHAPTERS
+                                    WizardState.manualChapters = emptyList()
+                                    manualChapters.clear()
                                 }
                             )
 
@@ -728,6 +730,8 @@ fun CreateScreen(
                                 onClick = {
                                     chapterStrategy = ChapterStrategy.EACH_FILE_CHAPTER
                                     WizardState.chapterStrategy = ChapterStrategy.EACH_FILE_CHAPTER
+                                    WizardState.manualChapters = emptyList()
+                                    manualChapters.clear()
                                 }
                             )
 
@@ -740,19 +744,28 @@ fun CreateScreen(
                                 onClick = {
                                     chapterStrategy = ChapterStrategy.MANUAL
                                     WizardState.chapterStrategy = ChapterStrategy.MANUAL
-                                    // Trigger regeneration if empty
+                                    // Trigger regeneration if empty — use real durations from metadata
                                     if (manualChapters.isEmpty()) {
                                         var currentOffset = 0L
                                         importedFiles.forEachIndexed { num, file ->
+                                            var dur = 1800000L // default 30 min
+                                            try {
+                                                val retriever = android.media.MediaMetadataRetriever()
+                                                retriever.setDataSource(context, Uri.parse(file.uriString))
+                                                val extracted = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+                                                val parsed = extracted?.toLongOrNull() ?: 0L
+                                                if (parsed > 0) dur = parsed
+                                                retriever.release()
+                                            } catch (_: Exception) { }
                                             manualChapters.add(
                                                 Chapter(
                                                     title = "Chapter ${num + 1}: ${file.name.substringBeforeLast('.')}",
                                                     startMs = currentOffset,
-                                                    endMs = currentOffset + 1800000L,
-                                                    durationMs = 1800000L
+                                                    endMs = currentOffset + dur,
+                                                    durationMs = dur
                                                 )
                                             )
-                                            currentOffset += 1800000L
+                                            currentOffset += dur
                                         }
                                         WizardState.manualChapters = manualChapters.toList()
                                     }
