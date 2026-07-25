@@ -1,8 +1,5 @@
 package com.audiora.feature.converter
 
-import android.content.Context
-import android.net.Uri
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -26,19 +23,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.audiora.AudioraApplication
-import com.audiora.domain.model.Audiobook
-import com.audiora.domain.model.Chapter
 import com.audiora.ui.theme.LocalDarkTheme
 import com.audiora.ui.theme.BrandGradientStart
 import com.audiora.ui.theme.BrandGradientEnd
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,13 +37,26 @@ fun ProcessingScreen(
 ) {
     val context = LocalContext.current
     val isDark = LocalDarkTheme.current
-    val coroutineScope = rememberCoroutineScope()
     
-    // Engine State
-    var progress by remember { mutableStateOf(0f) }
-    var currentStatus by remember { mutableStateOf("Converting to M4B...") }
-    var mergeJob by remember { mutableStateOf<Job?>(null) }
+    // Observe TranscodeState from the foreground service
+    val app = context.applicationContext as AudioraApplication
+    val transcodeState by app.transcodeState.collectAsState()
     
+    // Derive progress and status from TranscodeState
+    val progress = when (val state = transcodeState) {
+        is TranscodeState.Processing -> state.progress
+        is TranscodeState.Completed -> 1f
+        is TranscodeState.Failed -> 0f
+        is TranscodeState.Idle -> 0f
+    }
+
+    val currentStatus = when (val state = transcodeState) {
+        is TranscodeState.Processing -> state.status
+        is TranscodeState.Completed -> "Audiobook created successfully!"
+        is TranscodeState.Failed -> "Failed: ${state.error}"
+        is TranscodeState.Idle -> "Starting..."
+    }
+
     // Determine stages based on progress
     val mergeCompleted = progress >= 0.45f
     val metadataCompleted = progress >= 0.70f
@@ -67,203 +68,32 @@ fun ProcessingScreen(
     val chaptersActive = progress >= 0.70f && progress < 0.90f
     val finalizingActive = progress >= 0.90f && progress < 1.0f
 
-    // Start Real Background Merge on Mount
-    LaunchedEffect(Unit) {
-        val job = coroutineScope.launch {
-            try {
-                val app = context.applicationContext as AudioraApplication
-                val storageImportManager = com.audiora.data.local.StorageImportManager(context)
-                val selectedFiles = storageImportManager.getImportedFiles()
-                
-                if (selectedFiles.isEmpty()) {
-                    delay(500)
-                    progress = 1.0f
-                    onNavigateBack()
-                    return@launch
-                }
-
-                // 1. Core Merging Stage (0% -> 45%) with FFmpeg Transcoding
-                val firstFile = selectedFiles.first()
-                val cacheDir = context.cacheDir
-                val baseName = WizardState.title
-                    .takeUnless { it.isBlank() }
-                    ?: firstFile.name.substringBeforeLast('.')
-                val safeBaseName = baseName.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)
-                val outputMergedFile = resolveUniqueFile(cacheDir, safeBaseName, ".m4b")
-                val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
-
-                // Build chapter list for the strategy before transcoding
-                val fileDurations = selectedFiles.map { file ->
-                    var itemDuration = 1800000L // 30 mins fallback
-                    try {
-                        val retriever = android.media.MediaMetadataRetriever()
-                        retriever.setDataSource(context, Uri.parse(file.uriString))
-                        val durationStr = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
-                        val parsed = durationStr?.toLongOrNull() ?: 0L
-                        if (parsed > 0) itemDuration = parsed
-                        retriever.release()
-                    } catch (e: Exception) {
-                        // ignore
-                    }
-                    itemDuration
-                }
-                val totalDuration = fileDurations.sum()
-
-                val chapters = mutableListOf<Chapter>()
-                when (WizardState.chapterStrategy) {
-                    ChapterStrategy.NO_CHAPTERS -> {
-                        chapters.add(
-                            Chapter(
-                                title = "Full Audiobook",
-                                startMs = 0L,
-                                endMs = totalDuration,
-                                durationMs = totalDuration
-                            )
-                        )
-                    }
-                    ChapterStrategy.EACH_FILE_CHAPTER -> {
-                        var currentMarkerOffset = 0L
-                        selectedFiles.forEachIndexed { idx, file ->
-                            val itemDuration = fileDurations[idx]
-                            chapters.add(
-                                Chapter(
-                                    title = "Chapter ${idx + 1}: ${file.name.substringBeforeLast('.')}",
-                                    startMs = currentMarkerOffset,
-                                    endMs = currentMarkerOffset + itemDuration,
-                                    durationMs = itemDuration
-                                )
-                            )
-                            currentMarkerOffset += itemDuration
-                        }
-                    }
-                    ChapterStrategy.MANUAL -> {
-                        if (WizardState.manualChapters.isNotEmpty()) {
-                            chapters.addAll(WizardState.manualChapters)
-                        } else {
-                            var currentMarkerOffset = 0L
-                            selectedFiles.forEachIndexed { idx, file ->
-                                val itemDuration = fileDurations[idx]
-                                chapters.add(
-                                    Chapter(
-                                        title = "Chapter ${idx + 1}: ${file.name.substringBeforeLast('.')}",
-                                        startMs = currentMarkerOffset,
-                                        endMs = currentMarkerOffset + itemDuration,
-                                        durationMs = itemDuration
-                                    )
-                                )
-                                currentMarkerOffset += itemDuration
-                            }
-                        }
-                    }
-                }
-
-                withContext(Dispatchers.IO) {
-                    val transcodeSuccess = M4BTranscoder.transcode(
-                        context = context,
-                        inputUris = inputUris,
-                        outputFile = outputMergedFile,
-                        title = if (WizardState.title.isNotBlank()) WizardState.title else firstFile.name.substringBeforeLast('.'),
-                        author = if (WizardState.author.isNotBlank()) WizardState.author else "System Creator",
-                        narrator = if (WizardState.narrator.isNotBlank()) WizardState.narrator else "Narrator Team",
-                        publisher = if (WizardState.publisher.isNotBlank()) WizardState.publisher else "Audiora Merged",
-                        genre = if (WizardState.genre.isNotBlank()) WizardState.genre else "Audiobook",
-                        year = if (WizardState.year.isNotBlank()) WizardState.year else "2026",
-                        description = if (WizardState.description.isNotBlank()) WizardState.description else "High-fidelity assembled seamless stream.",
-                        chapters = chapters,
-                        coverSeed = if (WizardState.coverSeed.isNotBlank()) WizardState.coverSeed else null,
-                        listener = object : M4BTranscoder.ProgressListener {
-                            override fun onProgress(percentage: Float) {
-                                progress = percentage * 0.45f
-                            }
-                        }
-                    )
-                    if (!transcodeSuccess) {
-                        throw java.io.IOException("FFmpeg transcoding failed — aborting audiobook creation")
-                    }
-                }
-                
-                progress = 0.45f
-                delay(700) // Beautiful cinematic delay
-
-                // 2. Metadata verification stage (45% -> 70%) - FFmpeg already embedded tags
-                currentStatus = "Verifying metadata..."
-                delay(300)
-                progress = 0.70f
-                delay(700)
-
-                // 3. Chapters verification stage (70% -> 90%) - FFmpeg already embedded chapters
-                currentStatus = "Verifying chapter markers..."
-                delay(300)
-                progress = 0.90f
-                delay(700)
-
-                // 4. Finalizing stage (90% -> 100%) with file move to public Downloads/Audiora
-                currentStatus = "Saving Audiobook..."
-                val finalizeSteps = 10
-                for (i in 1..finalizeSteps) {
-                    delay(50)
-                    progress = 0.90f + (i.toFloat() / finalizeSteps) * 0.10f
-                }
-
-                // Move the M4B from cache to Downloads/Audiora for permanent storage
-                val displayTitle = WizardState.title.ifBlank { firstFile.name.substringBeforeLast('.') }
-                val finalOutputPath = withContext(Dispatchers.IO) {
-                    moveToDownloads(context, outputMergedFile, displayTitle)
-                }
-
-                // Register standard merged audiobook into database with the final path
-                val fallbackTitle = firstFile.name.substringBeforeLast('.')
-                
-                val finalTitle = if (WizardState.title.isNotBlank()) WizardState.title else "Merged ${fallbackTitle}"
-                val finalAuthor = if (WizardState.author.isNotBlank()) WizardState.author else "System Creator"
-                val finalNarrator = if (WizardState.narrator.isNotBlank()) WizardState.narrator else "Narrator Team"
-                val finalPublisher = if (WizardState.publisher.isNotBlank()) WizardState.publisher else "Audiora Merged"
-                val finalGenre = if (WizardState.genre.isNotBlank()) WizardState.genre else "Audiobook"
-                val finalYear = if (WizardState.year.isNotBlank()) WizardState.year else "2026"
-                val finalDescription = if (WizardState.description.isNotBlank()) WizardState.description else "High-fidelity assembled seamless stream."
-                val finalCover = if (WizardState.coverSeed.isNotBlank()) WizardState.coverSeed else {
-                    val coverSeeds = listOf("nebula", "horizon", "eternity", "neon", "infinite")
-                    coverSeeds[Math.abs(finalTitle.hashCode()) % coverSeeds.size]
-                }
-
-                val newBook = Audiobook(
-                    filePath = finalOutputPath,
-                    title = finalTitle,
-                    author = finalAuthor,
-                    narrator = finalNarrator,
-                    publisher = finalPublisher,
-                    genre = finalGenre,
-                    year = finalYear,
-                    description = finalDescription,
-                    durationMs = totalDuration,
-                    currentPositionMs = 0,
-                    coverPath = finalCover,
-                    addedAt = System.currentTimeMillis(),
-                    completed = false,
-                    chaptersJson = Chapter.serializeList(chapters)
-                )
-
-                app.bookRepository.saveAudiobook(newBook)
-                
-                // Clear selected files queue so a new set can be made
-                storageImportManager.updateImportedFiles(emptyList())
-
-                progress = 1.0f
+    // Navigate when completed
+    LaunchedEffect(transcodeState) {
+        when (val state = transcodeState) {
+            is TranscodeState.Completed -> {
                 delay(500)
-                
-                // Self-trigger finished navigate action
-                val allBooks = app.bookRepository.getAudiobooks()
-                onMergeCompleted(0) // Safe routing ID
-            } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) {
-                    Timber.d("Audiobook creation was cancelled")
-                    // Re-throw CancellationException so the coroutine properly stops
-                    throw e
-                }
-                Timber.e(e, "Error converting audiobooks")
+                onMergeCompleted(state.bookId)
+            }
+            is TranscodeState.Failed -> {
+                // Stay on screen so user can see error, then allow back navigation
+            }
+            is TranscodeState.Idle -> {
+                // If idle when screen opens, service may not have started yet
+                // Check if files exist to determine if we should navigate away
+            }
+            is TranscodeState.Processing -> {
+                // Processing — just observe
             }
         }
-        mergeJob = job
+    }
+
+    // Navigate back if Idle (service already finished or was cancelled before screen opened)
+    LaunchedEffect(Unit) {
+        if (transcodeState is TranscodeState.Idle) {
+            delay(100)
+            onNavigateBack()
+        }
     }
 
     // Gradient styling for the circular progress outline
@@ -288,7 +118,7 @@ fun ProcessingScreen(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            mergeJob?.cancel()
+                            TranscodeService.cancel(context)
                             onNavigateBack()
                         },
                         modifier = Modifier.testTag("processing_back_button")
@@ -410,7 +240,7 @@ fun ProcessingScreen(
             // 4. Centered Pill Cancel Button
             OutlinedButton(
                 onClick = {
-                    mergeJob?.cancel()
+                    TranscodeService.cancel(context)
                     onNavigateBack()
                 },
                 modifier = Modifier

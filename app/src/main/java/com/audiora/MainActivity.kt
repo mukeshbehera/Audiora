@@ -41,9 +41,12 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_NAVIGATE_TO_PLAYER = "com.audiora.EXTRA_NAVIGATE_TO_PLAYER"
+        const val EXTRA_NAVIGATE_TO_DETAILS = "com.audiora.EXTRA_NAVIGATE_TO_DETAILS"
+        const val EXTRA_BOOK_ID = "book_id"
     }
 
     private val pendingPlayerNavigation = mutableStateOf(false)
+    private val pendingBookDetailNavigation = mutableStateOf<Int?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,7 +70,7 @@ class MainActivity : ComponentActivity() {
                 colorSchemeName = colorSchemeName
             ) {
                 // Main app container coordinating Screens Navigation Graph
-                MainAppContainer(settingsRepository, pendingPlayerNavigation)
+                MainAppContainer(settingsRepository, pendingPlayerNavigation, pendingBookDetailNavigation)
             }
         }
     }
@@ -81,13 +84,20 @@ class MainActivity : ComponentActivity() {
         if (intent.getBooleanExtra(EXTRA_NAVIGATE_TO_PLAYER, false)) {
             pendingPlayerNavigation.value = true
         }
+        if (intent.getBooleanExtra(EXTRA_NAVIGATE_TO_DETAILS, false)) {
+            val bookId = intent.getIntExtra(EXTRA_BOOK_ID, -1)
+            if (bookId != -1) {
+                pendingBookDetailNavigation.value = bookId
+            }
+        }
     }
 }
 
 @Composable
 fun MainAppContainer(
     settingsRepository: com.audiora.domain.repository.SettingsRepository,
-    pendingPlayerNavigation: MutableState<Boolean>
+    pendingPlayerNavigation: MutableState<Boolean>,
+    pendingBookDetailNavigation: MutableState<Int?>
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as AudioraApplication
@@ -119,7 +129,7 @@ fun MainAppContainer(
             // NavHost + bottom bar overlay. This composable enters the tree
             // only after onboarding is fully complete. The splash was already
             // removed from the tree, so there is no overlap.
-            MainAppShell(settingsRepository, pendingPlayerNavigation)
+            MainAppShell(settingsRepository, pendingPlayerNavigation, pendingBookDetailNavigation)
         }
     }
 }
@@ -127,7 +137,8 @@ fun MainAppContainer(
 @Composable
 private fun MainAppShell(
     settingsRepository: com.audiora.domain.repository.SettingsRepository,
-    pendingPlayerNavigation: MutableState<Boolean>
+    pendingPlayerNavigation: MutableState<Boolean>,
+    pendingBookDetailNavigation: MutableState<Int?>
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -158,6 +169,20 @@ private fun MainAppShell(
                 }
             }
             pendingPlayerNavigation.value = false
+        }
+    }
+
+    // Handle notification tap — navigate to audiobook details from transcode completion
+    LaunchedEffect(pendingBookDetailNavigation.value) {
+        val bookId = pendingBookDetailNavigation.value
+        if (bookId != null) {
+            navController.navigate(Screen.Library.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            navController.navigate("details/$bookId") {
+                launchSingleTop = true
+            }
+            pendingBookDetailNavigation.value = null
         }
     }
 

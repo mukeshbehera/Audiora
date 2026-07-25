@@ -896,7 +896,8 @@ fun CreateScreen(
                         } else if (currentStep == 3) {
                             currentStep++
                         } else {
-                            // Final Step 4: start the merge progress screen
+                            // Final Step 4: start foreground service and navigate to processing screen
+                            com.audiora.feature.converter.TranscodeService.start(context)
                             onStartMerge()
                         }
                     }

@@ -33,13 +33,20 @@ class AudioraApplication : Application() {
     lateinit var playbackManager: com.audiora.feature.player.PlaybackManager
         private set
 
+    // Transcode foreground service state — observed by ProcessingScreen
+    val transcodeState = MutableStateFlow<com.audiora.feature.converter.TranscodeState>(
+        com.audiora.feature.converter.TranscodeState.Idle
+    )
+
     val playStateManager = com.audiora.feature.player.PlayStateManager()
 
     // App-scoped coroutine scope for background tasks that must outlive any screen
     val appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private fun createNotificationChannel() {
-        val channel = android.app.NotificationChannel(
+    private fun createNotificationChannels() {
+        val manager = getSystemService(android.app.NotificationManager::class.java)
+
+        val playbackChannel = android.app.NotificationChannel(
             "media_playback",
             "Playback",
             android.app.NotificationManager.IMPORTANCE_LOW
@@ -47,13 +54,22 @@ class AudioraApplication : Application() {
             description = "Media playback controls"
             setShowBadge(false)
         }
-        val manager = getSystemService(android.app.NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+        manager.createNotificationChannel(playbackChannel)
+
+        val transcodeChannel = android.app.NotificationChannel(
+            "transcode_progress",
+            "Audiobook Creation",
+            android.app.NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Progress notifications for audiobook creation"
+            setShowBadge(false)
+        }
+        manager.createNotificationChannel(transcodeChannel)
     }
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
+        createNotificationChannels()
 
         // 1. Initialize Timber Logging
         if (BuildConfig.DEBUG) {
