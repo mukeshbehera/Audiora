@@ -37,6 +37,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -193,15 +194,20 @@ fun ProcessingScreen(
                 progress = 0.90f
                 delay(700)
 
-                // 4. Finalizing stage (90% -> 100%)
-                currentStatus = "Saving Audiobook and Clearing cache..."
+                // 4. Finalizing stage (90% -> 100%) with file move to public Downloads/Audiora
+                currentStatus = "Saving Audiobook..."
                 val finalizeSteps = 10
                 for (i in 1..finalizeSteps) {
                     delay(50)
                     progress = 0.90f + (i.toFloat() / finalizeSteps) * 0.10f
                 }
 
-                // Register standard merged audiobook into database
+                // Move the M4B from cache to Downloads/Audiora for permanent storage
+                val finalOutputPath = withContext(Dispatchers.IO) {
+                    moveToDownloads(context, outputMergedFile, WizardState.title.ifBlank { fallbackTitle })
+                }
+
+                // Register standard merged audiobook into database with the final path
                 val fallbackTitle = firstFile.name.substringBeforeLast('.')
                 
                 val finalTitle = if (WizardState.title.isNotBlank()) WizardState.title else "Merged ${fallbackTitle}"
@@ -217,7 +223,7 @@ fun ProcessingScreen(
                 }
 
                 val newBook = Audiobook(
-                    filePath = outputMergedFile.absolutePath,
+                    filePath = finalOutputPath,
                     title = finalTitle,
                     author = finalAuthor,
                     narrator = finalNarrator,
@@ -414,6 +420,75 @@ fun ProcessingScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
+        }
+    }
+}
+
+/**
+ * Moves the transcoded M4B file from cache to Downloads/Audiora/ for permanent storage.
+ * Uses MediaStore on API 29+ for scoped storage compliance; direct file move on older APIs.
+ * Falls back to cache path if the move fails.
+ */
+private fun moveToDownloads(context: Context, sourceFile: File, bookTitle: String): String {
+    if (!sourceFile.exists()) return sourceFile.absolutePath
+
+    val fileName = "${bookTitle.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)}_${System.currentTimeMillis()}.m4b"
+
+    return if (android.os.Build.VERSION.SDK_INT >= 29) {
+        // API 29+: Use MediaStore (scoped storage)
+        try {
+            val contentValues = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.Downloads.DISPLAY_NAME, fileName)
+                put(android.provider.MediaStore.Downloads.MIME_TYPE, "audio/mp4")
+                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
+                put(android.provider.MediaStore.Downloads.RELATIVE_PATH, "Download/Audiora")
+            }
+            val outputUri = context.contentResolver.insert(
+                android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues
+            )
+            if (outputUri != null) {
+                context.contentResolver.openOutputStream(outputUri)?.use { output ->
+                    sourceFile.inputStream().use { input -> input.copyTo(output) }
+                }
+                val updateValues = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                }
+                context.contentResolver.update(outputUri, updateValues, null, null)
+                // Delete source file — effectively a move
+                sourceFile.delete()
+                Timber.d("Moved M4B to MediaStore Downloads/Audiora: $outputUri")
+                return outputUri.toString()
+            } else {
+                Timber.w("MediaStore insert returned null, falling back to cache path")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to move to MediaStore Downloads/Audiora, falling back to cache")
+        }
+        sourceFile.absolutePath
+    } else {
+        // Pre-API 29: Direct file move to external Downloads/Audiora
+        try {
+            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                android.os.Environment.DIRECTORY_DOWNLOADS
+            )
+            val audioraDir = File(downloadsDir, "Audiora")
+            if (!audioraDir.exists()) audioraDir.mkdirs()
+            val destFile = File(audioraDir, fileName)
+            val success = sourceFile.renameTo(destFile)
+            if (success) {
+                Timber.d("Moved M4B to ${destFile.absolutePath}")
+                return destFile.absolutePath
+            } else {
+                Timber.w("renameTo failed, trying copy+delete fallback")
+                FileOutputStream(destFile).use { out ->
+                    sourceFile.inputStream().use { inp -> inp.copyTo(out) }
+                }
+                sourceFile.delete()
+                return destFile.absolutePath
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to move to Downloads/Audiora, falling back to cache path")
+            sourceFile.absolutePath
         }
     }
 }

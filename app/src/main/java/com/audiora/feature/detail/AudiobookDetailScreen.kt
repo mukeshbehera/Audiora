@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.audiora.AudioraApplication
 import com.audiora.domain.util.toDisplayPath
+import kotlinx.coroutines.launch
 import com.audiora.core.design.GlassmorphicCard
 import com.audiora.core.design.GlassmorphicEmptyState
 import com.audiora.core.design.GlassmorphicLoadingState
@@ -53,6 +54,7 @@ fun AudiobookDetailScreen(
         factory = AudiobookDetailViewModel.provideFactory(app.bookRepository, bookId)
     )
     val uiState by detailViewModel.uiState.collectAsStateWithLifecycle()
+    val saveStatus by detailViewModel.saveStatus.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
 
     Scaffold(
@@ -296,6 +298,104 @@ fun AudiobookDetailScreen(
                                         icon = Icons.Rounded.Link,
                                         isSingleLine = false
                                     )
+                                }
+                            }
+                        }
+
+// Save to Downloads Card — shown only when audiobook is in app cache
+                        val isInCache by detailViewModel.isInCache.collectAsStateWithLifecycle()
+
+                        if (isInCache) {
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                SectionHeader(text = "Storage Location")
+                                GlassmorphicCard(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    cornerRadius = 16.dp
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.SaveAlt,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Save to Downloads",
+                                                style = MaterialTheme.typography.titleSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onBackground
+                                            )
+                                            Text(
+                                                text = when (saveStatus) {
+                                                    is SaveStatus.Idle -> "This audiobook is in app cache. Save it permanently to Downloads/Audiora/"
+                                                    is SaveStatus.Saving -> "Saving to Downloads/Audiora..."
+                                                    is SaveStatus.Success -> "Saved! File is now in Downloads/Audiora/"
+                                                    is SaveStatus.Error -> "Failed: ${(saveStatus as SaveStatus.Error).message}"
+                                                },
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                                maxLines = 3
+                                            )
+                                        }
+                                        when (saveStatus) {
+                                            is SaveStatus.Saving -> {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(32.dp),
+                                                    strokeWidth = 3.dp,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            is SaveStatus.Success -> {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.CheckCircle,
+                                                    contentDescription = "Saved",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(32.dp)
+                                                )
+                                            }
+                                            is SaveStatus.Error -> {
+                                                IconButton(
+                                                    onClick = { detailViewModel.resetSaveStatus() },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Rounded.Close,
+                                                        contentDescription = "Dismiss",
+                                                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+                                            is SaveStatus.Idle -> {
+                                                Button(
+                                                    onClick = {
+                                                        // Request WRITE_EXTERNAL_STORAGE on pre-API 29
+                                                        detailViewModel.saveToDownloads(context)
+                                                    },
+                                                    modifier = Modifier.height(36.dp),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.primary
+                                                    )
+                                                ) {
+                                                    Text(
+                                                        text = "Save",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
