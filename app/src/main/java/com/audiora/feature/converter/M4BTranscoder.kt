@@ -183,6 +183,7 @@ object M4BTranscoder {
 
         if (title.isNotBlank()) sb.appendLine("title=$title")
         if (author.isNotBlank()) sb.appendLine("artist=$author")
+        if (title.isNotBlank()) sb.appendLine("album=$title")
         if (publisher.isNotBlank()) sb.appendLine("publisher=$publisher")
         if (genre.isNotBlank()) sb.appendLine("genre=$genre")
         if (year.isNotBlank()) sb.appendLine("date=$year")

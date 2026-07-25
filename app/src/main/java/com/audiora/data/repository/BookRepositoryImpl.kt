@@ -96,9 +96,10 @@ class BookRepositoryImpl(
                     val audioFile = org.jaudiotagger.audio.AudioFileIO.read(tempFile)
                     val tag = audioFile.tag ?: audioFile.createDefaultTag().also { audioFile.tag = it }
                     tag.setField(org.jaudiotagger.tag.FieldKey.TITLE, title)
-                    tag.setField(org.jaudiotagger.tag.FieldKey.ARTIST, author)
-                    tag.setField(org.jaudiotagger.tag.FieldKey.ALBUM_ARTIST, author)
-                    tag.setField(org.jaudiotagger.tag.FieldKey.COMPOSER, narrator)
+                        tag.setField(org.jaudiotagger.tag.FieldKey.ALBUM, title)
+                        tag.setField(org.jaudiotagger.tag.FieldKey.ARTIST, author)
+                        tag.setField(org.jaudiotagger.tag.FieldKey.ALBUM_ARTIST, author)
+                        tag.setField(org.jaudiotagger.tag.FieldKey.COMPOSER, narrator)
                     tag.setField(org.jaudiotagger.tag.FieldKey.RECORD_LABEL, publisher)
                     tag.setField(org.jaudiotagger.tag.FieldKey.GENRE, genre)
                     tag.setField(org.jaudiotagger.tag.FieldKey.LANGUAGE, language)
@@ -118,6 +119,7 @@ class BookRepositoryImpl(
                         val audioFile = org.jaudiotagger.audio.AudioFileIO.read(file)
                         val tag = audioFile.tag ?: audioFile.createDefaultTag().also { audioFile.tag = it }
                         tag.setField(org.jaudiotagger.tag.FieldKey.TITLE, title)
+                        tag.setField(org.jaudiotagger.tag.FieldKey.ALBUM, title)
                         tag.setField(org.jaudiotagger.tag.FieldKey.ARTIST, author)
                         tag.setField(org.jaudiotagger.tag.FieldKey.ALBUM_ARTIST, author)
                         tag.setField(org.jaudiotagger.tag.FieldKey.COMPOSER, narrator)
