@@ -55,8 +55,9 @@ class AudiobookDetailViewModel(
 
     val isInCache: StateFlow<Boolean> = _uiState.map { state ->
         if (state is DetailUiState.Success) {
-            state.audiobook.filePath.startsWith("/data/") &&
-            state.audiobook.filePath.contains("/cache/")
+            val path = state.audiobook.filePath
+            // Cache paths are under /data/ and contain /cache/
+            path.startsWith("/data/") && path.contains("/cache/")
         } else false
     }.stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), false)
 

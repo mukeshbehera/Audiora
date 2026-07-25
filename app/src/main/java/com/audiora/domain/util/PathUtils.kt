@@ -20,6 +20,12 @@ fun toDisplayPath(uriStr: String?): String {
         if (uri.scheme == "content") {
             val path = uri.path ?: return uriStr
 
+            // MediaStore downloads URI (content://media/external/downloads/<id>)
+            // Show "Download/Audiora" as the display path
+            if (path.contains("/downloads/") || path.contains("/external/")) {
+                return "/Download/Audiora/"
+            }
+
             // Extract meaningful subpath after the first SAF prefix
             var subPath: String? = when {
                 path.contains("tree/primary:") ->
@@ -63,7 +69,13 @@ fun toDisplayPath(uriStr: String?): String {
         )
         for (prefix in knownPrefixes) {
             if (uriStr.startsWith(prefix)) {
-                return "/${uriStr.removePrefix(prefix)}"
+                val sub = uriStr.removePrefix(prefix)
+                return if (sub.contains("/cache/")) {
+                    // Cache path — show as "App Cache / <filename>"
+                    "App Cache / ${sub.substringAfterLast('/')}"
+                } else {
+                    "/$sub"
+                }
             }
         }
 
