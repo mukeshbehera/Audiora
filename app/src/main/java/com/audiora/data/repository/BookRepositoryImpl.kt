@@ -328,48 +328,21 @@ class BookRepositoryImpl(
             bookDao.updateAudiobook(updatedEntity)
         }
 
-        // Then attempt to write to the M4B file — if this fails, Room still has the data
+        // Then use FFmpeg to embed chapters as proper MP4 chapter markers (chpl atoms / chapter tracks)
+        // so the chapters are visible in all audiobook players, not just in Audiora
         if (filePathStr.isNotEmpty()) {
-            val isContentUri = filePathStr.startsWith("content://")
-            var tempFile: java.io.File? = null
             try {
-                if (isContentUri) {
-                    val uri = android.net.Uri.parse(filePathStr)
-                    val ext = "m4b"
-                    tempFile = java.io.File.createTempFile("edit_chapters_", ".$ext", context.cacheDir)
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        java.io.FileOutputStream(tempFile).use { output ->
-                            input.copyTo(output)
-                        }
-                    }
-                    val audioFile = org.jaudiotagger.audio.AudioFileIO.read(tempFile)
-                    val tag = audioFile.tag ?: audioFile.createDefaultTag().also { audioFile.tag = it }
-
-                    // We save the chapters in the standard COMMENT field of the M4B
-                    tag.setField(org.jaudiotagger.tag.FieldKey.COMMENT, "ChaptersJSON:$serialized")
-                    org.jaudiotagger.audio.AudioFileIO.write(audioFile)
-
-                    context.contentResolver.openOutputStream(uri, "rwt")?.use { output ->
-                        tempFile.inputStream().use { input ->
-                            input.copyTo(output)
-                        }
-                    }
-                } else {
-                    val file = java.io.File(filePathStr)
-                    if (file.exists()) {
-                        val audioFile = org.jaudiotagger.audio.AudioFileIO.read(file)
-                        val tag = audioFile.tag ?: audioFile.createDefaultTag().also { audioFile.tag = it }
-                        tag.setField(org.jaudiotagger.tag.FieldKey.COMMENT, "ChaptersJSON:$serialized")
-                        org.jaudiotagger.audio.AudioFileIO.write(audioFile)
-                    }
+                val success = com.audiora.feature.converter.M4BTranscoder.embedChaptersInFile(
+                    context = context,
+                    filePath = filePathStr,
+                    chapters = chapters
+                )
+                if (!success) {
+                    Timber.w("FFmpeg chapter embedding returned false for: $filePathStr")
                 }
             } catch (e: Exception) {
-                Timber.e(e, "Error writing chapters metadata to M4B: $filePathStr")
+                Timber.e(e, "Error embedding chapters via FFmpeg in: $filePathStr")
                 throw e
-            } finally {
-                try {
-                    tempFile?.delete()
-                } catch (ignored: Exception) {}
             }
         }
     }

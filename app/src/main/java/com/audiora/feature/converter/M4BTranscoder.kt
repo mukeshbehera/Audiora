@@ -309,3 +309,99 @@ object M4BTranscoder {
         }
     }
 }
+/**
+     * Embeds chapter markers into an existing M4B file using FFmpeg FFMETADATA.
+     * Replaces existing chapters with the provided list.
+     * Handles both local file paths and content:// URIs.
+     */
+    suspend fun embedChaptersInFile(
+        context: Context,
+        filePath: String,
+        chapters: List<Chapter>
+    ): Boolean {
+        return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+            try {
+                val isContentUri = filePath.startsWith("content://")
+                val sourceFile: File
+                val cleanupSource: (() -> Unit)?
+
+                if (isContentUri) {
+                    val uri = android.net.Uri.parse(filePath)
+                    val tempInput = File(context.cacheDir, "ffmpeg_embed_input_${System.nanoTime()}.m4b")
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        tempInput.outputStream().use { output -> input.copyTo(output) }
+                    } ?: throw IOException("Cannot open input stream for $filePath")
+                    sourceFile = tempInput
+                    cleanupSource = { tempInput.delete() }
+                } else {
+                    sourceFile = File(filePath)
+                    if (!sourceFile.exists()) throw IOException("File not found: $filePath")
+                    cleanupSource = null
+                }
+
+                // Generate FFMETADATA with only chapters (preserve existing metadata by copying from input)
+                val metadataStr = buildChaptersOnlyMetadata(chapters)
+                val metadataFile = File(context.cacheDir, "ffmpeg_embed_meta_${System.nanoTime()}.txt")
+                metadataFile.writeText(metadataStr)
+
+                val outputFile = File(context.cacheDir, "ffmpeg_embed_out_${System.nanoTime()}.m4b")
+                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map_metadata 1 -c copy -y \"${outputFile.absolutePath}\""
+
+                val session = FFmpegKit.executeAsync(
+                    command,
+                    { session ->
+                        try {
+                            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists()) {
+                                if (isContentUri) {
+                                    val uri = android.net.Uri.parse(filePath)
+                                    context.contentResolver.openOutputStream(uri, "rwt")?.use { output ->
+                                        outputFile.inputStream().use { input -> input.copyTo(output) }
+                                    }
+                                } else {
+                                    outputFile.copyTo(sourceFile, overwrite = true)
+                                }
+                                Timber.d("Chapters embedded successfully via FFmpeg in $filePath")
+                                continuation.resume(true, onCancellation = null)
+                            } else {
+                                Timber.e("FFmpeg chapter embedding failed with code ${session.returnCode.value}")
+                                continuation.resume(false, onCancellation = null)
+                            }
+                        } finally {
+                            cleanupSource?.invoke()
+                            metadataFile.delete()
+                            outputFile.delete()
+                        }
+                    },
+                    com.arthenica.ffmpegkit.LogCallback { log ->
+                        Timber.d("FFmpeg embed: ${log.message?.trimEnd()}")
+                    },
+                    null, /* no statistics callback needed */
+                    null  /* use default executor */
+                )
+
+                continuation.invokeOnCancellation {
+                    session.cancel()
+                    cleanupSource?.invoke()
+                    metadataFile.delete()
+                    outputFile.delete()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error embedding chapters in file: $filePath")
+                continuation.resume(false, onCancellation = null)
+            }
+        }
+    }
+
+    private fun buildChaptersOnlyMetadata(chapters: List<Chapter>): String {
+        val sb = StringBuilder()
+        sb.appendLine(";FFMETADATA1")
+        for (ch in chapters) {
+            sb.appendLine()
+            sb.appendLine("[CHAPTER]")
+            sb.appendLine("TIMEBASE=1/1000")
+            sb.appendLine("START=${ch.startMs}")
+            sb.appendLine("END=${ch.endMs}")
+            sb.appendLine("title=${ch.title}")
+        }
+        return sb.toString()
+    }
