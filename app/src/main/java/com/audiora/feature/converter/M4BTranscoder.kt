@@ -457,3 +457,4 @@ object M4BTranscoder {
      * Helper to check if a file path is a content:// URI.
      */
     private fun isContentUri(path: String): Boolean = path.startsWith("content://")
+}
