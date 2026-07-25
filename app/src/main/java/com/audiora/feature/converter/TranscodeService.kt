@@ -360,7 +360,7 @@ class TranscodeService : Service() {
 
     private fun showCompletedNotification(bookId: Int, title: String) {
         val openIntent = Intent(this@TranscodeService, MainActivity::class.java).apply {
-            action = androidx.media3.common.util.IntentUtil.ACTION_VIEW
+            action = Intent.ACTION_VIEW
             putExtra(MainActivity.EXTRA_NAVIGATE_TO_DETAILS, true)
             putExtra(MainActivity.EXTRA_BOOK_ID, bookId)
             putExtra(EXTRA_BOOK_TITLE, title)
