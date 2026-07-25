@@ -189,36 +189,10 @@ fun CreateScreen(
                     addedCount++
                     
                     // Extract metadata and save to Room Database
-                    coroutineScope.launch {
-                        val metadata = getAudioDurationAndMetadata(context, uri)
-                        val finalTitle = if (metadata.title.isNotEmpty()) metadata.title else name.substringBeforeLast('.')
-                        val finalDuration = if (metadata.durationMs > 0) metadata.durationMs else 1800000L // 30 mins fallback
-                        val coverSeeds = listOf("nebula", "horizon", "eternity", "neon", "infinite")
-                        val randomCoverSeed = coverSeeds[Math.abs(finalTitle.hashCode()) % coverSeeds.size]
-                        
-                        val app = context.applicationContext as com.audiora.AudioraApplication
-                        val newBook = com.audiora.domain.model.Audiobook(
-                            filePath = uri.toString(),
-                            title = finalTitle,
-                            author = metadata.author,
-                            narrator = "System Narrator",
-                            publisher = "Imported Audio",
-                            genre = when (type) {
-                                "M4B" -> "Audiobook"
-                                "M4A" -> "Music/Voice"
-                                "MP3" -> "MP3"
-                                else -> "AAC Voice"
-                            },
-                            year = "2026",
-                            description = "Beautifully imported high-fidelity local audiobook stream.",
-                            durationMs = finalDuration,
-                            currentPositionMs = 0,
-                            coverPath = randomCoverSeed,
-                            addedAt = System.currentTimeMillis(),
-                            completed = false
-                        )
-                        app.bookRepository.saveAudiobook(newBook)
-                    }
+                    // Source files are NOT saved to the Room DB as individual audiobooks.
+                    // They are only stored in StorageImportManager (SharedPreferences) as
+                    // temporary inputs for the merge/transcode process. The final merged M4B
+                    // will be saved as a single audiobook entry in Room by ProcessingScreen.
                 }
             } else {
                 rejectedCount++
