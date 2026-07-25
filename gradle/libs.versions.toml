@@ -42,6 +42,7 @@ timber = "5.0.1"
 media3 = "1.10.1"
 jaudiotagger = "3.0.1"
 ffmpegKit = "8.1.7"
+smartExceptionJava = "0.2.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -100,6 +101,7 @@ androidx-media3-session = { group = "androidx.media3", name = "media3-session", 
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 jaudiotagger = { group = "net.jthink", name = "jaudiotagger", version.ref = "jaudiotagger" }
 ffmpeg-kit-audio = { group = "dev.ffmpegkit-maintained", name = "ffmpeg-kit-audio", version.ref = "ffmpegKit" }
+smart-exception-java = { group = "com.arthenica", name = "smart-exception-java", version.ref = "smartExceptionJava" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
