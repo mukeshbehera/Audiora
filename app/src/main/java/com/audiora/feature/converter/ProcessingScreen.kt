@@ -83,10 +83,13 @@ fun ProcessingScreen(
                 }
 
                 // 1. Core Merging Stage (0% -> 45%) with FFmpeg Transcoding
-                val cacheDir = context.cacheDir
-                val outputMergedFile = File(cacheDir, "audiora_assembled_${System.currentTimeMillis()}.m4b")
-
                 val firstFile = selectedFiles.first()
+                val cacheDir = context.cacheDir
+                val baseName = WizardState.title
+                    .takeUnless { it.isBlank() }
+                    ?: firstFile.name.substringBeforeLast('.')
+                val safeBaseName = baseName.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)
+                val outputMergedFile = File(cacheDir, "${safeBaseName}_${System.currentTimeMillis()}.m4b")
                 val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
 
                 // Build chapter list for the strategy before transcoding
