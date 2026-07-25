@@ -175,7 +175,8 @@ class AudiobookDetailViewModel(
             }
 
             try {
-                val fileName = "${book.title.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)}_${System.currentTimeMillis()}.m4b"
+                val safeBaseName = book.title.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)
+                val fileName = "$safeBaseName.m4b"
                 val newPath = withContext(Dispatchers.IO) {
                     if (android.os.Build.VERSION.SDK_INT >= 29) {
                         saveViaMediaStore(context, sourceFile, fileName)
@@ -228,7 +229,8 @@ class AudiobookDetailViewModel(
         val audioraDir = java.io.File(downloadsDir, "Audiora")
         if (!audioraDir.exists()) audioraDir.mkdirs()
 
-        val destFile = java.io.File(audioraDir, fileName)
+        val cleanName = fileName.substringBeforeLast('.')
+        val destFile = resolveUniqueFile(audioraDir, cleanName, ".m4b")
         if (!source.renameTo(destFile)) {
             // renameTo failed (cross-partition), fallback to copy+delete
             java.io.FileOutputStream(destFile).use { out ->
@@ -237,6 +239,21 @@ class AudiobookDetailViewModel(
             source.delete()
         }
         return destFile.absolutePath
+    }
+
+    /**
+     * Resolves a unique file path by appending (N) if the base name already exists.
+     * e.g. "My Book.m4b" → "My Book.m4b" if absent, "My Book (1).m4b" if exists.
+     */
+    private fun resolveUniqueFile(directory: java.io.File, baseName: String, extension: String): java.io.File {
+        val candidate = java.io.File(directory, "$baseName$extension")
+        if (!candidate.exists()) return candidate
+        var counter = 1
+        while (true) {
+            val next = java.io.File(directory, "$baseName ($counter)$extension")
+            if (!next.exists()) return next
+            counter++
+        }
     }
 
     companion object {

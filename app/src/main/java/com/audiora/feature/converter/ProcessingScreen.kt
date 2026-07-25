@@ -89,7 +89,7 @@ fun ProcessingScreen(
                     .takeUnless { it.isBlank() }
                     ?: firstFile.name.substringBeforeLast('.')
                 val safeBaseName = baseName.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)
-                val outputMergedFile = File(cacheDir, "${safeBaseName}_${System.currentTimeMillis()}.m4b")
+                val outputMergedFile = resolveUniqueFile(cacheDir, safeBaseName, ".m4b")
                 val inputUris = selectedFiles.map { Uri.parse(it.uriString) }
 
                 // Build chapter list for the strategy before transcoding
@@ -436,7 +436,17 @@ fun ProcessingScreen(
 private fun moveToDownloads(context: Context, sourceFile: File, bookTitle: String): String {
     if (!sourceFile.exists()) return sourceFile.absolutePath
 
-    val fileName = "${bookTitle.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)}_${System.currentTimeMillis()}.m4b"
+    val safeBaseName = bookTitle.replace("[^a-zA-Z0-9_\\- ]".toRegex(), "_").take(80)
+    val fileName = if (android.os.Build.VERSION.SDK_INT >= 29) {
+        // MediaStore handles duplicate names automatically by appending (1)
+        "$safeBaseName.m4b"
+    } else {
+        val downloadsDir = java.io.File(android.os.Environment.getExternalStoragePublicDirectory(
+            android.os.Environment.DIRECTORY_DOWNLOADS
+        ), "Audiora")
+        if (!downloadsDir.exists()) downloadsDir.mkdirs()
+        resolveUniqueFile(downloadsDir, safeBaseName, ".m4b").name
+    }
 
     return if (android.os.Build.VERSION.SDK_INT >= 29) {
         // API 29+: Use MediaStore (scoped storage)
@@ -511,6 +521,24 @@ fun TimelineStepRow(
     ) {
         
         // Checklist Indicator node with connecting line support
+
+/**
+ * Resolves a unique file path in the given directory by appending (N) if the base name already exists.
+ * e.g. "My Book.m4b" → "My Book.m4b" if absent, "My Book (1).m4b" if exists, "My Book (2).m4b" etc.
+ */
+private fun resolveUniqueFile(directory: java.io.File, baseName: String, extension: String): java.io.File {
+    val candidate = java.io.File(directory, "$baseName$extension")
+    if (!candidate.exists()) return candidate
+    var counter = 1
+    while (true) {
+        val next = java.io.File(directory, "$baseName ($counter)$extension")
+        if (!next.exists()) return next
+        counter++
+    }
+}
+
+/**
+ * Moves the transcoded M4B file from cache to Downloads/Audiora/ for permanent storage.
         Box(
             modifier = Modifier.width(32.dp),
             contentAlignment = Alignment.Center
