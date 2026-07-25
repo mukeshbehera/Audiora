@@ -71,8 +71,8 @@ fun toDisplayPath(uriStr: String?): String {
             if (uriStr.startsWith(prefix)) {
                 val sub = uriStr.removePrefix(prefix)
                 return if (sub.contains("/cache/")) {
-                    // Cache path — show as "App Cache / <filename>"
-                    "App Cache / ${sub.substringAfterLast('/')}"
+                    // Cache path — show /com.audiora/cache/filename
+                    "/$sub"
                 } else {
                     "/$sub"
                 }
