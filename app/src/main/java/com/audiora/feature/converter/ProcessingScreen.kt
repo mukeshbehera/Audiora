@@ -203,8 +203,9 @@ fun ProcessingScreen(
                 }
 
                 // Move the M4B from cache to Downloads/Audiora for permanent storage
+                val displayTitle = WizardState.title.ifBlank { firstFile.name.substringBeforeLast('.') }
                 val finalOutputPath = withContext(Dispatchers.IO) {
-                    moveToDownloads(context, outputMergedFile, WizardState.title.ifBlank { fallbackTitle })
+                    moveToDownloads(context, outputMergedFile, displayTitle)
                 }
 
                 // Register standard merged audiobook into database with the final path
