@@ -429,6 +429,9 @@ fun ProcessingScreen(
                     fontWeight = FontWeight.Bold
                 )
             }
+
+            // Bottom spacer to clear bottom navigation bar
+            Spacer(modifier = Modifier.height(96.dp))
         }
     }
 }
