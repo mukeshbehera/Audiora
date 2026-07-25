@@ -309,11 +309,14 @@ object M4BTranscoder {
             }
         }
     }
-}
-/**
+
+    /**
      * Embeds chapter markers into an existing M4B file using FFmpeg FFMETADATA.
      * Replaces existing chapters with the provided list.
      * Handles both local file paths and content:// URIs.
+     * NOTE: To preserve existing metadata, this generates FFMETADATA that includes
+     * chapter entries only. The caller should re-apply title/author/etc tags
+     * afterward if they need to be preserved.
      */
     suspend fun embedChaptersInFile(
         context: Context,
@@ -322,7 +325,7 @@ object M4BTranscoder {
     ): Boolean {
         return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
             try {
-                val isContentUri = filePath.startsWith("content://")
+                val isContentUri = isContentUri(filePath)
                 val sourceFile: File
                 val cleanupSource: (() -> Unit)?
 
@@ -340,8 +343,10 @@ object M4BTranscoder {
                     cleanupSource = null
                 }
 
-                // Generate FFMETADATA with only chapters (preserve existing metadata by copying from input)
-                val metadataStr = buildChaptersOnlyMetadata(chapters)
+                // Generate FFMETADATA with chapters, preserving existing metadata by first
+                // extracting metadata from source file via FFprobe and combining it
+                val existingMetadata = extractMetadataTags(context, sourceFile)
+                val metadataStr = buildChaptersMetadataWithExisting(existingMetadata, chapters)
                 val metadataFile = File(context.cacheDir, "ffmpeg_embed_meta_${System.nanoTime()}.txt")
                 metadataFile.writeText(metadataStr)
 
@@ -393,9 +398,50 @@ object M4BTranscoder {
         }
     }
 
-    private fun buildChaptersOnlyMetadata(chapters: List<Chapter>): String {
+    /**
+     * Extracts existing metadata tags from the source file using MediaMetadataRetriever.
+     * Returns a map of metadata keys to values.
+     */
+    private fun extractMetadataTags(context: Context, sourceFile: java.io.File): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, android.net.Uri.fromFile(sourceFile))
+            val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+            val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+            val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+            val composer = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPOSER)
+            val date = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
+            val genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
+            val year = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)
+            val cdTrackNumber = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
+            retriever.release()
+            if (!title.isNullOrBlank()) map["title"] = title
+            if (!artist.isNullOrBlank()) map["artist"] = artist
+            if (!album.isNullOrBlank()) map["album"] = album
+            if (!composer.isNullOrBlank()) map["composer"] = composer
+            if (!date.isNullOrBlank()) map["date"] = date
+            if (!genre.isNullOrBlank()) map["genre"] = genre
+            if (!year.isNullOrBlank()) map["date"] = year
+            if (!cdTrackNumber.isNullOrBlank()) map["track"] = cdTrackNumber
+        } catch (e: Exception) {
+            Timber.w(e, "Could not extract metadata from source file")
+        }
+        return map
+    }
+
+    /**
+     * Builds a FFMETADATA string that includes both existing metadata tags and chapters.
+     * This prevents metadata loss when -map_metadata 1 overwrites with the FFMETADATA file.
+     */
+    private fun buildChaptersMetadataWithExisting(existingTags: Map<String, String>, chapters: List<Chapter>): String {
         val sb = StringBuilder()
         sb.appendLine(";FFMETADATA1")
+        // Include existing metadata tags to prevent them from being lost
+        for ((key, value) in existingTags) {
+            sb.appendLine("$key=$value")
+        }
+        // Append chapters
         for (ch in chapters) {
             sb.appendLine()
             sb.appendLine("[CHAPTER]")
@@ -406,3 +452,8 @@ object M4BTranscoder {
         }
         return sb.toString()
     }
+
+    /**
+     * Helper to check if a file path is a content:// URI.
+     */
+    private fun isContentUri(path: String): Boolean = path.startsWith("content://")

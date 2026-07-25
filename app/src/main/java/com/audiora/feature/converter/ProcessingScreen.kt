@@ -255,6 +255,11 @@ fun ProcessingScreen(
                 val allBooks = app.bookRepository.getAudiobooks()
                 onMergeCompleted(0) // Safe routing ID
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) {
+                    Timber.d("Audiobook creation was cancelled")
+                    // Re-throw CancellationException so the coroutine properly stops
+                    throw e
+                }
                 Timber.e(e, "Error converting audiobooks")
             }
         }
@@ -521,24 +526,6 @@ fun TimelineStepRow(
     ) {
         
         // Checklist Indicator node with connecting line support
-
-/**
- * Resolves a unique file path in the given directory by appending (N) if the base name already exists.
- * e.g. "My Book.m4b" → "My Book.m4b" if absent, "My Book (1).m4b" if exists, "My Book (2).m4b" etc.
- */
-private fun resolveUniqueFile(directory: java.io.File, baseName: String, extension: String): java.io.File {
-    val candidate = java.io.File(directory, "$baseName$extension")
-    if (!candidate.exists()) return candidate
-    var counter = 1
-    while (true) {
-        val next = java.io.File(directory, "$baseName ($counter)$extension")
-        if (!next.exists()) return next
-        counter++
-    }
-}
-
-/**
- * Moves the transcoded M4B file from cache to Downloads/Audiora/ for permanent storage.
         Box(
             modifier = Modifier.width(32.dp),
             contentAlignment = Alignment.Center
@@ -614,5 +601,20 @@ private fun resolveUniqueFile(directory: java.io.File, baseName: String, extensi
             },
             modifier = Modifier.testTag("step_label_$label")
         )
+    }
+}
+
+/**
+ * Resolves a unique file path in the given directory by appending (N) if the base name already exists.
+ * e.g. "My Book.m4b" → "My Book.m4b" if absent, "My Book (1).m4b" if exists, "My Book (2).m4b" etc.
+ */
+private fun resolveUniqueFile(directory: java.io.File, baseName: String, extension: String): java.io.File {
+    val candidate = java.io.File(directory, "$baseName$extension")
+    if (!candidate.exists()) return candidate
+    var counter = 1
+    while (true) {
+        val next = java.io.File(directory, "$baseName ($counter)$extension")
+        if (!next.exists()) return next
+        counter++
     }
 }

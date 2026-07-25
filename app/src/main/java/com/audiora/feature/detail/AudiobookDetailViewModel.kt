@@ -101,6 +101,18 @@ class AudiobookDetailViewModel(
             try {
                 val sourcePath = book.filePath
 
+                // FFmpeg cannot read content:// URIs — copy to temp file if needed
+                val effectiveInputPath = if (sourcePath.startsWith("content://")) {
+                    val uri = android.net.Uri.parse(sourcePath)
+                    val tempInput = java.io.File(context.cacheDir, "ffmpeg_export_input_${java.lang.System.nanoTime()}.m4b")
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        tempInput.outputStream().use { output -> input.copyTo(output) }
+                    } ?: throw java.io.IOException("Cannot open source: $sourcePath")
+                    tempInput.absolutePath
+                } else {
+                    sourcePath
+                }
+
                 // Use FFmpeg for a verified stream copy with faststart
                 // This preserves all embedded metadata and chapters
                 val outputParam = if (destinationUri.scheme == "content") {
@@ -109,7 +121,7 @@ class AudiobookDetailViewModel(
                     "\"${destinationUri.path}\""
                 }
 
-                val command = "-i \"$sourcePath\" -c copy -movflags +faststart $outputParam -y"
+                val command = "-i \"$effectiveInputPath\" -c copy -movflags +faststart $outputParam -y"
                 Timber.d("Export FFmpeg command: $command")
 
                 val success = kotlinx.coroutines.suspendCancellableCoroutine<Boolean> { cont ->

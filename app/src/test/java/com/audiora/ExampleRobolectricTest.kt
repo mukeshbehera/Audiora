@@ -629,6 +629,15 @@ class ExampleRobolectricTest {
       context = context,
       inputUris = emptyList(),
       outputFile = tempFile,
+      title = "Test",
+      author = "Test",
+      narrator = "Test",
+      publisher = "Test",
+      genre = "Audiobook",
+      year = "2026",
+      description = "Test",
+      chapters = emptyList(),
+      coverSeed = null,
       listener = object : com.audiora.feature.converter.M4BTranscoder.ProgressListener {
         override fun onProgress(percentage: Float) {}
       }
