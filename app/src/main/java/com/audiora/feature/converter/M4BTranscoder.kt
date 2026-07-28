@@ -351,7 +351,15 @@ object M4BTranscoder {
                 metadataFile.writeText(metadataStr)
 
                 val outputFile = File(context.cacheDir, "ffmpeg_embed_out_${System.nanoTime()}.m4b")
-                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map 0:a -map_metadata 1 -map_chapters 1 -c copy -y \"${outputFile.absolutePath}\""
+                // Use -c:a copy to remux audio without re-encoding (no quality loss),
+                // while still going through the MP4 muxer so chapter atoms from the
+                // ffmetadata file are written into a fresh moov box.
+                // This is different from -c copy which skips the muxer entirely and
+                // cannot inject chapter atoms into existing MP4 containers.
+                // -map_chapters 1 is intentionally omitted because ffmpeg-kit-audio
+                // (audio-only build) doesn't support it in stream-copy mode; instead
+                // chapters are picked up from the ffmetadata file via -map_metadata 1.
+                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map 0:a -c:a copy -map_metadata 1 -y \"${outputFile.absolutePath}\""
 
                 val session = FFmpegKit.executeAsync(
                     command,
