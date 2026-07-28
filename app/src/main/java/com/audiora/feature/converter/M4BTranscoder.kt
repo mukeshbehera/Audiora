@@ -351,23 +351,36 @@ object M4BTranscoder {
                 metadataFile.writeText(metadataStr)
 
                 val outputFile = File(context.cacheDir, "ffmpeg_embed_out_${System.nanoTime()}.m4b")
-                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map_metadata 1 -map_chapters 1 -c copy -y \"${outputFile.absolutePath}\""
+                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map 0:a -map_metadata 1 -map_chapters 1 -c copy -y \"${outputFile.absolutePath}\""
 
                 val session = FFmpegKit.executeAsync(
                     command,
                     { session ->
                         try {
                             if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists()) {
+                                var writeBackOk = false
                                 if (isContentUri) {
                                     val uri = android.net.Uri.parse(filePath)
-                                    context.contentResolver.openOutputStream(uri, "rwt")?.use { output ->
-                                        outputFile.inputStream().use { input -> input.copyTo(output) }
+                                    val outputStream = context.contentResolver.openOutputStream(uri, "rwt")
+                                    if (outputStream != null) {
+                                        outputStream.use { output ->
+                                            outputFile.inputStream().use { input -> input.copyTo(output) }
+                                        }
+                                        writeBackOk = true
+                                    } else {
+                                        Timber.e("openOutputStream returned null for content URI: $filePath")
                                     }
                                 } else {
                                     outputFile.copyTo(sourceFile, overwrite = true)
+                                    writeBackOk = true
                                 }
-                                Timber.d("Chapters embedded successfully via FFmpeg in $filePath")
-                                continuation.resume(true, onCancellation = null)
+                                if (writeBackOk) {
+                                    Timber.d("Chapters embedded successfully via FFmpeg in $filePath")
+                                    continuation.resume(true, onCancellation = null)
+                                } else {
+                                    Timber.e("Failed to write output back to content URI: $filePath")
+                                    continuation.resume(false, onCancellation = null)
+                                }
                             } else {
                                 Timber.e("FFmpeg chapter embedding failed with code ${session.returnCode.value}")
                                 continuation.resume(false, onCancellation = null)

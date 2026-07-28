@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.io.IOException
 
 class BookRepositoryImpl(
     private val bookDao: BookDao,
@@ -340,7 +341,7 @@ class BookRepositoryImpl(
                     chapters = chapters
                 )
                 if (!success) {
-                    Timber.w("FFmpeg chapter embedding returned false for: $filePathStr")
+                    throw IOException("FFmpeg chapter embedding failed — chapters saved to database but not written to audiobook file")
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error embedding chapters via FFmpeg in: $filePathStr")

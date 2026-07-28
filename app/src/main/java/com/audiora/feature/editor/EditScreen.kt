@@ -96,7 +96,7 @@ fun EditScreen(
                 val errorMsg = (saveStatus as SaveStatus.Error).message
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        message = "Warning: Updated database, but file write skipped ($errorMsg)",
+                        message = "Failed to write chapters to file: $errorMsg",
                         duration = SnackbarDuration.Long
                     )
                     viewModel.resetStatus()
