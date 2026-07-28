@@ -351,21 +351,31 @@ object M4BTranscoder {
                 metadataFile.writeText(metadataStr)
 
                 val outputFile = File(context.cacheDir, "ffmpeg_embed_out_${System.nanoTime()}.m4b")
-                // Use -c:a copy to remux audio without re-encoding (no quality loss),
-                // while still going through the MP4 muxer so chapter atoms from the
-                // ffmetadata file are written into a fresh moov box.
-                // This is different from -c copy which skips the muxer entirely and
-                // cannot inject chapter atoms into existing MP4 containers.
-                // -map_chapters 1 is intentionally omitted because ffmpeg-kit-audio
-                // (audio-only build) doesn't support it in stream-copy mode; instead
-                // chapters are picked up from the ffmetadata file via -map_metadata 1.
-                val command = "-i \"${sourceFile.absolutePath}\" -f ffmetadata -i \"${metadataFile.absolutePath}\" -map 0:a -c:a copy -map_metadata 1 -y \"${outputFile.absolutePath}\""
+                Timber.d("embedChaptersInFile: filePath=$filePath, chapters=${chapters.size}, source=${sourceFile.absolutePath}")
+
+                // Re-encode audio (single generation) to go through the full AAC encoder →
+                // MP4 muxer pipeline, which reliably writes chapter atoms into the fresh
+                // moov box. This is the same proven approach used by transcode().
+                // -c:a copy and -c copy fail with ffmpeg-kit-audio (audio-only build)
+                // because the muxer's stream-copy path cannot inject chapter atoms.
+                // Audio quality is preserved at the standard target bitrate.
+                val command = "-i \"${sourceFile.absolutePath}\"" +
+                    " -f ffmetadata -i \"${metadataFile.absolutePath}\"" +
+                    " -map 0:a -c:a aac -b:a $TARGET_BITRATE" +
+                    " -ar $TARGET_SAMPLE_RATE -ac $TARGET_CHANNELS" +
+                    " -map_metadata 1 -movflags +faststart" +
+                    " -y \"${outputFile.absolutePath}\""
 
                 val session = FFmpegKit.executeAsync(
                     command,
                     { session ->
                         try {
-                            if (ReturnCode.isSuccess(session.returnCode) && outputFile.exists()) {
+                            val rc = session.returnCode
+                            val rcSuccess = ReturnCode.isSuccess(rc)
+                            val outExists = outputFile.exists()
+                            val outSize = if (outExists) outputFile.length() else -1L
+
+                            if (rcSuccess && outExists && outSize > 0) {
                                 var writeBackOk = false
                                 if (isContentUri) {
                                     val uri = android.net.Uri.parse(filePath)
@@ -390,7 +400,11 @@ object M4BTranscoder {
                                     continuation.resume(false, onCancellation = null)
                                 }
                             } else {
-                                Timber.e("FFmpeg chapter embedding failed with code ${session.returnCode.value}")
+                                val failReason = if (!rcSuccess) "returnCode=${rc.value}" else "outputFile missing or zero size"
+                                Timber.e("FFmpeg chapter embedding failed: $failReason")
+                                session.allLogs?.forEach { log ->
+                                    Timber.e("[FFmpeg] ${log.message?.trimEnd()}")
+                                }
                                 continuation.resume(false, onCancellation = null)
                             }
                         } finally {
