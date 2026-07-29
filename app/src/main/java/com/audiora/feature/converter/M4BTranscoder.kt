@@ -10,12 +10,11 @@ import com.arthenica.ffmpegkit.ReturnCode
 import com.arthenica.ffmpegkit.Statistics
 import com.arthenica.ffmpegkit.StatisticsCallback
 import com.audiora.domain.model.Chapter
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 import java.io.File
 import java.io.IOException
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 object M4BTranscoder {
 
@@ -313,179 +312,87 @@ object M4BTranscoder {
     /**
      * Embeds chapter markers into an existing M4B file using FFmpeg FFMETADATA.
      * Replaces existing chapters with the provided list.
+    /**
+     * Embeds chapter markers into an existing M4B file by writing a Nero chapter
+     * list (chpl) atom directly into the MP4 container structure.
+     *
+     * This bypasses FFmpeg entirely because ffmpeg-kit-audio (audio-only build)
+     * cannot inject chapter atoms into existing files — the muxer's stream-copy
+     * path doesn't write container-level structures like chapter atoms.
+     *
+     * The direct atom writer is the reverse of what M4bChapterExtractor does for
+     * reading: it finds moov > udta in the MP4 box tree and replaces/inserts a
+     * chpl atom at that location, then updates parent atom sizes.
+     *
      * Handles both local file paths and content:// URIs.
-     * NOTE: To preserve existing metadata, this generates FFMETADATA that includes
-     * chapter entries only. The caller should re-apply title/author/etc tags
-     * afterward if they need to be preserved.
      */
     suspend fun embedChaptersInFile(
         context: Context,
         filePath: String,
         chapters: List<Chapter>
-    ): Boolean {
-        return kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
-            try {
-                val isContentUri = isContentUri(filePath)
-                val sourceFile: File
-                val cleanupSource: (() -> Unit)?
+    ): Boolean = withContext(Dispatchers.IO) {
+        if (chapters.isEmpty()) return@withContext false
+        val isContentUri = isContentUri(filePath)
+        val sourceFile: File
+        val cleanupSource: (() -> Unit)?
+        val outFile: File
 
-                if (isContentUri) {
-                    val uri = android.net.Uri.parse(filePath)
-                    val tempInput = File(context.cacheDir, "ffmpeg_embed_input_${System.nanoTime()}.m4b")
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        tempInput.outputStream().use { output -> input.copyTo(output) }
-                    } ?: throw IOException("Cannot open input stream for $filePath")
-                    sourceFile = tempInput
-                    cleanupSource = { tempInput.delete() }
-                } else {
-                    sourceFile = File(filePath)
-                    if (!sourceFile.exists()) throw IOException("File not found: $filePath")
-                    cleanupSource = null
-                }
-
-                // Generate FFMETADATA with chapters, preserving existing metadata by first
-                // extracting metadata from source file via FFprobe and combining it
-                val existingMetadata = extractMetadataTags(context, sourceFile)
-                val metadataStr = buildChaptersMetadataWithExisting(existingMetadata, chapters)
-                val metadataFile = File(context.cacheDir, "ffmpeg_embed_meta_${System.nanoTime()}.txt")
-                metadataFile.writeText(metadataStr)
-
-                val outputFile = File(context.cacheDir, "ffmpeg_embed_out_${System.nanoTime()}.m4b")
-                Timber.d("embedChaptersInFile: filePath=$filePath, chapters=${chapters.size}, source=${sourceFile.absolutePath}")
-
-                // Re-encode audio (single generation) to go through the full AAC encoder →
-                // MP4 muxer pipeline, which reliably writes chapter atoms into the fresh
-                // moov box. This is the same proven approach used by transcode().
-                // -c:a copy and -c copy fail with ffmpeg-kit-audio (audio-only build)
-                // because the muxer's stream-copy path cannot inject chapter atoms.
-                // Audio quality is preserved at the standard target bitrate.
-                val command = "-i \"${sourceFile.absolutePath}\"" +
-                    " -f ffmetadata -i \"${metadataFile.absolutePath}\"" +
-                    " -map 0:a -c:a aac -b:a $TARGET_BITRATE" +
-                    " -ar $TARGET_SAMPLE_RATE -ac $TARGET_CHANNELS" +
-                    " -map_metadata 1 -movflags +faststart" +
-                    " -y \"${outputFile.absolutePath}\""
-
-                val session = FFmpegKit.executeAsync(
-                    command,
-                    { session ->
-                        try {
-                            val rc = session.returnCode
-                            val rcSuccess = ReturnCode.isSuccess(rc)
-                            val outExists = outputFile.exists()
-                            val outSize = if (outExists) outputFile.length() else -1L
-
-                            if (rcSuccess && outExists && outSize > 0) {
-                                var writeBackOk = false
-                                if (isContentUri) {
-                                    val uri = android.net.Uri.parse(filePath)
-                                    val outputStream = context.contentResolver.openOutputStream(uri, "rwt")
-                                    if (outputStream != null) {
-                                        outputStream.use { output ->
-                                            outputFile.inputStream().use { input -> input.copyTo(output) }
-                                        }
-                                        writeBackOk = true
-                                    } else {
-                                        Timber.e("openOutputStream returned null for content URI: $filePath")
-                                    }
-                                } else {
-                                    outputFile.copyTo(sourceFile, overwrite = true)
-                                    writeBackOk = true
-                                }
-                                if (writeBackOk) {
-                                    Timber.d("Chapters embedded successfully via FFmpeg in $filePath")
-                                    continuation.resume(true, onCancellation = null)
-                                } else {
-                                    Timber.e("Failed to write output back to content URI: $filePath")
-                                    continuation.resume(false, onCancellation = null)
-                                }
-                            } else {
-                                val failReason = if (!rcSuccess) "returnCode=${rc.value}" else "outputFile missing or zero size"
-                                Timber.e("FFmpeg chapter embedding failed: $failReason")
-                                session.allLogs?.forEach { log ->
-                                    Timber.e("[FFmpeg] ${log.message?.trimEnd()}")
-                                }
-                                continuation.resume(false, onCancellation = null)
-                            }
-                        } finally {
-                            cleanupSource?.invoke()
-                            metadataFile.delete()
-                            outputFile.delete()
-                        }
-                    },
-                    com.arthenica.ffmpegkit.LogCallback { log ->
-                        Timber.d("FFmpeg embed: ${log.message?.trimEnd()}")
-                    },
-                    null, /* no statistics callback needed */
-                    null  /* use default executor */
-                )
-
-                continuation.invokeOnCancellation {
-                    session.cancel()
-                    cleanupSource?.invoke()
-                    metadataFile.delete()
-                    outputFile.delete()
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Error embedding chapters in file: $filePath")
-                continuation.resume(false, onCancellation = null)
-            }
-        }
-    }
-
-    /**
-     * Extracts existing metadata tags from the source file using MediaMetadataRetriever.
-     * Returns a map of metadata keys to values.
-     */
-    private fun extractMetadataTags(context: Context, sourceFile: java.io.File): Map<String, String> {
-        val map = mutableMapOf<String, String>()
         try {
-            val retriever = MediaMetadataRetriever()
-            retriever.setDataSource(context, android.net.Uri.fromFile(sourceFile))
-            val title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-            val artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-            val album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-            val composer = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPOSER)
-            val date = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
-            val genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
-            val year = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)
-            val cdTrackNumber = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
-            retriever.release()
-            if (!title.isNullOrBlank()) map["title"] = title
-            if (!artist.isNullOrBlank()) map["artist"] = artist
-            if (!album.isNullOrBlank()) map["album"] = album
-            if (!composer.isNullOrBlank()) map["composer"] = composer
-            if (!date.isNullOrBlank()) map["date"] = date
-            if (!genre.isNullOrBlank()) map["genre"] = genre
-            if (!year.isNullOrBlank()) map["date"] = year
-            if (!cdTrackNumber.isNullOrBlank()) map["track"] = cdTrackNumber
-        } catch (e: Exception) {
-            Timber.w(e, "Could not extract metadata from source file")
-        }
-        return map
-    }
+            if (isContentUri) {
+                val uri = android.net.Uri.parse(filePath)
+                val tempInput = File(context.cacheDir, "chapters_edit_input_${System.nanoTime()}.m4b")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    tempInput.outputStream().use { output -> input.copyTo(output) }
+                } ?: throw IOException("Cannot open input stream for $filePath")
+                sourceFile = tempInput
+                outFile = File(context.cacheDir, "chapters_edit_output_${System.nanoTime()}.m4b")
+                cleanupSource = { tempInput.delete(); outFile.delete() }
+            } else {
+                sourceFile = File(filePath)
+                if (!sourceFile.exists()) throw IOException("File not found: $filePath")
+                outFile = File(context.cacheDir, "chapters_edit_output_${System.nanoTime()}.m4b")
+                cleanupSource = { outFile.delete() }
+            }
 
-    /**
-     * Builds a FFMETADATA string that includes both existing metadata tags and chapters.
-     * This prevents metadata loss when -map_metadata 1 overwrites with the FFMETADATA file.
-     */
-    private fun buildChaptersMetadataWithExisting(existingTags: Map<String, String>, chapters: List<Chapter>): String {
-        val sb = StringBuilder()
-        sb.appendLine(";FFMETADATA1")
-        // Include existing metadata tags to prevent them from being lost
-        for ((key, value) in existingTags) {
-            sb.appendLine("$key=$value")
+            Timber.d("embedChaptersInFile: writing ${chapters.size} chapters to ${sourceFile.absolutePath}")
+
+            // Use the direct MP4 atom writer to inject a Nero chpl atom
+            val success = com.audiora.data.local.M4bChapterWriter.writeChapters(
+                sourceFile = sourceFile,
+                outputFile = outFile,
+                chapters = chapters
+            )
+
+            if (!success || !outFile.exists() || outFile.length() == 0L) {
+                Timber.e("M4bChapterWriter returned false for $filePath")
+                cleanupSource?.invoke()
+                return@withContext false
+            }
+
+            // Write the patched file back to the original location
+            if (isContentUri) {
+                val uri = android.net.Uri.parse(filePath)
+                val outputStream = context.contentResolver.openOutputStream(uri, "rwt")
+                if (outputStream != null) {
+                    outputStream.use { output ->
+                        outFile.inputStream().use { input -> input.copyTo(output) }
+                    }
+                } else {
+                    Timber.e("openOutputStream returned null for content URI: $filePath")
+                    cleanupSource?.invoke()
+                    return@withContext false
+                }
+            } else {
+                outFile.copyTo(sourceFile, overwrite = true)
+            }
+
+            Timber.d("Chapters embedded successfully via M4bChapterWriter in $filePath")
+            cleanupSource?.invoke()
+            return@withContext true
+        } catch (e: Exception) {
+            Timber.e(e, "Error embedding chapters in file: $filePath")
+            return@withContext false
         }
-        // Append chapters
-        for (ch in chapters) {
-            sb.appendLine()
-            sb.appendLine("[CHAPTER]")
-            sb.appendLine("TIMEBASE=1/1000")
-            sb.appendLine("START=${ch.startMs}")
-            sb.appendLine("END=${ch.endMs}")
-            sb.appendLine("title=${ch.title}")
-        }
-        return sb.toString()
     }
 
     /**
